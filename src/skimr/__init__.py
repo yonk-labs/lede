@@ -10,10 +10,11 @@ try:
     from skimr.clean import clean_text, strip_think
     from skimr.tfidf import summarize
     from skimr.keyword import extract_keyword
-except ModuleNotFoundError:
-    # TEMPORARY (remove in Task 7): Submodules are added incrementally in
-    # Tasks 3-7. Once clean/tfidf/keyword all exist, delete this try/except
-    # so real import errors surface cleanly.
+except ImportError:
+    # TEMPORARY (remove in Task 7): Submodules + their public symbols are
+    # added incrementally in Tasks 3-7. Catches both missing modules and
+    # not-yet-defined names. Once all three modules export their full public
+    # surface, delete this try/except so real import errors surface cleanly.
     pass
 
 __version__ = "0.0.1"
