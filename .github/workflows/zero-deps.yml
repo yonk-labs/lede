@@ -1,0 +1,42 @@
+name: zero-deps
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  zero-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install skimr with no extras
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Verify no non-stdlib runtime deps
+        run: |
+          python -c "
+          import subprocess, sys
+          output = subprocess.check_output([sys.executable, '-m', 'pip', 'show', 'skimr'], text=True)
+          for line in output.splitlines():
+              if line.startswith('Requires:'):
+                  deps = line.split(':', 1)[1].strip()
+                  if deps:
+                      raise SystemExit(f'skimr has runtime deps: {deps!r}')
+                  print('zero-deps: OK')
+                  break
+          "
+      - name: Verify skimr imports with default install
+        run: |
+          python -c "
+          import skimr
+          from skimr import summarize, clean_text, strip_think, extract_keyword
+          import sys
+          assert 'networkx' not in sys.modules
+          print('import check: OK')
+          "
