@@ -1,3 +1,5 @@
+import pytest
+
 from skimr.sentences import split_sentences
 
 
@@ -51,3 +53,8 @@ def test_empty_input_returns_empty_list():
 def test_single_sentence_no_terminator():
     # SUMMARIZATION.md doesn't require a final period
     assert split_sentences("Just one fragment") == ["Just one fragment"]
+
+
+def test_nul_in_input_raises():
+    with pytest.raises(ValueError, match="reserved sentinel"):
+        split_sentences("hello\x00world. Next.")

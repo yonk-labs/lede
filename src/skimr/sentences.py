@@ -20,6 +20,10 @@ _SENTINEL = "\x00"  # ASCII NUL — won't appear in real text
 
 
 def _mask(text: str) -> str:
+    if _SENTINEL in text:
+        raise ValueError(
+            f"Input contains reserved sentinel character U+{ord(_SENTINEL):04X}"
+        )
     # Protect decimals: digit.digit → digit<SENTINEL>digit
     text = re.sub(r"(\d)\.(\d)", lambda m: f"{m.group(1)}{_SENTINEL}{m.group(2)}", text)
 

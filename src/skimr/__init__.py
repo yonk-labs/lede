@@ -11,8 +11,9 @@ try:
     from skimr.tfidf import summarize
     from skimr.keyword import extract_keyword
 except ModuleNotFoundError:
-    # Submodules are being added incrementally (Tasks 3-7). Allow individual
-    # submodule imports to succeed before the full public API is wired up.
+    # TEMPORARY (remove in Task 7): Submodules are added incrementally in
+    # Tasks 3-7. Once clean/tfidf/keyword all exist, delete this try/except
+    # so real import errors surface cleanly.
     pass
 
 __version__ = "0.0.1"
