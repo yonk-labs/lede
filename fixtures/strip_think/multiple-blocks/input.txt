@@ -1,0 +1,4 @@
+<think>First reasoning pass.</think>
+The deal closed at $45K.
+<think>Second reasoning pass about timeline.</think>
+Close date was March 14.

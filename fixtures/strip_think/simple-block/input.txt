@@ -1,0 +1,4 @@
+<think>
+Let me reason about this. The user asked X, and I should respond with Y.
+</think>
+Revenue grew 23% in Q4.
