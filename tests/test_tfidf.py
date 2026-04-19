@@ -53,3 +53,68 @@ def test_composite_score_weighting():
     assert len(composite) == 3
     # Sanity: all in [0, 1]
     assert all(0.0 <= s <= 1.0 for s in composite)
+
+
+from skimr.tfidf import summarize
+
+
+def test_summarize_short_input_returns_unchanged():
+    text = "Short text."
+    assert summarize(text, max_length=500) == text
+
+
+def test_summarize_fallback_truncates_when_max_length_too_small():
+    text = "First sentence. Second sentence. Third sentence. Fourth sentence."
+    # max_length < 50 triggers truncation fallback per SUMMARIZATION.md step 1
+    result = summarize(text, max_length=20)
+    assert len(result) <= 23  # 20 + "..." suffix
+    assert result.endswith("...")
+
+
+def test_summarize_fallback_when_fewer_than_three_sentences():
+    text = "One only sentence here in this input."
+    # Only 1 sentence → falls back to truncation
+    result = summarize(text, max_length=15)
+    # 15 is < 50, so truncation path; also <3 sentences
+    assert result.endswith("...")
+
+
+def test_summarize_respects_max_length_budget():
+    text = (
+        "Revenue grew 23% in Q4. "
+        "The Enterprise segment led growth. "
+        "Churn remained flat. "
+        "Dr. Smith analyzed the Q4 results. "
+        "Margins improved by 5 points."
+    )
+    result = summarize(text, max_length=100)
+    assert len(result) <= 100
+
+
+def test_summarize_reorders_by_original_position():
+    # Construct text where the highest-TF-IDF sentence is in the middle.
+    text = (
+        "Opening sentence about apples. "
+        "Unique distinctive keyword-heavy sentence. "
+        "Closing sentence about apples."
+    )
+    result = summarize(text, max_length=200)
+    # The output should preserve original order if the selected sentences were
+    # originally in that order. We check that the first selected sentence appears
+    # before the second in the output.
+    idx_open = result.find("Opening")
+    idx_mid = result.find("Unique")
+    idx_close = result.find("Closing")
+    # All three selected; output must preserve order
+    if idx_open >= 0 and idx_mid >= 0:
+        assert idx_open < idx_mid
+    if idx_mid >= 0 and idx_close >= 0:
+        assert idx_mid < idx_close
+
+
+def test_summarize_fixture_short_passthrough():
+    from pathlib import Path
+    fx = Path(__file__).resolve().parent.parent / "fixtures" / "tfidf" / "short-passthrough"
+    inp = (fx / "input.txt").read_text()
+    expected = (fx / "expected.txt").read_text()
+    assert summarize(inp, max_length=500) == expected

@@ -117,3 +117,67 @@ def composite_score(sentences: list[str]) -> list[float]:
         _TFIDF_WEIGHT * t[i] + _POSITION_WEIGHT * p[i] + _LENGTH_WEIGHT * l[i]
         for i in range(len(sentences))
     ]
+
+
+# --- Top-level summarize pipeline ---
+
+_MIN_SENTENCES = 3
+_MIN_BUDGET_FOR_SENTENCES = 50  # chars; below this, truncate
+
+
+def _truncate(text: str, max_length: int) -> str:
+    if len(text) <= max_length:
+        return text
+    # Reserve 3 chars for the ellipsis
+    body_budget = max(0, max_length - 3)
+    return text[:body_budget] + "..."
+
+
+def summarize(text: str, max_length: int = 500) -> str:
+    """Extractive summary of ``text`` capped at ``max_length`` characters.
+
+    Per SUMMARIZATION.md:
+      1. If input fits the budget, return unchanged.
+      2. If the budget is too small for sentences, truncate.
+      3. Split into sentences; if fewer than 3, truncate.
+      4. Score sentences (TF-IDF + position + length, 60/25/15).
+      5. Greedily add highest-scoring sentences until the char budget is spent.
+      6. Reorder selected sentences by original position.
+      7. Fallback to truncation if selection is empty.
+    """
+    if not text:
+        return ""
+
+    if len(text) <= max_length:
+        return text
+
+    if max_length < _MIN_BUDGET_FOR_SENTENCES:
+        return _truncate(text, max_length)
+
+    sentences = split_sentences(text)
+    if len(sentences) < _MIN_SENTENCES:
+        return _truncate(text, max_length)
+
+    scores = composite_score(sentences)
+    # Indices sorted by score descending, then by original position ascending
+    # (stable tie-break — deterministic).
+    indices_by_score = sorted(
+        range(len(sentences)),
+        key=lambda i: (-scores[i], i),
+    )
+
+    selected: list[int] = []
+    used = 0
+    separator = " "
+    for idx in indices_by_score:
+        sentence = sentences[idx]
+        needed = len(sentence) + (len(separator) if selected else 0)
+        if used + needed <= max_length:
+            selected.append(idx)
+            used += needed
+
+    if not selected:
+        return _truncate(text, max_length)
+
+    selected.sort()
+    return separator.join(sentences[i] for i in selected)
