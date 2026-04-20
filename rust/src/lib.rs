@@ -8,3 +8,9 @@ pub mod clean;
 pub mod keyword;
 pub mod sentences;
 pub mod tfidf;
+
+pub use clean::{clean_text, strip_think};
+pub use keyword::extract_keyword;
+pub use tfidf::summarize;
+
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
