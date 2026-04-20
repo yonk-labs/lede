@@ -5,5 +5,6 @@
 //! `../fixtures/`. See the mission brief for the full contract.
 
 pub mod clean;
+pub mod keyword;
 pub mod sentences;
 pub mod tfidf;
