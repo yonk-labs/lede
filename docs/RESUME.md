@@ -1,87 +1,135 @@
-# Resume: skimr Python v0.0.1 → next up
+# Resume: skimr Rust Plan 2 — stopped after T5
 
-**Current state:** Plan 1 complete. `v0.0.1` tagged locally and pushed to `yonk-labs/skimr` (private). Both CI workflows green on first push. 64 tests passing.
+**Last session:** 2026-04-19 evening → 2026-04-20 early morning. Stopped after T5 at commit `c704a7c`. v0.0.1 already shipped (Plan 1); Plan 2 (Rust port) in progress.
 
-## Repo
+## Repo state
 
-- **Remote:** https://github.com/yonk-labs/skimr (private)
-- **Tag:** https://github.com/yonk-labs/skimr/releases/tag/v0.0.1
-- **Branch:** `main`
-- **Local dir:** `/home/yonk/yonk-tools/extractive_summary` (rename to `skimr/` deferred per plan's out-of-scope list)
-- **CI:** `.github/workflows/{test.yml,zero-deps.yml}` — tests run on Python 3.10-3.13 matrix; zero-deps job asserts default install has no runtime deps.
+- **Remote:** https://github.com/yonk-labs/skimr (private, yonk-labs org)
+- **Branch:** `main` (all Plan 2 work continues here, matching Plan 1 pattern)
+- **Latest pushed SHA:** `c704a7c`
+- **v0.0.1 tag:** pushed; points at `4c3e7d4` (Plan 1 exit, Python reference complete)
+- **CI:** `tests` + `zero-deps` workflows exist and pass on every push. Rust-specific `rust.yml` lands in T13.
 
-## Plan 1 — all 15 tasks complete
+## Plan 2 — progress so far
 
-| # | Task | SHA |
-|---|---|---|
-| T1 | Package skeleton | `8ad835e` |
-| T2 | Sentence splitter | `5d7ef1f` + `0c734bc` |
-| T3 | `strip_think` | `f319f33` |
-| T4 | `clean_text` port + crm-boilerplate fixture | `643bfbe` |
-| T5 | TF-IDF scorer | `975e7f4` |
-| T6 | Greedy selector + reorder | `8e523a5` |
-| T7 | Keyword extractor + `__init__.py` shield removed | `0f46a65` |
-| T8 | Fixture walker test | `733ae16` |
-| T9 | CLI | `a238d02` |
-| T10 | Determinism test | `b507ea4` |
-| T11 | Zero-dep check | `b08943c` |
-| T12 | Optional TextRank (DC-003 cleared) | `2d28bf7` |
-| T13 | CI workflows + 3.13 classifier | `3114071` |
-| T14 | README | `4c3e7d4` |
-| T15 | DC-001 gate + tag `v0.0.1` | tag → `4c3e7d4` |
-| post-tag | defensive `.gitignore` + archived secret-scan | `7a0a082`, `2a56674` |
+Plan file: `docs/superpowers/plans/2026-04-19-skimr-rust-v01.md` (16 tasks total).
 
-## What's left for `v0.1.0`
+**Done (5/16):**
 
-From the mission brief (`skill-output/mission-brief/Mission-Brief-skimr.md`), v0.1.0 ships when these four SCs have concrete evidence. Plan 1 cleared the other six.
-
-| SC | Gap | Work needed | Rough size |
+| # | Task | SHA | Notes |
 |---|---|---|---|
-| **SC-002** | Rust port passing every fixture **byte-identical to Python** | Plan 2 — new Rust crate, `regex`-only dep, same fixture corpus | Big |
-| **SC-006** | Fastest of {Python skimr, Rust skimr} within **2× Sumy** wall-clock on same corpus / machine | Benchmark harness + Sumy baseline + results in `benchmarks/results-{date}.md`. DC-004: capture Sumy baseline first. | Small (without Rust), Medium (with) |
-| **SC-009** | Integrated into ≥1 real Yonk project with `docs/integration-memo.md` | Pick host (candidates: `yonk-taskstash`), capture before/after on real input. DC-005: capture *before* behavior before replacing. | 1 evening |
-| **SC-010** | Public GitHub repo, fresh-clone to summary under 5 min | Currently private. Flip visibility + timed fresh-clone run. | Small |
+| T1 | Cargo skeleton | `942d018` | edition 2024, MSRV 1.85 (plan was fixed at `5098721` — orig said 1.75 which cargo rejects) |
+| T2 | Sentence splitter | `786000b` | Lookbehind-free port; 9 tests; cross-language spot check identical |
+| T3 | `strip_think` | `72ee24d` | Trivial 16-line port |
+| T4 | `clean_text` | `2a30987` | Both `crm-boilerplate` and `markdown-basic` fixtures verified byte-identical to Python |
+| T5 | TF-IDF scorer | `c704a7c` | **Flagged — see Concerns #1 below** |
 
-**DC-FINAL before tagging v0.1.0:** re-read the brief and confirm every SC has concrete evidence.
+**Pending (11/16):** T6 greedy selector · T7 keyword extractor · T8 public API re-exports · T9 fixture walker (⛔ DC-002 gate) · T10 CLI · T11 determinism · T12 zero-dep assertion · T13 Rust CI · T14 README · T15 benchmark row fill · T16 DC-FINAL + tag.
 
-## Carry-forward concerns
+**Test suite state (Rust):** 22 passing (9 sentences + 6 strip_think + 7 clean_text + 5 tfidf scorer). Python side still 64 passing, untouched.
 
-1. **T12 plan deviation (documented):** `summarize_textrank` uses networkx's private `_pagerank_python` entry point instead of public `nx.pagerank` to keep `[textrank]` free of scipy/numpy. Stable across networkx 3.x; pin the version in CI if you want extra safety. Rationale in the T12 commit body (`2d28bf7`).
+## Execution cadence
 
-2. **T12 also rewrote** `test_zero_deps.py::test_textrank_not_importable_without_extra` → `test_skimr_default_import_does_not_pull_networkx` as a subprocess check, since the in-process `sys.modules` assertion is invalid once `[textrank]` is installed.
+Subagent-driven, per `superpowers:subagent-driven-development`. Pattern that has worked:
 
-3. **`fixtures/clean_text/crm-boilerplate/expected.txt`** preserves two SQL quirks (trailing `.`, leading `,` in stripped sentences) — faithful to `extractive_functions.sql`. Do not "fix" in the port without simultaneously fixing the SQL.
+- Dispatch implementer subagent with the task's full text + byte-identity constraints explicitly called out.
+- For trivial (T3-style, <50 lines, verbatim port): verify inline via `git show` + `cargo test`, skip the spec + quality subagent reviewers.
+- For byte-identity-critical (T2, T4, T5, T6, T7, T9): demand cross-language spot check in the implementer prompt; only dispatch spec + quality reviews if the spot check is ambiguous or concerns are raised.
+- Push periodically, not after every commit — less CI noise.
 
-4. **`fixtures/keyword/pricing-notes/expected.txt`** contains double-periods (`budget..`, `functionality..`) — the SQL splitter does `regexp_replace(E'\n+', '. ')` and the replacement collides with line-terminal periods. Faithful to SQL. Do not "fix" without updating the SQL reference.
+User gave autonomous full-send consent mid-session ("accept all requests, headed to bed"); next session can pick that back up if desired.
 
-5. **Deferred from T2 code review** (not blockers; pin when fixtures demand):
-   - `Acme Co. Shares soared.` under-splits (Co. treated as abbrev)
-   - Digit-after-period doesn't split (`It was 2023. 2024 was better.`) — spec-strict per SUMMARIZATION.md
-   - Dotted-abbreviation regex has overreach complexity; decouple eventually
+## ⚠️ Critical carry-forward concerns
 
-6. **venv uses `uv`, no `pip`** in it. Use `.venv/bin/python -m pytest ...` directly. For installs use `/home/yonk/.local/bin/uv pip install ...`.
+### 1. TF-IDF float-sum divergence (will fail T9 fixture walker as-is)
 
-## Companion project
+**Discovered at T5.** Rust's `Iterator::sum()` and Python 3.13's built-in `sum()` **do not produce bit-identical results** on accumulations of 6-8+ f64 values, even when every input bit and iteration order is identical. Observed gap: **1-3 ULPs** on per-sentence TF-IDF sums.
 
-Out-of-core neural summarization (ONNX small int8 LLM + BERT) is seeded at `/home/yonk/yonk-tools/skimr-neural/` — see that directory's README and mission brief. Explicitly out of scope for skimr core forever (per this brief's Out of Scope section).
+**Concrete test case the T5 subagent ran:**
+- Input: `[1.916290731874155] * 8`
+- Python `sum(...)` → `15.33032585499324` (bits `0x402ea9207870703c`)
+- Rust `iter().sum::<f64>()` → `15.330325854993244` (bits `0x402ea9207870703e`)
+
+(That exact case may not reproduce trivially — Python's `sum()` fast-path for lists-of-floats may be the non-obvious actor. Verify before building on it.)
+
+**What passes today:** the plan's 5 scorer unit tests in `rust/tests/tfidf.rs`, plus a short-sentence cross-language diff (`["Revenue grew.", "Margins improved.", "Churn remained flat."]` → `[1.0, 1.0, 1.0]` identical bits).
+
+**What will break:** T9's fixture walker on any fixture whose `tfidf_score` path involves a sentence with many terms. The `tfidf/short-passthrough` fixture is short enough to passthrough the scorer (len(text) ≤ max_length branch in `summarize` short-circuits), so it may NOT trip this. But any richer corpus will.
+
+**Fix options (pick one at T6, before T9 gate):**
+
+- **(A) Compensated summation on Rust side.** Add Neumaier or Kahan summation in `rust/src/tfidf.rs`'s `tfidf_score` per-sentence sum. ~10-15 lines. Preserves Python as the frozen spec. **Recommended.** Python is the spec per the mission brief; Rust adapts.
+- **(B) Force Python to plain left-fold.** Replace Python's `sum(tf[term] * idf.get(...) for term in tf)` with `functools.reduce(operator.add, ..., 0.0)` which bypasses any `sum()` fast path. Fixtures would need regeneration (byte-identical regeneration is likely but must be verified). Less desirable — changes the spec implementation even if the spec itself doesn't change.
+- **(C) Relax SC-002 to "within 1 ULP".** Rejected — breaks the whole "byte-identical across runtimes" thesis the mission brief is built on.
+
+**Where to apply fix A:** `rust/src/tfidf.rs`, inside `tfidf_score`, the `.map(|tc| { ... let sum: f64 = tc.keys.iter().map(...).sum(); ... })` block. Replace `.sum()` with a Neumaier fold. Add a unit test that constructs a known-divergent input and asserts identical bits with the Python reference (run the Python diff from a test harness at `rust/tests/float_parity.rs`).
+
+**Don't touch at T9.** The T9 walker should see green if the fix is in place by T7 at the latest. If the walker fails at T9, it's a cleanup-at-the-end-of-a-long-session signal that got ignored earlier.
+
+### 2. Existing concerns carried from pre-Rust work
+
+- `__init__.py` try/except shield removed in Plan 1 T7. Resolved.
+- `fixtures/clean_text/crm-boilerplate/expected.txt` has SQL-faithful quirks (trailing `.`, leading `,`). Do NOT edit; Rust T4 reproduced them byte-identical.
+- `fixtures/keyword/pricing-notes/expected.txt` has `..` double-periods from SQL's `\n+` → `. ` replacement colliding with line-terminal `.`. Do NOT edit; Rust T7 must reproduce.
+- Python 3.13 in venv; pyproject synced to include 3.13 classifier already.
+- venv uses `uv`, no `pip`. Use `.venv/bin/python -m pytest` directly; for installs use `/home/yonk/.local/bin/uv pip install ...`.
+
+## Rust-side quick facts
+
+- **Dir:** `rust/` (crate root with `Cargo.toml`)
+- **Edition:** 2024 / MSRV 1.85 (locked by `rust-toolchain.toml` to 1.93)
+- **Runtime deps:** `regex = "1"` only. `Cargo.lock` committed (idiomatic for binary-shipping crate).
+- **Lints:** `unsafe_code = "forbid"` + clippy pedantic with 5 allows: `cast_precision_loss`, `cast_possible_truncation`, `missing_errors_doc`, `missing_panics_doc`, `module_name_repetitions`.
+- **Module layout so far:**
+  ```
+  rust/src/
+    lib.rs              # pub mod clean; pub mod sentences; pub mod tfidf;
+    sentences.rs        # split_sentences
+    clean.rs            # strip_think, clean_text
+    tfidf.rs            # OrderedCounter, tfidf_score, position_score, length_score, composite_score
+    bin/skimr.rs        # stub; real CLI lands in T10
+  ```
+- **Tests:**
+  ```
+  rust/tests/
+    sentences.rs        # 9 tests
+    strip_think.rs      # 6 tests
+    clean_text.rs       # 7 tests
+    tfidf.rs            # 5 tests (scorer only; summarize tests land in T6)
+  ```
+
+## What's next (T6 through T16)
+
+Pick up with T6. Read the plan's T6 section at `docs/superpowers/plans/2026-04-19-skimr-rust-v01.md` (~lines 950–1120). **Before dispatching T6's subagent**, decide on fix A/B/C above for the float-sum issue. My strong recommendation: **fix A (Neumaier in Rust), addressed as a preamble to T6** — either a small dedicated task "T5.1: Neumaier summation" or folded into T6's implementer prompt as an additional constraint.
+
+Then T6 (summarize pipeline) can land with a new `rust/tests/float_parity.rs` that asserts byte-identity on a known-rich case, gating future drift.
+
+Subsequent tasks:
+- T7 keyword extractor — byte-identity risk on the SQL-style splitter
+- T8 re-exports (trivial)
+- T9 fixture walker — **⛔ DC-002 hard gate**; this is where byte-identity is proven
+- T10 CLI — hand-rolled argparse (no clap dep)
+- T11 determinism (100 runs × every fixture bit-identical)
+- T12 zero-dep assertion (parse Cargo.toml, assert `regex` only)
+- T13 CI workflow for Rust
+- T14 README Rust section
+- T15 benchmark harness Rust row fill
+- T16 DC-FINAL + tag — likely `v0.1.0-rc1` (not `v0.1.0`) since SC-009 integration memo isn't satisfied; flag to user before tagging
+
+## Resume prompt (paste into fresh session)
+
+> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr Plan 2 is in progress — T1-T5 complete, pushed to `yonk-labs/skimr` main. **Read `docs/RESUME.md` FIRST** — it flags a byte-identity divergence between Python and Rust `sum()` that must be resolved before T9's DC-002 gate. Plan: `docs/superpowers/plans/2026-04-19-skimr-rust-v01.md`. Mission brief: `skill-output/mission-brief/Mission-Brief-skimr.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. Start by deciding on fix A/B/C for the float-sum issue (my recommendation: A, Neumaier in Rust, addressed as a T5.1 preamble to T6). Then resume with T6.
 
 ## Handy one-liners
 
 ```bash
 cd /home/yonk/yonk-tools/extractive_summary
-.venv/bin/python -m pytest                    # run all tests (64 green)
-.venv/bin/skimr --help                        # CLI
-git log --oneline                             # see commit progress
-gh run list --repo yonk-labs/skimr --limit 5  # CI status
+.venv/bin/python -m pytest -q                        # Python side — 64 tests
+cd rust && cargo test && cargo clippy --all-targets -- -D warnings  # Rust side — 27 tests so far
+git log --oneline                                    # commit progress
+gh run list --repo yonk-labs/skimr --limit 5         # CI status
 ```
 
-## Resume prompts for future sessions
+## Companion repo
 
-**Plan 2 (Rust port):**
-> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr Plan 1 is complete; `v0.0.1` tagged and pushed to `yonk-labs/skimr`. Read `docs/RESUME.md` for state. Next: write and execute Plan 2 — Rust port satisfying SC-002 (byte-identical output to Python across the `fixtures/` corpus). Mission brief: `skill-output/mission-brief/Mission-Brief-skimr.md`. DC-002 is the hard gate: any Rust/Python mismatch means the spec wins, not whichever language's output is convenient.
-
-**Benchmark spike (SC-006):**
-> Working directory: `/home/yonk/yonk-tools/extractive_summary`. Build a benchmark harness in `benchmarks/` that times {Python skimr, Sumy} (add Rust skimr when Plan 2 lands) on a corpus comparable to the 1,828-note set in `extractive-performance.md`. DC-004: capture Sumy baseline first. Output goes to `benchmarks/results-{date}.md` per mission brief SC-006.
-
-**Integration memo (SC-009):**
-> Working directory: `/home/yonk/yonk-tools/extractive_summary`. Integrate skimr into `yonk-taskstash` (or another existing Yonk project with live summarization). DC-005: capture *before* behavior first (input + existing output). Replace with skimr calls, measure the delta, write `docs/integration-memo.md`. Mission brief SC-009.
+`/home/yonk/yonk-tools/skimr-neural/` has been worked on in a parallel session — its mission brief was updated to `status: approved — design locked, ready for /writing-plans` and a design spec at `docs/superpowers/specs/2026-04-19-skimr-neural-v0-0-1-design.md` was produced. That repo is on its own track; no skimr-core work needed from that side.
