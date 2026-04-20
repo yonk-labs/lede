@@ -16,3 +16,27 @@ venv/
 # Skill output (research artifacts, not code)
 # Keep committed for now; revisit if repo grows large
 # skill-output/
+
+# Secrets — defensive, even though none exist today
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa
+id_ed25519
+credentials*.json
+secrets*.json
+
+# Terraform / IaC state
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# OS cruft
+.DS_Store
+Thumbs.db
