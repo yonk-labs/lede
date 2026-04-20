@@ -1,0 +1,34 @@
+name: rust
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'rust/**'
+      - 'fixtures/**'
+      - '.github/workflows/rust.yml'
+  pull_request:
+    branches: [main]
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format check
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Build
+        run: cargo build --verbose
+      - name: Test
+        run: cargo test --verbose
+      - name: Test (release)
+        run: cargo test --release --verbose
