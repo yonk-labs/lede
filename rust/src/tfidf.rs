@@ -91,6 +91,32 @@ fn tokenize_list(sentence: &str) -> Vec<String> {
     out
 }
 
+/// Neumaier compensated summation.
+///
+/// `CPython` 3.12+ applies Neumaier compensation inside the built-in `sum()`
+/// fast-path whenever the accumulator is a float. Plain IEEE-754 left-fold
+/// (Rust's `Iterator::sum`) diverges by 1-3 ULPs on 6+-term accumulations,
+/// which breaks byte-identity with the Python reference on any non-trivial
+/// sentence. Mirrors the `CPython` implementation in `bltinmodule.c`.
+fn neumaier_sum<I: IntoIterator<Item = f64>>(iter: I) -> f64 {
+    let mut it = iter.into_iter();
+    let Some(first) = it.next() else {
+        return 0.0;
+    };
+    let mut sum = first;
+    let mut c = 0.0;
+    for x in it {
+        let t = sum + x;
+        if sum.abs() >= x.abs() {
+            c += (sum - t) + x;
+        } else {
+            c += (x - t) + sum;
+        }
+        sum = t;
+    }
+    sum + c
+}
+
 fn normalize(scores: &[f64]) -> Vec<f64> {
     let hi = scores.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     if !hi.is_finite() || hi <= 0.0 {
@@ -128,15 +154,13 @@ pub fn tfidf_score(sentences: &[String]) -> Vec<f64> {
                 return 0.0;
             }
             // Iterate keys in insertion order — mirrors Python's `for term in tf`.
-            let sum: f64 = tc
-                .keys
-                .iter()
-                .map(|k| {
-                    let count = f64::from(*tc.counts.get(k).expect("key must exist"));
-                    let idf_val = *idf.get(k).unwrap_or(&0.0);
-                    count * idf_val
-                })
-                .sum();
+            // Neumaier compensation is required to match `CPython` 3.12+'s built-in
+            // sum() on 6+ float accumulations; plain left-fold drifts by 1-3 ULPs.
+            let sum: f64 = neumaier_sum(tc.keys.iter().map(|k| {
+                let count = f64::from(*tc.counts.get(k).expect("key must exist"));
+                let idf_val = *idf.get(k).unwrap_or(&0.0);
+                count * idf_val
+            }));
             let total_tokens = f64::from(tc.len_tokens());
             sum / total_tokens
         })
