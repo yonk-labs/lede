@@ -35,7 +35,11 @@ fn main() {
     samples.sort_by(|a, b| a.partial_cmp(b).expect("no NaN"));
 
     let p50 = samples[samples.len() / 2];
-    #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    #[allow(
+        clippy::cast_precision_loss,
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss
+    )]
     let p95_idx = (0.95 * samples.len() as f64) as usize;
     let p95 = samples[p95_idx.min(samples.len() - 1)];
 
