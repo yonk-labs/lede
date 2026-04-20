@@ -6,3 +6,4 @@
 
 pub mod clean;
 pub mod sentences;
+pub mod tfidf;
