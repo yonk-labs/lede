@@ -17,6 +17,10 @@ regex = "1"
 name = "skimr"
 path = "src/bin/skimr.rs"
 
+[[bin]]
+name = "bench_tfidf"
+path = "src/bin/bench_tfidf.rs"
+
 [lints.rust]
 unsafe_code = "forbid"
 

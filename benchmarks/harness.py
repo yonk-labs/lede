@@ -1,12 +1,17 @@
-"""Benchmark harness for skimr vs Sumy. Designed to extend with Rust skimr.
+"""Benchmark harness for skimr vs Sumy. Covers Python skimr, Rust skimr, and Sumy.
 
 Usage:
     python benchmarks/harness.py                      # run default corpus, 100 iterations
     python benchmarks/harness.py --iterations 200     # more repeats
     python benchmarks/harness.py --output path.md     # write results elsewhere
 
-Scaffolds SC-006 infra. Rust skimr is left as explicit `—` rows in the
-output table; fill in once Plan 2 lands.
+Rust skimr/tfidf shells out to rust/target/release/bench_tfidf which does
+the inner iteration loop in-process — that way the Python harness doesn't
+count process-spawn time per iteration. Build with:
+
+    cd rust && cargo build --release
+
+Rust TextRank is out of scope for Plan 2 and stays as a `—` placeholder.
 
 DC-004 note: Sumy baselines are captured on this machine. Cross-machine
 comparisons are invalid.
@@ -25,6 +30,7 @@ from typing import Callable
 
 BENCH_ROOT = Path(__file__).resolve().parent
 CORPUS_ROOT = BENCH_ROOT / "corpus"
+RUST_BENCH_BIN = BENCH_ROOT.parent / "rust" / "target" / "release" / "bench_tfidf"
 
 TARGET_SENTENCES = 3
 TARGET_CHARS = 500
@@ -68,7 +74,33 @@ SUMMARIZERS: dict[str, Callable[[str], str]] = {
     "sumy/LSA": _sumy_backend("LSA"),
 }
 
-RUST_PLACEHOLDERS = ["rust-skimr/tfidf", "rust-skimr/textrank"]
+
+def _rust_tfidf_measure(text: str, iterations: int) -> tuple[float, float, int]:
+    """Run the Rust bench_tfidf helper. Returns (p50_ms, p95_ms, out_chars)."""
+    if not RUST_BENCH_BIN.exists():
+        raise SystemExit(
+            f"Rust bench binary not found at {RUST_BENCH_BIN}.\n"
+            "Build with: cd rust && cargo build --release"
+        )
+    proc = subprocess.run(
+        [str(RUST_BENCH_BIN), str(iterations)],
+        input=text,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = json.loads(proc.stdout.strip())
+    return data["p50_ms"], data["p95_ms"], data["out_chars"]
+
+
+# Rust measurers do their own timing (returns the full measurement tuple),
+# distinct from SUMMARIZERS which hand back a summary string per call.
+RUST_MEASURERS: dict[str, Callable[[str, int], tuple[float, float, int]]] = {
+    "rust-skimr/tfidf": _rust_tfidf_measure,
+}
+
+# Still-placeholder columns (no Plan-2 Rust implementation).
+RUST_PLACEHOLDERS = ["rust-skimr/textrank"]
 
 
 # --- Measurement ---
@@ -138,7 +170,7 @@ def _env_fingerprint() -> dict[str, str]:
 
 def _render_markdown(measurements: list[Measurement], env: dict[str, str], iterations: int) -> str:
     corpus_names = sorted({m.corpus for m in measurements})
-    summ_names = list(SUMMARIZERS)
+    summ_names = list(SUMMARIZERS) + list(RUST_MEASURERS)
 
     lines: list[str] = []
     lines.append(f"# Benchmark Results — {time.strftime('%Y-%m-%d')}")
@@ -219,7 +251,8 @@ def _render_markdown(measurements: list[Measurement], env: dict[str, str], itera
     lines.append("## Notes")
     lines.append("")
     lines.append("- Cross-machine numbers are invalid (DC-004). Re-run on the target machine.")
-    lines.append("- Rust skimr columns are placeholders; fill in after Plan 2 lands.")
+    lines.append("- `rust-skimr/tfidf` is measured via `rust/target/release/bench_tfidf` (inner loop runs in-process; no per-iteration spawn tax).")
+    lines.append("- `rust-skimr/textrank` stays a placeholder — TextRank is out of scope for Plan 2.")
     lines.append("- Output length differences are expected — skimr/tfidf uses a char budget; others use a sentence count.")
     lines.append("- P95 over 100 iterations is coarse; bump `--iterations` for tighter tails.")
     return "\n".join(lines) + "\n"
@@ -239,11 +272,24 @@ def main() -> int:
         raise SystemExit(f"no corpus files in {CORPUS_ROOT}")
 
     measurements: list[Measurement] = []
-    print(f"Running {args.iterations} iterations × {len(inputs)} inputs × {len(SUMMARIZERS)} summarizers")
+    total_summarizers = len(SUMMARIZERS) + len(RUST_MEASURERS)
+    print(f"Running {args.iterations} iterations × {len(inputs)} inputs × {total_summarizers} summarizers")
     for path in inputs:
         text = path.read_text()
         for summ, fn in SUMMARIZERS.items():
             p50, p95, out_chars = _bench_one(fn, text, args.iterations)
+            measurements.append(Measurement(
+                summarizer=summ,
+                corpus=path.stem,
+                input_chars=len(text),
+                output_chars=out_chars,
+                p50_ms=p50,
+                p95_ms=p95,
+                iterations=args.iterations,
+            ))
+            print(f"  {summ:22s} {path.stem:22s} p50={p50:7.2f} ms  p95={p95:7.2f} ms  out={out_chars} chars")
+        for summ, measurer in RUST_MEASURERS.items():
+            p50, p95, out_chars = measurer(text, args.iterations)
             measurements.append(Measurement(
                 summarizer=summ,
                 corpus=path.stem,
