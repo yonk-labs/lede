@@ -27,6 +27,7 @@ dependencies = []
 [project.optional-dependencies]
 textrank = ["networkx>=3.0"]
 dev = ["pytest>=7", "pytest-subtests>=0.10"]
+bench = ["sumy>=0.11", "numpy>=1.24"]
 
 [project.scripts]
 skimr = "skimr.cli:main"
