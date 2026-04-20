@@ -1,4 +1,4 @@
-use skimr::tfidf::{composite_score, length_score, position_score, tfidf_score};
+use skimr::tfidf::{composite_score, length_score, position_score, summarize, tfidf_score};
 
 #[test]
 fn tfidf_returns_normalized_list() {
@@ -55,4 +55,49 @@ fn composite_in_range() {
     for s in &composite {
         assert!((0.0..=1.0).contains(s));
     }
+}
+
+#[test]
+fn summarize_short_input_returns_unchanged() {
+    let text = "Short text.";
+    assert_eq!(summarize(text, 500), text);
+}
+
+#[test]
+fn summarize_truncate_fallback_under_50_chars() {
+    let text = "First sentence. Second sentence. Third sentence. Fourth sentence.";
+    let result = summarize(text, 20);
+    assert!(result.chars().count() <= 23);
+    assert!(result.ends_with("..."));
+}
+
+#[test]
+fn summarize_fewer_than_three_sentences_truncates() {
+    let text = "One only sentence here in this input.";
+    let result = summarize(text, 15);
+    assert!(result.ends_with("..."));
+}
+
+#[test]
+fn summarize_respects_char_budget() {
+    let text = concat!(
+        "Revenue grew 23% in Q4. ",
+        "The Enterprise segment led growth. ",
+        "Churn remained flat. ",
+        "Dr. Smith analyzed the Q4 results. ",
+        "Margins improved by 5 points.",
+    );
+    let result = summarize(text, 100);
+    assert!(result.chars().count() <= 100);
+}
+
+#[test]
+fn summarize_fixture_short_passthrough_byte_identical() {
+    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("rust crate parent dir")
+        .join("fixtures/tfidf/short-passthrough");
+    let input = std::fs::read_to_string(fixture.join("input.txt")).expect("read input");
+    let expected = std::fs::read_to_string(fixture.join("expected.txt")).expect("read expected");
+    assert_eq!(summarize(&input, 500), expected);
 }

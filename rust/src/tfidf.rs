@@ -223,3 +223,80 @@ pub fn composite_score(sentences: &[String]) -> Vec<f64> {
         .map(|i| TFIDF_WEIGHT * t[i] + POSITION_WEIGHT * p[i] + LENGTH_WEIGHT * l[i])
         .collect()
 }
+
+// --- summarize pipeline (port of the 7-step flow from src/skimr/tfidf.py) ---
+
+const MIN_SENTENCES: usize = 3;
+const MIN_BUDGET_FOR_SENTENCES: usize = 50;
+
+/// Truncate to `max_length` CHARACTERS (not bytes), appending `"..."` if the
+/// text didn't already fit. Matches Python's len(str)-as-chars semantics.
+fn truncate(text: &str, max_length: usize) -> String {
+    let char_count = text.chars().count();
+    if char_count <= max_length {
+        return text.to_string();
+    }
+    let body_budget = max_length.saturating_sub(3);
+    let byte_end = text
+        .char_indices()
+        .nth(body_budget)
+        .map_or(text.len(), |(i, _)| i);
+    let mut out = text[..byte_end].to_string();
+    out.push_str("...");
+    out
+}
+
+/// Extractive summary of `text` capped at `max_length` characters.
+#[must_use]
+pub fn summarize(text: &str, max_length: usize) -> String {
+    if text.is_empty() {
+        return String::new();
+    }
+    if text.chars().count() <= max_length {
+        return text.to_string();
+    }
+    if max_length < MIN_BUDGET_FOR_SENTENCES {
+        return truncate(text, max_length);
+    }
+
+    let sentences = crate::sentences::split_sentences(text);
+    if sentences.len() < MIN_SENTENCES {
+        return truncate(text, max_length);
+    }
+
+    let scores = composite_score(&sentences);
+
+    // Sort indices by (-score, index). Stable sort preserves original index on ties.
+    let mut indices: Vec<usize> = (0..sentences.len()).collect();
+    indices.sort_by(|&a, &b| {
+        let sa = -scores[a];
+        let sb = -scores[b];
+        sa.partial_cmp(&sb)
+            .expect("no NaN in pipeline scores")
+            .then(a.cmp(&b))
+    });
+
+    let mut selected: Vec<usize> = Vec::new();
+    let mut used = 0usize;
+    let separator_chars = 1usize;
+    for idx in indices {
+        let sentence = &sentences[idx];
+        let sent_chars = sentence.chars().count();
+        let needed = sent_chars + if selected.is_empty() { 0 } else { separator_chars };
+        if used + needed <= max_length {
+            selected.push(idx);
+            used += needed;
+        }
+    }
+
+    if selected.is_empty() {
+        return truncate(text, max_length);
+    }
+
+    selected.sort_unstable();
+    selected
+        .into_iter()
+        .map(|i| sentences[i].clone())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
