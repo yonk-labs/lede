@@ -1,12 +1,13 @@
-# Resume: skimr Rust Plan 2 — stopped after T5
+# Resume: skimr Rust Plan 2 — stopped after T6
 
-**Last session:** 2026-04-19 evening → 2026-04-20 early morning. Stopped after T5 at commit `c704a7c`. v0.0.1 already shipped (Plan 1); Plan 2 (Rust port) in progress.
+**Last session:** 2026-04-20 morning. Stopped after T6 at commit `e136257`. v0.0.1 already shipped (Plan 1); Plan 2 (Rust port) in progress.
 
 ## Repo state
 
 - **Remote:** https://github.com/yonk-labs/skimr (private, yonk-labs org)
 - **Branch:** `main` (all Plan 2 work continues here, matching Plan 1 pattern)
-- **Latest pushed SHA:** `c704a7c`
+- **Local HEAD:** `e136257`
+- **Unpushed:** 2 commits ahead of `origin/main` — `de30d95` (T5.1 Neumaier) and `e136257` (T6 summarize). Push at next natural break (after T7 is sensible).
 - **v0.0.1 tag:** pushed; points at `4c3e7d4` (Plan 1 exit, Python reference complete)
 - **CI:** `tests` + `zero-deps` workflows exist and pass on every push. Rust-specific `rust.yml` lands in T13.
 
@@ -14,7 +15,7 @@
 
 Plan file: `docs/superpowers/plans/2026-04-19-skimr-rust-v01.md` (16 tasks total).
 
-**Done (5/16):**
+**Done (6/16 + T5.1 preamble):**
 
 | # | Task | SHA | Notes |
 |---|---|---|---|
@@ -22,51 +23,38 @@ Plan file: `docs/superpowers/plans/2026-04-19-skimr-rust-v01.md` (16 tasks total
 | T2 | Sentence splitter | `786000b` | Lookbehind-free port; 9 tests; cross-language spot check identical |
 | T3 | `strip_think` | `72ee24d` | Trivial 16-line port |
 | T4 | `clean_text` | `2a30987` | Both `crm-boilerplate` and `markdown-basic` fixtures verified byte-identical to Python |
-| T5 | TF-IDF scorer | `c704a7c` | **Flagged — see Concerns #1 below** |
+| T5 | TF-IDF scorer | `c704a7c` | Flagged float-sum divergence; resolved by T5.1 |
+| T5.1 | Neumaier sum | `de30d95` | Compensated summation in Rust `tfidf_score` to match CPython 3.12+ built-in `sum()`. 1-3 ULP divergence on 6+ float accumulations is now eliminated. |
+| T6 | Greedy selector + `summarize` | `e136257` | 7-step pipeline per SUMMARIZATION.md. Cross-language spot check matched byte-for-byte at 200- and 100-char budgets. |
 
-**Pending (11/16):** T6 greedy selector · T7 keyword extractor · T8 public API re-exports · T9 fixture walker (⛔ DC-002 gate) · T10 CLI · T11 determinism · T12 zero-dep assertion · T13 Rust CI · T14 README · T15 benchmark row fill · T16 DC-FINAL + tag.
+**Pending (10/16):** T7 keyword extractor · T8 public API re-exports · T9 fixture walker (⛔ DC-002 gate) · T10 CLI · T11 determinism · T12 zero-dep assertion · T13 Rust CI · T14 README Rust section · T15 benchmark row fill · T16 DC-FINAL + tag.
 
-**Test suite state (Rust):** 22 passing (9 sentences + 6 strip_think + 7 clean_text + 5 tfidf scorer). Python side still 64 passing, untouched.
+**Test suite state:**
+- **Rust:** 33 passing (9 sentences + 6 strip_think + 7 clean_text + 10 tfidf + 1 float_parity). Clippy `--all-targets -- -D warnings` clean at `e136257`.
+- **Python:** 64 passing, untouched.
 
 ## Execution cadence
 
 Subagent-driven, per `superpowers:subagent-driven-development`. Pattern that has worked:
 
 - Dispatch implementer subagent with the task's full text + byte-identity constraints explicitly called out.
-- For trivial (T3-style, <50 lines, verbatim port): verify inline via `git show` + `cargo test`, skip the spec + quality subagent reviewers.
+- For trivial (T3-style, <50 lines, verbatim port) OR surgical preamble fixes (T5.1-style): do inline via direct edits + `git show` + `cargo test`. Skip spec + quality subagent reviewers.
 - For byte-identity-critical (T2, T4, T5, T6, T7, T9): demand cross-language spot check in the implementer prompt; only dispatch spec + quality reviews if the spot check is ambiguous or concerns are raised.
-- Push periodically, not after every commit — less CI noise.
+- Push periodically, not after every commit — less CI noise. **Currently 2 commits unpushed; push before or after T7.**
 
-User gave autonomous full-send consent mid-session ("accept all requests, headed to bed"); next session can pick that back up if desired.
+User gave autonomous full-send consent mid-session; next session can pick that back up if desired.
 
-## ⚠️ Critical carry-forward concerns
+## ⚠️ Resolved concerns
 
-### 1. TF-IDF float-sum divergence (will fail T9 fixture walker as-is)
+### 1. ~~TF-IDF float-sum divergence~~ — **RESOLVED at T5.1 (de30d95)**
 
-**Discovered at T5.** Rust's `Iterator::sum()` and Python 3.13's built-in `sum()` **do not produce bit-identical results** on accumulations of 6-8+ f64 values, even when every input bit and iteration order is identical. Observed gap: **1-3 ULPs** on per-sentence TF-IDF sums.
+Previous session observed Rust `Iterator::sum()` drifting 1-3 ULPs from Python's built-in `sum()` on 6+ float accumulations. Root cause: CPython 3.12 switched `sum()` to Neumaier compensated summation for float accumulators; Rust stdlib still does plain IEEE-754 left-fold.
 
-**Concrete test case the T5 subagent ran:**
-- Input: `[1.916290731874155] * 8`
-- Python `sum(...)` → `15.33032585499324` (bits `0x402ea9207870703c`)
-- Rust `iter().sum::<f64>()` → `15.330325854993244` (bits `0x402ea9207870703e`)
+**Fix applied:** Added `neumaier_sum` helper in `rust/src/tfidf.rs` (mirrors `CPython`'s `bltinmodule.c` fast-path) and swapped `.sum()` → `neumaier_sum(...)` in `tfidf_score`'s per-sentence loop. Regression test at `rust/tests/float_parity.rs` pins output bits on a 5-sentence, 12-13-token-per-sentence input captured from the Python oracle on 2026-04-20. If Neumaier regresses, that test trips before the T9 fixture walker.
 
-(That exact case may not reproduce trivially — Python's `sum()` fast-path for lists-of-floats may be the non-obvious actor. Verify before building on it.)
+**Do not revert** `neumaier_sum` or bypass it during future work on `tfidf.rs`.
 
-**What passes today:** the plan's 5 scorer unit tests in `rust/tests/tfidf.rs`, plus a short-sentence cross-language diff (`["Revenue grew.", "Margins improved.", "Churn remained flat."]` → `[1.0, 1.0, 1.0]` identical bits).
-
-**What will break:** T9's fixture walker on any fixture whose `tfidf_score` path involves a sentence with many terms. The `tfidf/short-passthrough` fixture is short enough to passthrough the scorer (len(text) ≤ max_length branch in `summarize` short-circuits), so it may NOT trip this. But any richer corpus will.
-
-**Fix options (pick one at T6, before T9 gate):**
-
-- **(A) Compensated summation on Rust side.** Add Neumaier or Kahan summation in `rust/src/tfidf.rs`'s `tfidf_score` per-sentence sum. ~10-15 lines. Preserves Python as the frozen spec. **Recommended.** Python is the spec per the mission brief; Rust adapts.
-- **(B) Force Python to plain left-fold.** Replace Python's `sum(tf[term] * idf.get(...) for term in tf)` with `functools.reduce(operator.add, ..., 0.0)` which bypasses any `sum()` fast path. Fixtures would need regeneration (byte-identical regeneration is likely but must be verified). Less desirable — changes the spec implementation even if the spec itself doesn't change.
-- **(C) Relax SC-002 to "within 1 ULP".** Rejected — breaks the whole "byte-identical across runtimes" thesis the mission brief is built on.
-
-**Where to apply fix A:** `rust/src/tfidf.rs`, inside `tfidf_score`, the `.map(|tc| { ... let sum: f64 = tc.keys.iter().map(...).sum(); ... })` block. Replace `.sum()` with a Neumaier fold. Add a unit test that constructs a known-divergent input and asserts identical bits with the Python reference (run the Python diff from a test harness at `rust/tests/float_parity.rs`).
-
-**Don't touch at T9.** The T9 walker should see green if the fix is in place by T7 at the latest. If the walker fails at T9, it's a cleanup-at-the-end-of-a-long-session signal that got ignored earlier.
-
-### 2. Existing concerns carried from pre-Rust work
+### 2. Existing concerns carried from pre-Rust work (still active)
 
 - `__init__.py` try/except shield removed in Plan 1 T7. Resolved.
 - `fixtures/clean_text/crm-boilerplate/expected.txt` has SQL-faithful quirks (trailing `.`, leading `,`). Do NOT edit; Rust T4 reproduced them byte-identical.
@@ -86,7 +74,8 @@ User gave autonomous full-send consent mid-session ("accept all requests, headed
     lib.rs              # pub mod clean; pub mod sentences; pub mod tfidf;
     sentences.rs        # split_sentences
     clean.rs            # strip_think, clean_text
-    tfidf.rs            # OrderedCounter, tfidf_score, position_score, length_score, composite_score
+    tfidf.rs            # OrderedCounter, neumaier_sum, tfidf_score, position_score,
+                        #   length_score, composite_score, truncate, summarize
     bin/skimr.rs        # stub; real CLI lands in T10
   ```
 - **Tests:**
@@ -95,40 +84,62 @@ User gave autonomous full-send consent mid-session ("accept all requests, headed
     sentences.rs        # 9 tests
     strip_think.rs      # 6 tests
     clean_text.rs       # 7 tests
-    tfidf.rs            # 5 tests (scorer only; summarize tests land in T6)
+    tfidf.rs            # 10 tests (5 scorer + 5 summarize)
+    float_parity.rs     # 1 test — T5.1 byte-identity tripwire
   ```
 
-## What's next (T6 through T16)
+## What's next (T7 through T16)
 
-Pick up with T6. Read the plan's T6 section at `docs/superpowers/plans/2026-04-19-skimr-rust-v01.md` (~lines 950–1120). **Before dispatching T6's subagent**, decide on fix A/B/C above for the float-sum issue. My strong recommendation: **fix A (Neumaier in Rust), addressed as a preamble to T6** — either a small dedicated task "T5.1: Neumaier summation" or folded into T6's implementer prompt as an additional constraint.
-
-Then T6 (summarize pipeline) can land with a new `rust/tests/float_parity.rs` that asserts byte-identity on a known-rich case, gating future drift.
+**Pick up with T7.** Read the plan's T7 section at `docs/superpowers/plans/2026-04-19-skimr-rust-v01.md` (~lines 1270–1530). T7 is byte-identity-critical — the fixture canary (`fixture_pricing_notes_byte_identical`) is a SC-002 pre-check before the T9 walker. The SQL-style splitter in keyword.py differs from `sentences::split_sentences` (normalizes `\n+` → `. ` first); be exact.
 
 Subsequent tasks:
-- T7 keyword extractor — byte-identity risk on the SQL-style splitter
-- T8 re-exports (trivial)
-- T9 fixture walker — **⛔ DC-002 hard gate**; this is where byte-identity is proven
+- T8 public API re-exports (trivial — add `pub use` lines in lib.rs)
+- T9 fixture walker — **⛔ DC-002 hard gate**; iterate every `fixtures/*/*/` subdir and assert Rust output bytes == `expected.txt`
 - T10 CLI — hand-rolled argparse (no clap dep)
 - T11 determinism (100 runs × every fixture bit-identical)
 - T12 zero-dep assertion (parse Cargo.toml, assert `regex` only)
-- T13 CI workflow for Rust
-- T14 README Rust section
+- T13 CI workflow for Rust (`cargo test`, `cargo clippy`, `cargo fmt`)
+- T14 README Rust section (install + usage + link to Rust docs; Python section already exists)
 - T15 benchmark harness Rust row fill
 - T16 DC-FINAL + tag — likely `v0.1.0-rc1` (not `v0.1.0`) since SC-009 integration memo isn't satisfied; flag to user before tagging
 
-## Resume prompt (paste into fresh session)
-
-> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr Plan 2 is in progress — T1-T5 complete, pushed to `yonk-labs/skimr` main. **Read `docs/RESUME.md` FIRST** — it flags a byte-identity divergence between Python and Rust `sum()` that must be resolved before T9's DC-002 gate. Plan: `docs/superpowers/plans/2026-04-19-skimr-rust-v01.md`. Mission brief: `skill-output/mission-brief/Mission-Brief-skimr.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. Start by deciding on fix A/B/C for the float-sum issue (my recommendation: A, Neumaier in Rust, addressed as a T5.1 preamble to T6). Then resume with T6.
+**Doc deep-dive is deferred until after the Rust port is done** (user's call at end of 2026-04-20 session). T14 will write the Rust README section; anything richer (architecture diagrams, user guide, reference docs) happens post-T16.
 
 ## Handy one-liners
 
 ```bash
 cd /home/yonk/yonk-tools/extractive_summary
 .venv/bin/python -m pytest -q                        # Python side — 64 tests
-cd rust && cargo test && cargo clippy --all-targets -- -D warnings  # Rust side — 27 tests so far
+cd rust && cargo test && cargo clippy --all-targets -- -D warnings  # Rust side — 33 tests
 git log --oneline                                    # commit progress
+git push                                             # 2 commits pending push as of e136257
 gh run list --repo yonk-labs/skimr --limit 5         # CI status
 ```
+
+## TODO list
+
+- [x] **T1** Cargo crate skeleton + toolchain pin
+- [x] **T2** Sentence splitter port
+- [x] **T3** `strip_think` port
+- [x] **T4** `clean_text` port
+- [x] **T5** TF-IDF scorer port
+- [x] **T5.1** Neumaier compensated summation (float-parity preamble to T6)
+- [x] **T6** Greedy selector + `summarize()`
+- [ ] **T7** Keyword-scored extractor (byte-identity critical; SQL-style splitter differs from sentences.rs)
+- [ ] **T8** Public API re-exports in `lib.rs`
+- [ ] **T9** ⛔ Fixture walker — DC-002 hard gate
+- [ ] **T10** CLI binary (hand-rolled arg parser, no clap)
+- [ ] **T11** Determinism test (100 runs × every fixture)
+- [ ] **T12** Zero-dep assertion (parse Cargo.toml, assert `regex` only)
+- [ ] **T13** GitHub Actions CI for Rust (`rust.yml`)
+- [ ] **T14** Update README with Rust install/usage
+- [ ] **T15** Fill Rust rows in benchmark results
+- [ ] **T16** ⛔ Plan 2 exit — DC-FINAL + tag (probably `v0.1.0-rc1`, not `v0.1.0`)
+- [ ] **Push** the 2 unpushed commits (`de30d95`, `e136257`) before T16 at the latest
+
+## Resume prompt (paste into fresh session)
+
+> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr Plan 2 is in progress — T1-T6 complete plus a T5.1 Neumaier float-parity fix, all local. 2 commits (`de30d95`, `e136257`) are ahead of `origin/main`; push at next natural break. **Read `docs/RESUME.md` FIRST** for full context. Plan: `docs/superpowers/plans/2026-04-19-skimr-rust-v01.md`. Mission brief: `skill-output/mission-brief/Mission-Brief-skimr.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. Rust side is green (33 tests + clippy clean). Python side untouched (64 tests). **Next up: T7 keyword-scored extractor.** T7 is byte-identity-critical — SQL-style splitter in `src/skimr/keyword.py` normalizes `\n+` → `. ` before splitting, which differs from `rust/src/sentences.rs`; reproduce exactly. The `fixtures/keyword/pricing-notes/` canary test in the plan is the SC-002 pre-check for T9's DC-002 gate. Doc deep-dive (architecture diagrams, user guides, reference docs) is deferred until after the Rust port is done.
 
 ## Companion repo
 
