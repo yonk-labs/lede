@@ -282,7 +282,12 @@ pub fn summarize(text: &str, max_length: usize) -> String {
     for idx in indices {
         let sentence = &sentences[idx];
         let sent_chars = sentence.chars().count();
-        let needed = sent_chars + if selected.is_empty() { 0 } else { separator_chars };
+        let needed = sent_chars
+            + if selected.is_empty() {
+                0
+            } else {
+                separator_chars
+            };
         if used + needed <= max_length {
             selected.push(idx);
             used += needed;

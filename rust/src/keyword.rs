@@ -87,10 +87,7 @@ pub fn extract_keyword(text: &str, keywords: &str, num_sentences: usize) -> Stri
         .collect();
     if kw_set.is_empty() {
         // Python: text[:2000] — slice by code points, not bytes.
-        let end = text
-            .char_indices()
-            .nth(2000)
-            .map_or(text.len(), |(i, _)| i);
+        let end = text.char_indices().nth(2000).map_or(text.len(), |(i, _)| i);
         return text[..end].to_string();
     }
     let keyword_list: Vec<String> = kw_set.into_iter().collect();

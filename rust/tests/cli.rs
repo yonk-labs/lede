@@ -32,8 +32,7 @@ fn run(args: &[&str], stdin: Option<&str>) -> (i32, String, String) {
 }
 
 fn tempdir_for(label: &str) -> std::path::PathBuf {
-    let base = std::env::temp_dir()
-        .join(format!("skimr-cli-test-{}-{label}", std::process::id()));
+    let base = std::env::temp_dir().join(format!("skimr-cli-test-{}-{label}", std::process::id()));
     std::fs::create_dir_all(&base).unwrap();
     base
 }
@@ -41,9 +40,19 @@ fn tempdir_for(label: &str) -> std::path::PathBuf {
 #[test]
 fn reads_file_tfidf_mode() {
     let f = tempdir_for("tfidf").join("in.txt");
-    std::fs::write(&f, "Revenue grew. Costs fell. Margins improved by 5 points.").unwrap();
+    std::fs::write(
+        &f,
+        "Revenue grew. Costs fell. Margins improved by 5 points.",
+    )
+    .unwrap();
     let (rc, out, err) = run(
-        &[&f.to_string_lossy(), "--mode", "tfidf", "--max-chars", "500"],
+        &[
+            &f.to_string_lossy(),
+            "--mode",
+            "tfidf",
+            "--max-chars",
+            "500",
+        ],
         None,
     );
     assert_eq!(rc, 0, "stderr: {err}");

@@ -74,8 +74,7 @@ fn every_fixture_byte_identical() {
             if !cfg_path.exists() {
                 continue;
             }
-            let input =
-                std::fs::read_to_string(fx_dir.join("input.txt")).expect("read input");
+            let input = std::fs::read_to_string(fx_dir.join("input.txt")).expect("read input");
             let expected =
                 std::fs::read_to_string(fx_dir.join("expected.txt")).expect("read expected");
             let cfg = std::fs::read_to_string(&cfg_path).expect("read config");

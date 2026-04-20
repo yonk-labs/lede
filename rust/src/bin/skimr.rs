@@ -77,9 +77,7 @@ fn parse_args(input: impl Iterator<Item = String>) -> Result<Args, String> {
                 let v = iter
                     .next()
                     .ok_or_else(|| "--top requires an argument".to_string())?;
-                out.top = v
-                    .parse()
-                    .map_err(|_| format!("--top not numeric: {v}"))?;
+                out.top = v.parse().map_err(|_| format!("--top not numeric: {v}"))?;
             }
             _ if arg.starts_with("--") => return Err(format!("unknown flag: {arg}")),
             _ => {
