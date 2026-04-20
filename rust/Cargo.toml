@@ -1,0 +1,29 @@
+[package]
+name = "skimr"
+version = "0.0.1"
+edition = "2024"
+description = "Deterministic extractive summarization — stdlib + regex only"
+license = "Apache-2.0"
+repository = "https://github.com/yonk-labs/skimr"
+readme = "../README.md"
+keywords = ["summarization", "extractive", "text", "nlp", "tf-idf"]
+categories = ["text-processing"]
+rust-version = "1.85"
+
+[dependencies]
+regex = "1"
+
+[[bin]]
+name = "skimr"
+path = "src/bin/skimr.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
