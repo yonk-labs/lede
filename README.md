@@ -2,7 +2,7 @@
 
 **Deterministic extractive summarization — zero runtime dependencies.**
 
-Python library + CLI that shrinks text before it hits an LLM, cache, or preview. Same algorithm, reproducible output, sub-millisecond latency. Rust port coming in v0.1.
+Python + Rust library + CLI that shrinks text before it hits an LLM, cache, or preview. Same algorithm, reproducible output, sub-millisecond latency, byte-identical across runtimes.
 
 ## Install
 
@@ -60,6 +60,41 @@ skimr raw_note.txt --mode clean_text
 echo "<think>...</think>Real answer." | skimr --mode strip_think
 ```
 
+## Rust
+
+A Rust port lives at [`rust/`](rust/). It produces **byte-identical output** to the Python implementation for every fixture in [`fixtures/`](fixtures/) — the contract for cross-runtime parity.
+
+### Install from source
+
+```bash
+git clone https://github.com/yonk-labs/skimr.git
+cd skimr/rust
+cargo build --release
+# binary at target/release/skimr
+```
+
+### Library usage
+
+```rust
+use skimr::{summarize, clean_text, strip_think, extract_keyword};
+
+let summary = summarize("long document...", 500);
+let cleaned = clean_text("**bold** and _underlined_");
+let visible = strip_think("<think>...</think>Real answer.");
+let focused = extract_keyword("demo notes...", "pricing budget", 3);
+```
+
+### Rust CLI
+
+Same flags as the Python CLI:
+
+```bash
+./target/release/skimr long_doc.md --mode tfidf --max-chars 500
+./target/release/skimr long_doc.md --mode keyword --keywords "pricing budget" --top 3
+```
+
+Dependencies: `regex` crate only. No other runtime deps.
+
 ## Modes
 
 | Mode | When to use | Deps |
@@ -74,7 +109,7 @@ echo "<think>...</think>Real answer." | skimr --mode strip_think
 
 - **Deterministic.** Same input → same bytes, every time. No random tie-breaking.
 - **Zero-dep default.** Stdlib only. TextRank is opt-in.
-- **Cross-runtime parity.** Shared fixture corpus under `fixtures/` is the contract. A Rust port (v0.1) will produce byte-identical output for every fixture.
+- **Cross-runtime parity.** Shared fixture corpus under `fixtures/` is the contract. Python and Rust produce byte-identical output for every fixture; the `rust/tests/fixtures.rs` walker asserts this on every CI push.
 - **Extractive, not abstractive.** No LLM calls. For abstractive summarization, use a different tool.
 
 Full spec: [`SUMMARIZATION.md`](SUMMARIZATION.md) and [`extractive_functions.md`](extractive_functions.md).
