@@ -3,7 +3,14 @@
 //! Port of src/skimr/tfidf.py. Output is byte-identical to Python for every
 //! fixture. Insertion-order iteration of per-sentence token counters is
 //! preserved exactly so floating-point sums line up.
+//!
+//! v0.2.0 adds `Mode::Default` with four scorer tweaks (heading filter,
+//! cue-phrase boost, digit bonus, section-position weight) on top of the
+//! legacy 60/25/15 composite. `Mode::Legacy` preserves v0.0.1 behavior
+//! byte-identically.
 
+use crate::headings::{heading_name, is_heading};
+use crate::types::{Mode, SummaryResult};
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -33,6 +40,34 @@ fn token_re() -> &'static Regex {
     // Python: r"\b[a-z]{3,}\b" — ASCII-only, applied after .lower()
     RE.get_or_init(|| Regex::new(r"(?-u)\b[a-z]{3,}\b").expect("static regex"))
 }
+
+// --- v0.2 default-mode scorer tweaks ---
+
+fn cue_phrase_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(concat!(
+            r"(?i)^\s*(held|resolution|in summary|conclusion|action item|",
+            r"decision|finding|key takeaway|outcome|ruling):?\b",
+        ))
+        .expect("static regex")
+    })
+}
+
+fn digit_re_local() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"\d+").expect("static regex"))
+}
+
+const SECTION_BOOST_HEADINGS: &[&str] = &[
+    "discussion",
+    "conclusion",
+    "held",
+    "resolution",
+    "key findings",
+    "summary",
+    "decision",
+];
 
 /// Insertion-ordered counter. Mirrors Python's Counter(list) insertion order
 /// (first occurrence of each key, with running count).
@@ -210,18 +245,102 @@ pub fn length_score(sentences: &[String]) -> Vec<f64> {
     normalize(&raw)
 }
 
-/// Composite: 0.60 * tfidf + 0.25 * position + 0.15 * length.
-#[must_use]
-pub fn composite_score(sentences: &[String]) -> Vec<f64> {
+/// Per-sentence (tfidf, position, length) triples. Mirrors Python's
+/// `_composite_score_parts`.
+fn composite_score_parts(sentences: &[String]) -> Vec<(f64, f64, f64)> {
     if sentences.is_empty() {
         return Vec::new();
     }
     let t = tfidf_score(sentences);
     let p = position_score(sentences.len());
     let l = length_score(sentences);
-    (0..sentences.len())
-        .map(|i| TFIDF_WEIGHT * t[i] + POSITION_WEIGHT * p[i] + LENGTH_WEIGHT * l[i])
+    (0..sentences.len()).map(|i| (t[i], p[i], l[i])).collect()
+}
+
+/// Composite: 0.60 * tfidf + 0.25 * position + 0.15 * length. Legacy scorer.
+#[must_use]
+pub fn composite_score(sentences: &[String]) -> Vec<f64> {
+    composite_score_parts(sentences)
+        .into_iter()
+        .map(|(t, p, l)| TFIDF_WEIGHT * t + POSITION_WEIGHT * p + LENGTH_WEIGHT * l)
         .collect()
+}
+
+/// Ensure heading-looking lines are separated from their following line by a
+/// blank line, so the sentence splitter treats them as standalone sentences.
+///
+/// Mirrors `src/skimr/tfidf.py::_separate_heading_lines`. Only touches lines
+/// the heading detector would classify as headings in isolation. Idempotent.
+fn separate_heading_lines(text: &str) -> String {
+    if text.is_empty() {
+        return String::new();
+    }
+    // Python `str.split("\n")` keeps trailing empty splits (e.g. "a\n" -> ["a", ""]).
+    // Rust's `str::split('\n')` does the same, so `collect::<Vec<_>>()` matches.
+    let lines: Vec<&str> = text.split('\n').collect();
+    let mut out: Vec<String> = Vec::with_capacity(lines.len());
+    let last = lines.len().saturating_sub(1);
+    for (i, line) in lines.iter().enumerate() {
+        out.push((*line).to_string());
+        if i == last {
+            continue;
+        }
+        // If current line is a heading candidate AND the next line is non-empty,
+        // insert a blank line so paragraph-break splitting kicks in.
+        if !line.trim().is_empty() && is_heading(line) {
+            let nxt = lines[i + 1];
+            if !nxt.trim().is_empty() {
+                out.push(String::new());
+            }
+        }
+    }
+    out.join("\n")
+}
+
+/// Map each sentence index to the lowercase name of the most recent heading
+/// above it (or `""` if none). Mirrors Python's `_build_section_map`.
+fn build_section_map(sentences: &[String]) -> Vec<String> {
+    let mut current = String::new();
+    let mut map = Vec::with_capacity(sentences.len());
+    for sentence in sentences {
+        if is_heading(sentence) {
+            current = heading_name(sentence)
+                .map(|s| s.to_lowercase())
+                .unwrap_or_default();
+        }
+        map.push(current.clone());
+    }
+    map
+}
+
+/// v0.2 default scorer: legacy composite + four tweaks.
+///
+/// - Heading sentences get -inf (dropped from selection).
+/// - Sentences under a high-signal section heading get tfidf *= 1.3.
+/// - Cue-phrase sentences ("Held:", "Resolution:", ...) get +2.0.
+/// - Sentences containing digits get +0.3.
+fn composite_score_default(sentences: &[String], section_map: &[String]) -> Vec<f64> {
+    let parts = composite_score_parts(sentences);
+    let mut scores = Vec::with_capacity(sentences.len());
+    for (i, sentence) in sentences.iter().enumerate() {
+        if is_heading(sentence) {
+            scores.push(f64::NEG_INFINITY);
+            continue;
+        }
+        let (mut t, p, l) = parts[i];
+        if SECTION_BOOST_HEADINGS.iter().any(|h| *h == section_map[i]) {
+            t *= 1.3;
+        }
+        let mut score = TFIDF_WEIGHT * t + POSITION_WEIGHT * p + LENGTH_WEIGHT * l;
+        if cue_phrase_re().is_match(sentence) {
+            score += 2.0;
+        }
+        if digit_re_local().is_match(sentence) {
+            score += 0.3;
+        }
+        scores.push(score);
+    }
+    scores
 }
 
 // --- summarize pipeline (port of the 7-step flow from src/skimr/tfidf.py) ---
@@ -246,9 +365,8 @@ fn truncate(text: &str, max_length: usize) -> String {
     out
 }
 
-/// Extractive summary of `text` capped at `max_length` characters.
-#[must_use]
-pub fn summarize(text: &str, max_length: usize) -> String {
+/// Legacy summarizer — byte-identical to v0.0.1 behavior.
+fn summarize_legacy(text: &str, max_length: usize) -> String {
     if text.is_empty() {
         return String::new();
     }
@@ -304,4 +422,91 @@ pub fn summarize(text: &str, max_length: usize) -> String {
         .map(|i| sentences[i].clone())
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+/// v0.2 default summarizer — legacy pipeline with the default scorer and
+/// heading-line preprocessing. Headings are filtered from candidates.
+///
+/// Unlike legacy mode, default mode always runs the sentence pipeline when
+/// the budget allows it (>= `MIN_BUDGET_FOR_SENTENCES`) so headings are
+/// filtered even when the raw input would otherwise fit.
+fn summarize_default(text: &str, max_length: usize) -> String {
+    if text.is_empty() {
+        return String::new();
+    }
+    if max_length < MIN_BUDGET_FOR_SENTENCES {
+        return truncate(text, max_length);
+    }
+
+    // Pre-split heading-only lines so they become standalone sentences and
+    // can be individually filtered by the heading detector.
+    let prepared = separate_heading_lines(text);
+    let sentences = crate::sentences::split_sentences(&prepared);
+    if sentences.len() < MIN_SENTENCES {
+        if text.chars().count() <= max_length {
+            return text.to_string();
+        }
+        return truncate(text, max_length);
+    }
+
+    let section_map = build_section_map(&sentences);
+    let scores = composite_score_default(&sentences, &section_map);
+
+    // Sort indices by (-score, index). Stable sort preserves original index on ties.
+    // Headings have score = -inf and end up last; they're skipped explicitly below.
+    let mut indices: Vec<usize> = (0..sentences.len()).collect();
+    indices.sort_by(|&a, &b| {
+        let sa = -scores[a];
+        let sb = -scores[b];
+        sa.partial_cmp(&sb)
+            .expect("no NaN in pipeline scores")
+            .then(a.cmp(&b))
+    });
+
+    let mut selected: Vec<usize> = Vec::new();
+    let mut used = 0usize;
+    let separator_chars = 1usize;
+    for idx in indices {
+        if scores[idx] == f64::NEG_INFINITY {
+            continue;
+        }
+        let sentence = &sentences[idx];
+        let sent_chars = sentence.chars().count();
+        let needed = sent_chars
+            + if selected.is_empty() {
+                0
+            } else {
+                separator_chars
+            };
+        if used + needed <= max_length {
+            selected.push(idx);
+            used += needed;
+        }
+    }
+
+    if selected.is_empty() {
+        return truncate(text, max_length);
+    }
+
+    selected.sort_unstable();
+    selected
+        .into_iter()
+        .map(|i| sentences[i].clone())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Extractive summary of `text` capped at `max_length` characters.
+///
+/// `Mode::Default` applies the v0.2 scorer tweaks (heading filter, cue-phrase
+/// boost, digit bonus, section-position weight). `Mode::Legacy` preserves
+/// v0.0.1 behavior byte-identically. `Mode::Coverage` lands in Task 3.
+#[must_use]
+pub fn summarize(text: &str, max_length: usize, mode: Mode) -> SummaryResult {
+    let summary = match mode {
+        Mode::Legacy => summarize_legacy(text, max_length),
+        Mode::Default => summarize_default(text, max_length),
+        Mode::Coverage => crate::coverage::summarize_coverage(text, max_length),
+    };
+    SummaryResult { summary }
 }

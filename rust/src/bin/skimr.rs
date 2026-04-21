@@ -121,7 +121,7 @@ fn main() -> ExitCode {
     };
 
     let output = match parsed.mode.as_str() {
-        "tfidf" => skimr::summarize(&text, parsed.max_chars),
+        "tfidf" => skimr::summarize(&text, parsed.max_chars, skimr::Mode::Default).summary,
         "keyword" => {
             if parsed.keywords.is_empty() {
                 let _ = writeln!(

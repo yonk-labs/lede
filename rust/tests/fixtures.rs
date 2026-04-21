@@ -42,7 +42,7 @@ fn dispatch(mode: &str, input: &str, cfg: &str) -> Option<String> {
         "strip_think" => Some(skimr::strip_think(input)),
         "tfidf" => {
             let max_length = json_usize(cfg, "max_length").unwrap_or(500);
-            Some(skimr::summarize(input, max_length))
+            Some(skimr::summarize(input, max_length, skimr::Mode::Legacy).summary)
         }
         "keyword" => {
             let keywords = json_str(cfg, "keywords")?;

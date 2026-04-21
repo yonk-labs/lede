@@ -35,10 +35,14 @@ fn dispatch(mode: &str, input: &str, cfg: &str) -> Option<String> {
     match mode {
         "clean_text" => Some(skimr::clean_text(input)),
         "strip_think" => Some(skimr::strip_think(input)),
-        "tfidf" => Some(skimr::summarize(
-            input,
-            json_usize(cfg, "max_length").unwrap_or(500),
-        )),
+        "tfidf" => Some(
+            skimr::summarize(
+                input,
+                json_usize(cfg, "max_length").unwrap_or(500),
+                skimr::Mode::Legacy,
+            )
+            .summary,
+        ),
         "keyword" => {
             let kw = json_str(cfg, "keywords")?;
             let n = json_usize(cfg, "num_sentences").unwrap_or(10);

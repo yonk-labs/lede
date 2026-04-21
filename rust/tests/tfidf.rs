@@ -1,3 +1,4 @@
+use skimr::Mode;
 use skimr::tfidf::{composite_score, length_score, position_score, summarize, tfidf_score};
 
 #[test]
@@ -60,13 +61,13 @@ fn composite_in_range() {
 #[test]
 fn summarize_short_input_returns_unchanged() {
     let text = "Short text.";
-    assert_eq!(summarize(text, 500), text);
+    assert_eq!(summarize(text, 500, Mode::Legacy).summary, text);
 }
 
 #[test]
 fn summarize_truncate_fallback_under_50_chars() {
     let text = "First sentence. Second sentence. Third sentence. Fourth sentence.";
-    let result = summarize(text, 20);
+    let result = summarize(text, 20, Mode::Legacy).summary;
     assert!(result.chars().count() <= 23);
     assert!(result.ends_with("..."));
 }
@@ -74,7 +75,7 @@ fn summarize_truncate_fallback_under_50_chars() {
 #[test]
 fn summarize_fewer_than_three_sentences_truncates() {
     let text = "One only sentence here in this input.";
-    let result = summarize(text, 15);
+    let result = summarize(text, 15, Mode::Legacy).summary;
     assert!(result.ends_with("..."));
 }
 
@@ -87,7 +88,7 @@ fn summarize_respects_char_budget() {
         "Dr. Smith analyzed the Q4 results. ",
         "Margins improved by 5 points.",
     );
-    let result = summarize(text, 100);
+    let result = summarize(text, 100, Mode::Legacy).summary;
     assert!(result.chars().count() <= 100);
 }
 
@@ -99,5 +100,5 @@ fn summarize_fixture_short_passthrough_byte_identical() {
         .join("fixtures/tfidf/short-passthrough");
     let input = std::fs::read_to_string(fixture.join("input.txt")).expect("read input");
     let expected = std::fs::read_to_string(fixture.join("expected.txt")).expect("read expected");
-    assert_eq!(summarize(&input, 500), expected);
+    assert_eq!(summarize(&input, 500, Mode::Legacy).summary, expected);
 }

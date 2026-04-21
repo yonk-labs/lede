@@ -22,12 +22,12 @@ fn main() {
         .unwrap_or(100);
 
     // Warmup run — not measured.
-    let _ = skimr::summarize(&text, 500);
+    let _ = skimr::summarize(&text, 500, skimr::Mode::Legacy);
 
     let mut samples: Vec<f64> = Vec::with_capacity(iterations);
     for _ in 0..iterations {
         let t0 = Instant::now();
-        let _ = skimr::summarize(&text, 500);
+        let _ = skimr::summarize(&text, 500, skimr::Mode::Legacy);
         #[allow(clippy::cast_precision_loss)]
         let ms = t0.elapsed().as_nanos() as f64 / 1e6;
         samples.push(ms);
@@ -43,7 +43,7 @@ fn main() {
     let p95_idx = (0.95 * samples.len() as f64) as usize;
     let p95 = samples[p95_idx.min(samples.len() - 1)];
 
-    let out = skimr::summarize(&text, 500);
+    let out = skimr::summarize(&text, 500, skimr::Mode::Legacy).summary;
     println!(
         r#"{{"p50_ms":{p50:.6},"p95_ms":{p95:.6},"out_chars":{oc}}}"#,
         oc = out.chars().count(),
