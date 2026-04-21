@@ -247,7 +247,7 @@ pub fn length_score(sentences: &[String]) -> Vec<f64> {
 
 /// Per-sentence (tfidf, position, length) triples. Mirrors Python's
 /// `_composite_score_parts`.
-fn composite_score_parts(sentences: &[String]) -> Vec<(f64, f64, f64)> {
+pub(crate) fn composite_score_parts(sentences: &[String]) -> Vec<(f64, f64, f64)> {
     if sentences.is_empty() {
         return Vec::new();
     }
