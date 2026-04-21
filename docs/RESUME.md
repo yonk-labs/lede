@@ -1,12 +1,12 @@
-# Resume: skimr v0.2 T7 done, ready for T8
+# Resume: skimr v0.2 T8 done, ready for T9 (NER extra)
 
-**Last session:** 2026-04-21. Stopped after T7 at commit `e299845`, pushed. v0.0.1 shipped (Plan 1, 2026-04-19); Plan 2 Rust port complete but never tagged as v0.1.0-rc1 (we pivoted straight into v0.2 planning after the quality review). v0.2 plan in progress — **SC-A quality gate cleared** at T5, **T6 (`extract.outline`) + T7 (`extract.stats`) landed**, version bumped to 0.2.0 pre-release.
+**Last session:** 2026-04-21. Stopped after T8 at commit `d0607ef`, pushed. v0.0.1 shipped (Plan 1, 2026-04-19); Plan 2 Rust port complete but never tagged as v0.1.0-rc1 (we pivoted straight into v0.2 planning after the quality review). v0.2 plan in progress — **SC-A quality gate cleared** at T5, **T6 (`extract.outline`) + T7 (`extract.stats`) + T8 (`extract.metadata` core) landed**, version bumped to 0.2.0 pre-release.
 
 ## Repo state
 
 - **Remote:** https://github.com/yonk-labs/skimr (private, yonk-labs org)
 - **Branch:** `main`
-- **Local HEAD:** `e299845` — T7 extract.stats. `origin/main` in sync.
+- **Local HEAD:** `d0607ef` — T8 extract.metadata core. `origin/main` in sync.
 - **Unpushed:** 0.
 - **Version:** `0.2.0.dev0` (Python PEP 440) / `0.2.0-dev.0` (Rust SemVer). T15 bumps to plain `0.2.0` at release.
 - **v0.0.1 tag:** pushed; points at `4c3e7d4`.
@@ -31,12 +31,13 @@ Spec: `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`.
 | — | Fixture-walker drift fix | `cfb5666` | Three T5 follow-ups that weren't in the plan but blocked T7. (a) Port Rust walker's `scorer_mode` dispatch to Python `tests/test_fixtures.py` (Python was hardcoding `mode='legacy'` → 10 tfidf-v0.2 fixtures all byte-mismatched). (b) Update `tests/test_tfidf.py::test_summarize_fixture_short_passthrough` from `fixtures/tfidf/short-passthrough` → `fixtures/tfidf-legacy/short-passthrough` (T5 moved the dir). (c) Same path update in `rust/tests/tfidf.rs`. |
 | — | Version bump | `19a6835` | `0.0.1` → `0.2.0.dev0` (pyproject + `__version__`) and `0.2.0-dev.0` (Cargo.toml + Cargo.lock). Avoids artifact collisions with the shipped `0.0.1`; T15 drops the pre-release suffix. |
 | T7 | `extract.stats` (Py + Rust) | `e299845` | Regex-based numeric-fact extractor — 5 pattern classes: money (`$120K`, `45 dollars`, `100 EUR`), percent (`23%`, `23 percent`), date (ISO + US slashed), duration (`3 months` etc.), count (`events`/`users`/`qps`/…). Each `Stat` carries `value`, `unit`, `phrase` (±25 char window, trimmed), full `context_sentence`, and `stat_type`. Python uses `re` module with named groups; Rust uses `regex` crate with `OnceLock` per-pattern. Parity spot-checked on all plan test inputs — 9 emitted stats byte-identical across languages. Single clippy adjustment in Rust tests (`.contains("3")` → `.contains('3')` for `single_char_pattern`). Two noted-not-blocking risks: (1) Rust `ctx()` byte-slicing panics on non-ASCII if window edge lands mid-codepoint — ASCII-only plan inputs avoid it, widen with `floor_char_boundary` if future corpora include non-ASCII. (2) Money currency-word branch compiled but untested by plan cases. |
+| T8 | `extract.metadata` core (Py + Rust) | `d0607ef` | Regex-based extractor for `dates` (ISO + US slashed), `amounts` (same $-prefix or currency-suffix patterns as T7), and `urls` (`https?://[^\\s<>\"')]+`). Results deduped via first-appearance order via `_collect_unique` (Python set + list) / `collect_unique` (Rust `HashSet` + `Vec`). `entities` intentionally always empty — T9 populates it via the optional `skimr[ner]` extra, Python-only. 5 test cases per language, parity byte-identical across all 5 inputs × 4 fields. Code-quality reviewer flagged 2 non-blockers, both applied before push: (a) docstring no longer falsely claims pattern reuse from extract.stats, (b) switched `BTreeSet` → `HashSet` + eliminated double-clone in `collect_unique` hot path. |
 
-**Pending (8/15):** T8 metadata core · T9 metadata NER (skimr[ner]) · T10 phrases · T11 correlate_facts · T12 gold fixtures · T13 extraction eval (SC-D gate) · T14 comparison matrix + latency (SC-B gate) · T15 tag v0.2.0.
+**Pending (7/15):** T9 metadata NER (skimr[ner]) · T10 phrases · T11 correlate_facts · T12 gold fixtures · T13 extraction eval (SC-D gate) · T14 comparison matrix + latency (SC-B gate) · T15 tag v0.2.0.
 
 **Test suite state:**
-- **Python:** **117 passing** (111 post-T6 + 6 new stats tests).
-- **Rust:** **71 passing** (66 post-T6 + 5 new stats tests). Clippy `--all-targets -- -D warnings` clean.
+- **Python:** **122 passing** (117 post-T7 + 5 new metadata tests).
+- **Rust:** **76 passing** (71 post-T7 + 5 new metadata tests). Clippy `--all-targets -- -D warnings` clean.
 - **Fixtures:** 10 `tfidf-v0.2/*` (scorer_mode=default) + 1 `tfidf-legacy/short-passthrough` + clean_text + keyword + strip_think. All byte-identical Python↔Rust across both walkers.
 
 ## Quality methodology — v0.2 state
@@ -64,17 +65,20 @@ The implementer subagents caught several plan-level issues the plan writer misse
 
 Accept deviations when: (a) tests pass, (b) byte-identity holds, (c) justification matches the design intent. Reject when: byte-identity fails or scope creep.
 
-## What's next — T8 entry point
+## What's next — T9 entry point
 
-**T8 is `extract.metadata` core** — regex-based dates/amounts/URLs. Returns `Metadata(dates, amounts, urls, entities)` from `src/skimr/_types.py`. `entities` left empty in T8; T9 populates it under the optional `skimr[ner]` extra (Python-only). Scope (per plan §Task 8):
-- Python: replace T4 stub at `src/skimr/extract/metadata.py`. Test skeleton is around line 2773 of the plan.
-- Rust: port at `rust/src/extract/metadata.rs` — Rust stays byte-identical for the core fields (entities is Python-only).
-- Tests: `tests/test_extract_metadata.py` + `rust/tests/extract_metadata.rs`.
-- Expected pattern: much like T7 (`extract.stats`), but aggregates unique dates/amounts/URLs into tuples rather than per-match `Stat` records.
+**T9 is the `skimr[ner]` optional extra** — a Python-only NER pass that populates `Metadata.entities` with spaCy `PERSON`/`ORG`/`GPE`/`PRODUCT`/`LOC` surface forms. No Rust work in T9 — Rust's `Metadata.entities` stays empty by design (documented in T8 commit). Scope (per plan §Task 9, starting line 3021):
+- Modify: `pyproject.toml` — add `[project.optional-dependencies] ner = ["spacy>=3.7,<4"]`.
+- Create: `src/skimr/extract/_ner.py` — lazy spaCy loader with `_nlp()` cached via `functools.lru_cache`, `extract_entities(text)`, and `warmup()`.
+- Modify: `src/skimr/extract/metadata.py` — wrap a try/except import around `_ner`; on ImportError keep `entities=()` and work exactly as T8.
+- Modify: `src/skimr/extract/__init__.py` — expose `warmup_ner` (real function when `_ner` importable, no-op fallback otherwise).
+- Create: `tests/test_extract_metadata_ner.py` — uses `pytest.importorskip("spacy")` so the suite stays green without spaCy installed.
 
-After T8-T11 (each adds one primitive), T12 hand-labels gold fixtures (~25 hours of labeling work; parallelizable via subagents given the protocol at `docs/extraction-gold-labeling.md`, which is created IN T12 per the plan). T13 runs the eval harness to verify SC-D (≥0.85 recall / ≥0.80 precision per primitive). T14 produces the comparison matrix (SC-B gate — p50 < 250ms warm). T15 tags v0.2.0.
+**Note on environment:** T9 tests will auto-skip until spaCy + `en_core_web_sm` are installed. If the dev env has them, 3 NER tests pass; if not, they skip and the rest of the suite stays at 122. Either way T9 must not regress the 122 core tests.
 
-**No blockers for T8.** Suites are clean; walker drift is resolved; parity contract is honored.
+After T9-T11 (each adds one primitive), T12 hand-labels gold fixtures (~25 hours of labeling work; parallelizable via subagents given the protocol at `docs/extraction-gold-labeling.md`, which is created IN T12 per the plan). T13 runs the eval harness to verify SC-D (≥0.85 recall / ≥0.80 precision per primitive). T14 produces the comparison matrix (SC-B gate — p50 < 250ms warm). T15 tags v0.2.0.
+
+**No blockers for T9.** Suites are clean; walker drift is resolved; parity contract is honored.
 
 ### Known T6 artifact worth noting for T12
 
@@ -88,8 +92,8 @@ Rust `ctx()` in `rust/src/extract/stats.rs` byte-slices the context window. If f
 
 ```bash
 cd /home/yonk/yonk-tools/extractive_summary
-.venv/bin/python -m pytest -q                                            # 117 tests
-cd rust && cargo test && cargo clippy --all-targets -- -D warnings       # 71 + clean
+.venv/bin/python -m pytest -q                                            # 122 tests
+cd rust && cargo test && cargo clippy --all-targets -- -D warnings       # 76 + clean
 .venv/bin/python benchmarks/quality_eval.py                              # A1 outputs + A2 ROUGE
 .venv/bin/python benchmarks/quality_eval_llm.py                          # A4 Qwen judge
 git log --oneline -15                                                    # progress
@@ -105,7 +109,7 @@ gh run list --repo yonk-labs/skimr --limit 5                             # CI
 - [x] **T5** ⛔ SC-A gate — **PASSED** (`a9e94dd`)
 - [x] **T6** extract.outline (Python + Rust) (`f4d65ce`) + fixture-walker drift fix (`cfb5666`)
 - [x] **T7** extract.stats (Python + Rust) (`e299845`) + version bump (`19a6835`)
-- [ ] **T8** extract.metadata core (Python + Rust)
+- [x] **T8** extract.metadata core (Python + Rust) (`d0607ef`)
 - [ ] **T9** extract.metadata NER (skimr[ner] extra, Python-only)
 - [ ] **T10** extract.phrases (Python + Rust)
 - [ ] **T11** extract.correlate_facts (Python + Rust)
@@ -116,4 +120,4 @@ gh run list --repo yonk-labs/skimr --limit 5                             # CI
 
 ## Resume prompt (paste into fresh session)
 
-> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr v0.2 plan in progress — T1-T7 complete (T7 = `extract.stats`, `e299845`), version bumped to 0.2.0 pre-release (`19a6835`), local and remote `main` in sync. **Read `docs/RESUME.md` FIRST** for full context. Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`. Spec: `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. Python: **117 tests green**. Rust: **71 tests green + clippy clean**. All fixture byte-identity contracts honored. **Next up: T8 `extract.metadata` core** — regex-based dates/amounts/URLs returning a `Metadata(...)` value, stdlib-only, Python-first then Rust port, cross-language parity required. Replace the T4 stub at `src/skimr/extract/metadata.py` and `rust/src/extract/metadata.rs`; add `tests/test_extract_metadata.py` and `rust/tests/extract_metadata.rs`. Plan task text starts around line 2754. NER (T9) populates `Metadata.entities` in a separate optional extra — T8 Rust leaves that field empty.
+> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr v0.2 plan in progress — T1-T8 complete (T8 = `extract.metadata` core, `d0607ef`). Local and remote `main` in sync. **Read `docs/RESUME.md` FIRST** for full context. Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`. Spec: `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. Python: **122 tests green**. Rust: **76 tests green + clippy clean**. All fixture byte-identity contracts honored. **Next up: T9 — `skimr[ner]` optional extra** (Python-only, NO Rust work). Plan task text starts around line 3021. Adds `[project.optional-dependencies] ner = ["spacy>=3.7,<4"]`, creates `src/skimr/extract/_ner.py` with lazy `_nlp()` loader + `extract_entities()` + `warmup()`, extends `src/skimr/extract/metadata.py` with a try/except NER import, and exposes `warmup_ner` from `src/skimr/extract/__init__.py`. Tests use `pytest.importorskip("spacy")` so suite stays green without spaCy installed.
