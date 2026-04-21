@@ -1,13 +1,13 @@
-# Resume: skimr v0.2 SC-A gate cleared, stopped after T5
+# Resume: skimr v0.2 T6 done, fixture drift cleared, ready for T7
 
-**Last session:** 2026-04-21. Stopped after T5 at commit `a9e94dd`. v0.0.1 shipped (Plan 1, 2026-04-19); Plan 2 Rust port complete but never tagged as v0.1.0-rc1 (we pivoted straight into v0.2 planning after the quality review). v0.2 plan in progress — **SC-A quality gate cleared** on first attempt: skimr/tfidf-v0.2 beats sumy/TextRank on both A2 ROUGE (0.455 vs 0.409) and A4 Qwen judge (42/60 vs 40/60).
+**Last session:** 2026-04-21. Stopped after T6 + drift-fix at commit `cfb5666`. v0.0.1 shipped (Plan 1, 2026-04-19); Plan 2 Rust port complete but never tagged as v0.1.0-rc1 (we pivoted straight into v0.2 planning after the quality review). v0.2 plan in progress — **SC-A quality gate cleared** at T5, **T6 (`extract.outline`) landed**, then a follow-up commit cleaned up fixture-walker drift that T5 had left behind.
 
 ## Repo state
 
 - **Remote:** https://github.com/yonk-labs/skimr (private, yonk-labs org)
 - **Branch:** `main`
-- **Local HEAD:** `a9e94dd`
-- **Unpushed:** 0 — `origin/main` is current.
+- **Local HEAD:** `cfb5666` — T6 outline impl + drift fix. `origin/main` current through `f4d65ce` (T6). `cfb5666` is local-only until the next push.
+- **Unpushed:** 1 commit (`cfb5666`, the drift fix) — push before starting T7 if you want CI to run clean on main.
 - **v0.0.1 tag:** pushed; points at `4c3e7d4`.
 - **No v0.1.0-rc1 tag** — pivoted into v0.2 before tagging. The Rust port from Plan 2 is still on main; v0.2 builds on it directly.
 - **CI:** `tests` + `zero-deps` + `rust` workflows all green on recent pushes.
@@ -17,22 +17,24 @@
 Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md` (15 tasks).
 Spec: `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`.
 
-**Done (5/15):**
+**Done (6/15):**
 
 | # | Task | SHA | Notes |
 |---|---|---|---|
-| T1 | C1 Python scorer + mode='legacy' | `b100280` | 4 tweaks (heading filter + cue-phrase boost + digit bonus + section-position weight); SummaryResult dataclass; 72 Python tests passing. Subagent discovered existing `split_sentences()` doesn't handle `"heading\nbody..."` so added `_separate_heading_lines()` preprocessing. |
-| T2 | C1 Rust port | `b388edf` | Mirrored preprocessing; Mode enum + SummaryResult struct; **22/22 byte-identity matches** across all 10 corpora × 4 max_length values. 56 Rust tests passing; clippy clean. |
+| T1 | C1 Python scorer + mode='legacy' | `b100280` | 4 tweaks (heading filter + cue-phrase boost + digit bonus + section-position weight); SummaryResult dataclass. Subagent discovered existing `split_sentences()` doesn't handle `"heading\nbody..."` so added `_separate_heading_lines()` preprocessing. |
+| T2 | C1 Rust port | `b388edf` | Mirrored preprocessing; Mode enum + SummaryResult struct; **22/22 byte-identity matches** across all 10 corpora × 4 max_length values. Clippy clean. |
 | T3 | C2 coverage mode | `e892ff9` | Paragraph-aware selector. Subagent DEVIATION: greedy-fill restricted to unrepresented paragraphs (spec said "globally" which would fail the one-per-para test; interpretation aligns with "coverage" intent). **10/10 Python↔Rust byte-identity** on coverage mode across all corpora. |
-| T4 | SummaryResult + attach= plumbing | `0bf82ce` | Full attachment fields + `skimr.extract.*` namespace (stubs returning empty). Python `_split_sentences` vs `split_sentences` name-mismatch in plan — subagent corrected to actual exported name. `struct_excessive_bools` clippy allow on AttachOpts (intentional API shape). 87 Python + 61 Rust tests passing. |
-| T5 | ⛔ SC-A gate re-run | `a9e94dd` | **SC-A PASS.** A2 ROUGE: skimr/tfidf-v0.2 **0.455** > sumy/TextRank 0.409. A4 Qwen: skimr/tfidf-v0.2 **42/60** > sumy/TextRank 40/60. Privacy-policy +0.107 R1-F, scientific-paper +0.164 — heading filter working as designed. Fixtures regenerated at `fixtures/tfidf-v0.2/` with `scorer_mode: "default"`; walker config schema extended backward-compatibly. |
+| T4 | SummaryResult + attach= plumbing | `0bf82ce` | Full attachment fields + `skimr.extract.*` namespace (stubs returning empty). Python `_split_sentences` vs `split_sentences` name-mismatch in plan — subagent corrected to actual exported name. `struct_excessive_bools` clippy allow on AttachOpts (intentional API shape). |
+| T5 | ⛔ SC-A gate re-run | `a9e94dd` | **SC-A PASS.** A2 ROUGE: skimr/tfidf-v0.2 **0.455** > sumy/TextRank 0.409. A4 Qwen: skimr/tfidf-v0.2 **42/60** > sumy/TextRank 40/60. Privacy-policy +0.107 R1-F, scientific-paper +0.164 — heading filter working as designed. Fixtures regenerated at `fixtures/tfidf-v0.2/` with `scorer_mode: "default"`; Rust walker config schema extended, **Python walker was NOT** (fixed in drift-cleanup below). |
+| T6 | `extract.outline` (Py + Rust) | `f4d65ce` | Real impl replacing T4 stub. Reuses `_separate_heading_lines` + `split_sentences` + `_composite_score_parts`; uses a narrower local `_is_structural_heading` predicate (markdown / allcaps / colon-label only, dropping the "<4 content tokens" fallback) so short body sentences like "Costs declined." aren't misclassified as headings. Rust `separate_heading_lines` promoted to `pub(crate)` for reuse. Code-quality reviewer caught a Python↔Rust tie-break divergence (Py `max` picks first-on-tie, Rust `max_by` picks last); fixed via `.then_with(\|\| b.cmp(a))` + dedicated regression test using anagram sentences that genuinely tie on composite score. Spot-checked parity on all 4 test corpora. |
+| — | Fixture-walker drift fix | `cfb5666` | Three T5 follow-ups that weren't in the plan but blocked T7. (a) Port Rust walker's `scorer_mode` dispatch to Python `tests/test_fixtures.py` (Python was hardcoding `mode='legacy'` → 10 tfidf-v0.2 fixtures all byte-mismatched). (b) Update `tests/test_tfidf.py::test_summarize_fixture_short_passthrough` from `fixtures/tfidf/short-passthrough` → `fixtures/tfidf-legacy/short-passthrough` (T5 moved the dir). (c) Same path update in `rust/tests/tfidf.rs`. |
 
-**Pending (10/15):** T6 outline · T7 stats · T8 metadata core · T9 metadata NER (skimr[ner]) · T10 phrases · T11 correlate_facts · T12 gold fixtures · T13 extraction eval (SC-D gate) · T14 comparison matrix + latency (SC-B gate) · T15 tag v0.2.0.
+**Pending (9/15):** T7 stats · T8 metadata core · T9 metadata NER (skimr[ner]) · T10 phrases · T11 correlate_facts · T12 gold fixtures · T13 extraction eval (SC-D gate) · T14 comparison matrix + latency (SC-B gate) · T15 tag v0.2.0.
 
-**Test suite state:**
-- **Python:** 87 passing (64 baseline + 8 scorer + 4 coverage + 11 summaryresult).
-- **Rust:** 61 passing (existing + 5 scorer_v0_2 + 4 coverage + 5 summaryresult). Clippy `--all-targets -- -D warnings` clean.
-- **Fixtures:** 10 tfidf-v0.2 (scorer_mode=default) + 1 tfidf-legacy + clean_text + keyword + strip_think. All byte-identical Python↔Rust per Rust fixture walker.
+**Test suite state (post-drift-fix):**
+- **Python:** **111 passing** (was falsely reported as 87 in the pre-T6 RESUME — actual pre-T6 state was 96 passing + 11 hidden failures from the T5 walker drift). Includes 4 new outline tests from T6.
+- **Rust:** **66 passing** (pre-T6 was 59 passing + 1 hidden failure). Includes 5 new outline tests from T6 (4 plan tests + 1 tie-break regression). Clippy `--all-targets -- -D warnings` clean.
+- **Fixtures:** 10 `tfidf-v0.2/*` (scorer_mode=default) + 1 `tfidf-legacy/short-passthrough` + clean_text + keyword + strip_think. All byte-identical Python↔Rust across both walkers.
 
 ## Quality methodology — v0.2 state
 
@@ -59,27 +61,33 @@ The implementer subagents caught several plan-level issues the plan writer misse
 
 Accept deviations when: (a) tests pass, (b) byte-identity holds, (c) justification matches the design intent. Reject when: byte-identity fails or scope creep.
 
-## What's next — T6 entry point
+## What's next — T7 entry point
 
-**T6 is `extract.outline`** — the first real primitive to replace its T4 stub. Scope:
-- Python: detect section headings (reuse `_headings.is_heading` + `heading_name`), pick highest-scoring non-heading sentence per section as `representative_sentence`. Depth from `^#+` count.
-- Rust: port.
+**T7 is `extract.stats`** — regex-based numeric fact extractor. Returns `tuple[Stat, ...]`. Deterministic, stdlib-only. Scope (per plan §Task 7):
+- Python: replace T4 stub at `src/skimr/extract/stats.py`. Detect money (`$...K`, `$...,000`), percent (`NN%`, `NN percent`), dates (ISO `YYYY-MM-DD` plus common formats), counts, durations. Each hit becomes a `Stat(value, unit, phrase, context_sentence, stat_type)` per `src/skimr/_types.py`.
+- Rust: port at `rust/src/extract/stats.rs`.
 - Cross-language parity required on shared inputs.
+- Tests: `tests/test_extract_stats.py` + `rust/tests/extract_stats.rs` (test skeletons are in the plan around line 2372).
 
-After T6-T11 (each adds one primitive), T12 hand-labels gold fixtures (~25 hours of labeling work; parallelizable via subagents given the protocol at `docs/extraction-gold-labeling.md`, which is created IN T12 per the plan). T13 runs the eval harness to verify SC-D (≥0.85 recall / ≥0.80 precision per primitive). T14 produces the comparison matrix (SC-B gate — p50 < 250ms warm). T15 tags v0.2.0.
+After T7-T11 (each adds one primitive), T12 hand-labels gold fixtures (~25 hours of labeling work; parallelizable via subagents given the protocol at `docs/extraction-gold-labeling.md`, which is created IN T12 per the plan). T13 runs the eval harness to verify SC-D (≥0.85 recall / ≥0.80 precision per primitive). T14 produces the comparison matrix (SC-B gate — p50 < 250ms warm). T15 tags v0.2.0.
 
-**No blockers for continuing.** User gave full-send autonomous consent; the subagent cadence is working.
+**No blockers for T7.** Suites are clean; walker drift is resolved; parity contract is honored.
+
+### Known T6 artifact worth noting for T12
+
+`outline()` uses a **narrower** heading predicate than `tfidf.summarize`'s `is_heading`. The shared `_headings.is_heading` fires on "<4 content tokens" too — useful for dropping short paragraph-enders during summarization, harmful for section detection because legitimate short body sentences like "Costs declined." (2 content tokens) would be classified as headings and strand a section with zero representative candidates. Both languages use the same narrower predicate (just the 3 structural regex patterns) so parity holds. T12 fixture design should assume outline sections are detected by structural markers only, not by the "short sentence" heuristic.
 
 ## Handy one-liners
 
 ```bash
 cd /home/yonk/yonk-tools/extractive_summary
-.venv/bin/python -m pytest -q                                            # 87 tests
-cd rust && cargo test && cargo clippy --all-targets -- -D warnings       # 61 + clean
+.venv/bin/python -m pytest -q                                            # 111 tests
+cd rust && cargo test && cargo clippy --all-targets -- -D warnings       # 66 + clean
 .venv/bin/python benchmarks/quality_eval.py                              # A1 outputs + A2 ROUGE
 .venv/bin/python benchmarks/quality_eval_llm.py                          # A4 Qwen judge
 git log --oneline -15                                                    # progress
 gh run list --repo yonk-labs/skimr --limit 5                             # CI
+git push                                                                 # if cfb5666 still unpushed
 ```
 
 ## TODO list (v0.2 plan)
@@ -89,7 +97,7 @@ gh run list --repo yonk-labs/skimr --limit 5                             # CI
 - [x] **T3** C2 coverage mode (`e892ff9`)
 - [x] **T4** SummaryResult + attach= plumbing (`0bf82ce`)
 - [x] **T5** ⛔ SC-A gate — **PASSED** (`a9e94dd`)
-- [ ] **T6** extract.outline (Python + Rust)
+- [x] **T6** extract.outline (Python + Rust) (`f4d65ce`) + fixture-walker drift fix (`cfb5666`)
 - [ ] **T7** extract.stats (Python + Rust)
 - [ ] **T8** extract.metadata core (Python + Rust)
 - [ ] **T9** extract.metadata NER (skimr[ner] extra, Python-only)
@@ -102,4 +110,4 @@ gh run list --repo yonk-labs/skimr --limit 5                             # CI
 
 ## Resume prompt (paste into fresh session)
 
-> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr v0.2 plan is in progress — T1-T5 complete, **SC-A quality gate cleared** (skimr/tfidf-v0.2 beats sumy/TextRank on both A2 ROUGE and A4 Qwen judge). Local and remote `main` are at `a9e94dd`; nothing unpushed. **Read `docs/RESUME.md` FIRST** for full context. Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`. Spec: `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. Python: 87 tests green. Rust: 61 tests green + clippy clean. **Next up: T6 extract.outline** — real implementation replacing the T4 stub at `src/skimr/extract/outline.py` and `rust/src/extract/outline.rs`. Uses `_headings.is_heading` + `heading_name` to detect sections; picks highest-scoring non-heading sentence per section. Python-first, Rust port after, cross-language parity required.
+> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr v0.2 plan in progress — T1-T6 complete (T6 = `extract.outline`, `f4d65ce`) plus a follow-up fixture-walker drift fix (`cfb5666`, may still be unpushed). **Read `docs/RESUME.md` FIRST** for full context. Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`. Spec: `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. Python: **111 tests green**. Rust: **66 tests green + clippy clean**. All fixture byte-identity contracts honored across both walkers. **Next up: T7 `extract.stats`** — regex-based numeric fact extractor returning `tuple[Stat, ...]`, stdlib-only, Python-first then Rust port, cross-language parity required. Replace the T4 stub at `src/skimr/extract/stats.py` and `rust/src/extract/stats.rs`; add `tests/test_extract_stats.py` and `rust/tests/extract_stats.rs`. Plan task text starts around line 2360 of the plan doc. If `cfb5666` is unpushed, `git push` before starting.
