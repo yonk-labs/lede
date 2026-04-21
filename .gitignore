@@ -21,6 +21,10 @@ venv/
 .env
 .env.*
 !.env.example
+.openai
+.openai.*
+.anthropic
+.anthropic.*
 *.pem
 *.key
 *.p12
