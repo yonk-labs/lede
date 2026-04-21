@@ -21,7 +21,13 @@ def _dispatch(mode: str, input_text: str, params: dict) -> str:
     if mode == "strip_think":
         return strip_think(input_text)
     if mode == "tfidf":
-        return summarize(input_text, max_length=params.get("max_length", 500))
+        # v0.2: summarize() returns SummaryResult. Existing fixtures encode
+        # legacy behavior, so pin to mode='legacy' and unwrap via .summary.
+        return summarize(
+            input_text,
+            max_length=params.get("max_length", 500),
+            mode="legacy",
+        ).summary
     if mode == "keyword":
         return extract_keyword(
             input_text,

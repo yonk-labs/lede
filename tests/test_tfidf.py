@@ -60,13 +60,15 @@ from skimr.tfidf import summarize
 
 def test_summarize_short_input_returns_unchanged():
     text = "Short text."
-    assert summarize(text, max_length=500) == text
+    # v0.2: summarize() returns SummaryResult; .summary for the string.
+    # Pin to mode='legacy' to match pre-v0.2 byte-identical behavior.
+    assert summarize(text, max_length=500, mode="legacy").summary == text
 
 
 def test_summarize_fallback_truncates_when_max_length_too_small():
     text = "First sentence. Second sentence. Third sentence. Fourth sentence."
     # max_length < 50 triggers truncation fallback per SUMMARIZATION.md step 1
-    result = summarize(text, max_length=20)
+    result = summarize(text, max_length=20, mode="legacy").summary
     assert len(result) <= 23  # 20 + "..." suffix
     assert result.endswith("...")
 
@@ -74,7 +76,7 @@ def test_summarize_fallback_truncates_when_max_length_too_small():
 def test_summarize_fallback_when_fewer_than_three_sentences():
     text = "One only sentence here in this input."
     # Only 1 sentence → falls back to truncation
-    result = summarize(text, max_length=15)
+    result = summarize(text, max_length=15, mode="legacy").summary
     # 15 is < 50, so truncation path; also <3 sentences
     assert result.endswith("...")
 
@@ -87,7 +89,7 @@ def test_summarize_respects_max_length_budget():
         "Dr. Smith analyzed the Q4 results. "
         "Margins improved by 5 points."
     )
-    result = summarize(text, max_length=100)
+    result = summarize(text, max_length=100, mode="legacy").summary
     assert len(result) <= 100
 
 
@@ -98,7 +100,7 @@ def test_summarize_reorders_by_original_position():
         "Unique distinctive keyword-heavy sentence. "
         "Closing sentence about apples."
     )
-    result = summarize(text, max_length=200)
+    result = summarize(text, max_length=200, mode="legacy").summary
     # The output should preserve original order if the selected sentences were
     # originally in that order. We check that the first selected sentence appears
     # before the second in the output.
@@ -117,4 +119,4 @@ def test_summarize_fixture_short_passthrough():
     fx = Path(__file__).resolve().parent.parent / "fixtures" / "tfidf" / "short-passthrough"
     inp = (fx / "input.txt").read_text()
     expected = (fx / "expected.txt").read_text()
-    assert summarize(inp, max_length=500) == expected
+    assert summarize(inp, max_length=500, mode="legacy").summary == expected

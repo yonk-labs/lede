@@ -57,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
     text = _read_input(args.path)
 
     if args.mode == "tfidf":
-        output = summarize(text, max_length=args.max_chars)
+        output = summarize(text, max_length=args.max_chars).summary
     elif args.mode == "keyword":
         if not args.keywords:
             parser.error("--mode keyword requires --keywords")

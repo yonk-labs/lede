@@ -5,12 +5,18 @@ Per SUMMARIZATION.md:
 
 All scores normalized to [0, 1] per dimension. The composite is a weighted
 sum, also in [0, 1].
+
+v0.2.0 adds mode='default' with four scorer tweaks on top of the legacy
+formula: heading filter, cue-phrase boost, digit bonus, and section-position
+weighting. mode='legacy' preserves v0.0.1 behavior byte-identically.
 """
 import math
 import re
 from collections import Counter
 
 from skimr.sentences import split_sentences
+from skimr._headings import is_heading, heading_name
+from skimr._types import SummaryResult
 
 _TFIDF_WEIGHT = 0.60
 _POSITION_WEIGHT = 0.25
@@ -30,6 +36,21 @@ _STOPWORDS = frozenset({
 })
 
 _TOKEN_RE = re.compile(r"\b[a-z]{3,}\b")
+
+# --- v0.2 default-mode scorer tweaks ---
+
+_CUE_PHRASE_RE = re.compile(
+    r"^\s*(held|resolution|in summary|conclusion|action item|"
+    r"decision|finding|key takeaway|outcome|ruling):?\b",
+    re.IGNORECASE,
+)
+
+_DIGIT_RE = re.compile(r"\d+")
+
+_SECTION_BOOST_HEADINGS = {
+    "discussion", "conclusion", "held", "resolution",
+    "key findings", "summary", "decision",
+}
 
 
 def _tokenize(sentence: str) -> list[str]:
@@ -106,17 +127,105 @@ def length_score(sentences: list[str]) -> list[float]:
     return _normalize(raw)
 
 
-def composite_score(sentences: list[str]) -> list[float]:
-    """Composite score: 0.60 * tfidf + 0.25 * position + 0.15 * length."""
+def _composite_score_parts(
+    sentences: list[str],
+) -> list[tuple[float, float, float]]:
+    """Return (tfidf, position, length) triples per sentence."""
     if not sentences:
         return []
     t = tfidf_score(sentences)
     p = position_score(len(sentences))
     l = length_score(sentences)
+    return [(t[i], p[i], l[i]) for i in range(len(sentences))]
+
+
+def _composite_score_legacy(sentences: list[str]) -> list[float]:
+    """Legacy composite: 0.60 * tfidf + 0.25 * position + 0.15 * length.
+
+    Byte-identical to v0.0.1 behavior.
+    """
+    parts = _composite_score_parts(sentences)
     return [
-        _TFIDF_WEIGHT * t[i] + _POSITION_WEIGHT * p[i] + _LENGTH_WEIGHT * l[i]
-        for i in range(len(sentences))
+        _TFIDF_WEIGHT * t + _POSITION_WEIGHT * p + _LENGTH_WEIGHT * l_
+        for (t, p, l_) in parts
     ]
+
+
+def composite_score(sentences: list[str]) -> list[float]:
+    """Composite score: 0.60 * tfidf + 0.25 * position + 0.15 * length.
+
+    Preserved for backward compatibility with callers and tests that import
+    this helper directly. Equivalent to _composite_score_legacy.
+    """
+    return _composite_score_legacy(sentences)
+
+
+def _separate_heading_lines(text: str) -> str:
+    """Ensure heading-looking lines are separated from their following line by
+    a blank line, so the sentence splitter treats them as standalone sentences.
+
+    Only touches lines that the heading detector would classify as headings
+    when considered in isolation. Idempotent: already-separated headings pass
+    through unchanged.
+    """
+    if not text:
+        return text
+    lines = text.split("\n")
+    out: list[str] = []
+    for i, line in enumerate(lines):
+        out.append(line)
+        if i == len(lines) - 1:
+            continue
+        # If current line is a heading candidate and the next line is non-empty,
+        # insert a blank line so paragraph-break splitting kicks in.
+        if line.strip() and is_heading(line):
+            nxt = lines[i + 1]
+            if nxt.strip():
+                out.append("")
+    return "\n".join(out)
+
+
+def _build_section_map(sentences: list[str]) -> dict[int, str]:
+    """Map each sentence index to the lowercase name of the most recent
+    heading above it (or "" if none)."""
+    section_map: dict[int, str] = {}
+    current = ""
+    for i, sentence in enumerate(sentences):
+        if is_heading(sentence):
+            name = heading_name(sentence)
+            current = name.lower() if name else ""
+        section_map[i] = current
+    return section_map
+
+
+def _composite_score_default(
+    sentences: list[str],
+    section_map: dict[int, str],
+) -> list[float]:
+    """v0.2 default scorer: legacy composite + four tweaks.
+
+    - Heading sentences get -inf (dropped from selection).
+    - Sentences under a high-signal section (discussion/conclusion/etc.)
+      get tfidf *= 1.3.
+    - Cue-phrase sentences ("Held:", "Resolution:", ...) get +2.0.
+    - Sentences containing digits get +0.3.
+    """
+    parts = _composite_score_parts(sentences)
+    scores: list[float] = []
+    for i, sentence in enumerate(sentences):
+        if is_heading(sentence):
+            scores.append(float("-inf"))
+            continue
+        t, p, l_ = parts[i]
+        if section_map.get(i, "") in _SECTION_BOOST_HEADINGS:
+            t *= 1.3
+        score = _TFIDF_WEIGHT * t + _POSITION_WEIGHT * p + _LENGTH_WEIGHT * l_
+        if _CUE_PHRASE_RE.match(sentence):
+            score += 2.0
+        if _DIGIT_RE.search(sentence):
+            score += 0.3
+        scores.append(score)
+    return scores
 
 
 # --- Top-level summarize pipeline ---
@@ -133,8 +242,8 @@ def _truncate(text: str, max_length: int) -> str:
     return text[:body_budget] + "..."
 
 
-def summarize(text: str, max_length: int = 500) -> str:
-    """Extractive summary of ``text`` capped at ``max_length`` characters.
+def _summarize_legacy(text: str, max_length: int = 500) -> str:
+    """Extractive summary — v0.0.1 byte-identical behavior.
 
     Per SUMMARIZATION.md:
       1. If input fits the budget, return unchanged.
@@ -158,7 +267,7 @@ def summarize(text: str, max_length: int = 500) -> str:
     if len(sentences) < _MIN_SENTENCES:
         return _truncate(text, max_length)
 
-    scores = composite_score(sentences)
+    scores = _composite_score_legacy(sentences)
     # Indices sorted by score descending, then by original position ascending
     # (stable tie-break — deterministic).
     indices_by_score = sorted(
@@ -181,3 +290,86 @@ def summarize(text: str, max_length: int = 500) -> str:
 
     selected.sort()
     return separator.join(sentences[i] for i in selected)
+
+
+def _summarize_default(text: str, max_length: int = 500) -> str:
+    """v0.2 default scorer — mirrors _summarize_legacy with the default scorer.
+
+    Headings are dropped from candidates (score = -inf), cue-phrase sentences
+    are boosted by +2.0, digit-bearing sentences get +0.3, and sentences
+    under high-signal section headings have tfidf * 1.3.
+
+    Unlike legacy mode, default mode always runs the sentence pipeline when
+    the budget allows it (>= _MIN_BUDGET_FOR_SENTENCES) so headings are
+    filtered even when the raw input would otherwise fit.
+    """
+    if not text:
+        return ""
+
+    if max_length < _MIN_BUDGET_FOR_SENTENCES:
+        return _truncate(text, max_length)
+
+    # Pre-split heading-only lines so they become standalone sentences
+    # and can be individually filtered by the heading detector.
+    prepared = _separate_heading_lines(text)
+    sentences = split_sentences(prepared)
+    if len(sentences) < _MIN_SENTENCES:
+        if len(text) <= max_length:
+            return text
+        return _truncate(text, max_length)
+
+    section_map = _build_section_map(sentences)
+    scores = _composite_score_default(sentences, section_map)
+    indices_by_score = sorted(
+        range(len(sentences)),
+        key=lambda i: (-scores[i], i),
+    )
+
+    selected: list[int] = []
+    used = 0
+    separator = " "
+    for idx in indices_by_score:
+        # Skip headings / dropped candidates entirely.
+        if scores[idx] == float("-inf"):
+            continue
+        sentence = sentences[idx]
+        needed = len(sentence) + (len(separator) if selected else 0)
+        if used + needed <= max_length:
+            selected.append(idx)
+            used += needed
+
+    if not selected:
+        return _truncate(text, max_length)
+
+    selected.sort()
+    return separator.join(sentences[i] for i in selected)
+
+
+def summarize(
+    text: str,
+    max_length: int = 500,
+    *,
+    mode: str = "default",
+) -> SummaryResult:
+    """Extractive summary with configurable scoring mode.
+
+    mode='default' (v0.2) applies the four scorer tweaks on top of the
+    legacy 60/25/15 composite.
+
+    mode='legacy' preserves v0.0.1 behavior byte-identically.
+
+    mode='coverage' is implemented in Task 3 (v0.2.0).
+
+    Returns SummaryResult; __str__ returns the summary text so print() and
+    f-strings continue to work. Callers needing raw str use .summary.
+    """
+    if mode == "coverage":
+        from skimr.coverage import summarize_coverage  # module lands in Task 3
+        summary = summarize_coverage(text, max_length=max_length)
+    elif mode == "legacy":
+        summary = _summarize_legacy(text, max_length=max_length)
+    elif mode == "default":
+        summary = _summarize_default(text, max_length=max_length)
+    else:
+        raise ValueError(f"unknown mode: {mode!r}")
+    return SummaryResult(summary=summary)

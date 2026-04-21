@@ -38,7 +38,15 @@ def _dispatch(mode: str, input_text: str, params: dict) -> str:
     if mode == "strip_think":
         return strip_think(input_text)
     if mode == "tfidf":
-        return summarize(input_text, max_length=params.get("max_length", 500))
+        # v0.2: summarize() returns SummaryResult. Fixture expected.txt is a
+        # bare string, so unwrap via .summary. Existing fixtures were built
+        # against legacy behavior, so run them in mode='legacy' to preserve
+        # byte-identity.
+        return summarize(
+            input_text,
+            max_length=params.get("max_length", 500),
+            mode="legacy",
+        ).summary
     if mode == "keyword":
         return extract_keyword(
             input_text,
