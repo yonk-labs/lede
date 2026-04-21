@@ -38,14 +38,14 @@ def _dispatch(mode: str, input_text: str, params: dict) -> str:
     if mode == "strip_think":
         return strip_think(input_text)
     if mode == "tfidf":
-        # v0.2: summarize() returns SummaryResult. Fixture expected.txt is a
-        # bare string, so unwrap via .summary. Existing fixtures were built
-        # against legacy behavior, so run them in mode='legacy' to preserve
-        # byte-identity.
+        # v0.2: summarize() returns SummaryResult; unwrap via .summary.
+        # scorer_mode from config picks the scorer (default | legacy | coverage);
+        # absent → "legacy" to preserve pre-v0.2 fixture behavior.
+        scorer_mode = params.get("scorer_mode", "legacy")
         return summarize(
             input_text,
             max_length=params.get("max_length", 500),
-            mode="legacy",
+            mode=scorer_mode,
         ).summary
     if mode == "keyword":
         return extract_keyword(

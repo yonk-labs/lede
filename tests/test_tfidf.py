@@ -116,7 +116,7 @@ def test_summarize_reorders_by_original_position():
 
 def test_summarize_fixture_short_passthrough():
     from pathlib import Path
-    fx = Path(__file__).resolve().parent.parent / "fixtures" / "tfidf" / "short-passthrough"
+    fx = Path(__file__).resolve().parent.parent / "fixtures" / "tfidf-legacy" / "short-passthrough"
     inp = (fx / "input.txt").read_text()
     expected = (fx / "expected.txt").read_text()
     assert summarize(inp, max_length=500, mode="legacy").summary == expected

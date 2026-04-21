@@ -97,7 +97,7 @@ fn summarize_fixture_short_passthrough_byte_identical() {
     let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("rust crate parent dir")
-        .join("fixtures/tfidf/short-passthrough");
+        .join("fixtures/tfidf-legacy/short-passthrough");
     let input = std::fs::read_to_string(fixture.join("input.txt")).expect("read input");
     let expected = std::fs::read_to_string(fixture.join("expected.txt")).expect("read expected");
     assert_eq!(summarize(&input, 500, Mode::Legacy).summary, expected);
