@@ -271,7 +271,7 @@ pub fn composite_score(sentences: &[String]) -> Vec<f64> {
 ///
 /// Mirrors `src/skimr/tfidf.py::_separate_heading_lines`. Only touches lines
 /// the heading detector would classify as headings in isolation. Idempotent.
-fn separate_heading_lines(text: &str) -> String {
+pub(crate) fn separate_heading_lines(text: &str) -> String {
     if text.is_empty() {
         return String::new();
     }
