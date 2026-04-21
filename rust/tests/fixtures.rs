@@ -42,7 +42,13 @@ fn dispatch(mode: &str, input: &str, cfg: &str) -> Option<String> {
         "strip_think" => Some(skimr::strip_think(input)),
         "tfidf" => {
             let max_length = json_usize(cfg, "max_length").unwrap_or(500);
-            Some(skimr::summarize(input, max_length, skimr::Mode::Legacy).summary)
+            let scorer_mode = json_str(cfg, "scorer_mode").unwrap_or_else(|| "legacy".to_string());
+            let m = match scorer_mode.as_str() {
+                "default" => skimr::Mode::Default,
+                "coverage" => skimr::Mode::Coverage,
+                _ => skimr::Mode::Legacy,
+            };
+            Some(skimr::summarize(input, max_length, m).summary)
         }
         "keyword" => {
             let keywords = json_str(cfg, "keywords")?;

@@ -51,7 +51,8 @@ API_KEY = os.environ.get("SKIMR_JUDGE_API_KEY", "not-needed")
 SEED = 42
 TARGET_SENTENCES = 3
 TARGET_CHARS = 500
-SUMMARIZER_NAMES = ["skimr/tfidf", "skimr/textrank", "sumy/LexRank", "sumy/TextRank", "sumy/LSA"]
+SUMMARIZER_NAMES = ["skimr/tfidf-v0.2", "skimr/tfidf-legacy", "skimr/textrank",
+                    "sumy/LexRank", "sumy/TextRank", "sumy/LSA"]
 
 random.seed(SEED)
 client = OpenAI(base_url=BASE_URL, api_key=API_KEY)
@@ -64,7 +65,8 @@ def run_all(text: str) -> dict[str, str]:
         return " ".join(str(s) for s in cls()(parser.document, TARGET_SENTENCES))
 
     return {
-        "skimr/tfidf": summarize(text, max_length=TARGET_CHARS),
+        "skimr/tfidf-v0.2": summarize(text, max_length=TARGET_CHARS, mode="default").summary,
+        "skimr/tfidf-legacy": summarize(text, max_length=TARGET_CHARS, mode="legacy").summary,
         "skimr/textrank": summarize_textrank(text, num_sentences=TARGET_SENTENCES),
         "sumy/LexRank": sumy_run(LexRankSummarizer),
         "sumy/TextRank": sumy_run(TextRankSummarizer),
@@ -81,9 +83,11 @@ def build_prompt(source: str, letter_to_summary: dict[str, str]) -> tuple[str, s
         f"SUMMARY {letter}:\n{summary}"
         for letter, summary in letter_to_summary.items()
     )
+    n = len(letter_to_summary)
+    last_letter = chr(ord("A") + n - 1)
     user = (
-        "Below is a source document and five candidate extractive summaries "
-        "labeled A through E, each produced by a different algorithm. Rank "
+        f"Below is a source document and {n} candidate extractive summaries "
+        f"labeled A through {last_letter}, each produced by a different algorithm. Rank "
         "them from best (most useful) to worst based on these criteria, in "
         "priority order:\n"
         "  1. How many important facts from the source are preserved.\n"
@@ -94,7 +98,7 @@ def build_prompt(source: str, letter_to_summary: dict[str, str]) -> tuple[str, s
         "decision, or action item of the source is worse than one that "
         "includes it, regardless of how well-written it is.\n\n"
         "Return a JSON object with a single field 'ranking' whose value is "
-        "an array of the five letters A-E in order from best to worst. "
+        f"an array of the {n} letters A-{last_letter} in order from best to worst. "
         "Return only JSON; no explanation.\n\n"
         "---\n"
         f"SOURCE DOCUMENT:\n{source}\n"
@@ -107,7 +111,7 @@ def build_prompt(source: str, letter_to_summary: dict[str, str]) -> tuple[str, s
 
 def judge_one(corpus_name: str, source: str, outs: dict[str, str]) -> dict:
     # Randomize letter assignment per corpus to control for position bias.
-    letters = ["A", "B", "C", "D", "E"]
+    letters = [chr(ord("A") + i) for i in range(len(outs))]
     shuffled_summarizers = list(outs.keys())
     random.shuffle(shuffled_summarizers)
     letter_to_summarizer = dict(zip(letters, shuffled_summarizers))
@@ -134,8 +138,9 @@ def judge_one(corpus_name: str, source: str, outs: dict[str, str]) -> dict:
         raise ValueError(f"Bad ranking {ranking_letters!r} for {corpus_name}")
 
     ranked_summarizers = [letter_to_summarizer[l] for l in ranking_letters]
-    # 5 points for 1st, 4 for 2nd, ... 1 for 5th
-    scores = {s: 5 - i for i, s in enumerate(ranked_summarizers)}
+    # N points for 1st, N-1 for 2nd, ... 1 for last
+    n = len(ranked_summarizers)
+    scores = {s: n - i for i, s in enumerate(ranked_summarizers)}
 
     return {
         "corpus": corpus_name,
@@ -202,7 +207,8 @@ def main() -> int:
     md.append(f"**Total tokens used:** {total_prompt_tokens + total_completion_tokens:,} "
               f"({total_prompt_tokens:,} prompt + {total_completion_tokens:,} completion)\n\n")
 
-    md.append("## Aggregate (higher = better; max 50)\n\n")
+    max_score = len(SUMMARIZER_NAMES) * len(results)
+    md.append(f"## Aggregate (higher = better; max {max_score})\n\n")
     md.append("| summarizer | total points |\n|---|---|\n")
     for s in sorted(aggregate, key=lambda k: -aggregate[k]):
         md.append(f"| `{s}` | {aggregate[s]} |\n")

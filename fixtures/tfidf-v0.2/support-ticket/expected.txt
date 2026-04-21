@@ -1,0 +1,3 @@
+Ticket #44812 — Ingest job hangs after upgrade to chunkshop 0.2.0
+Reporter: jamie.l@acme.example
+Priority: P2 We upgraded chunkshop from 0.1.6 to 0.2.0 last Friday and since then our nightly ingest job has been hanging indefinitely on the step between chunking and embedding. Resolution: Caused by default embedder precision change in 0.2.0 triggering a HuggingFace model download on a network-restricted batch node. Customer pre-seeding int8 weights on shared cache as a follow-up.

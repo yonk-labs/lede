@@ -101,11 +101,12 @@ def main() -> int:
         parser = PlaintextParser.from_string(text, Tokenizer("english"))
 
         outs = {
-            "skimr/tfidf":    summarize(text, max_length=TARGET_CHARS),
-            "skimr/textrank": summarize_textrank(text, num_sentences=TARGET_SENTENCES),
-            "sumy/LexRank":   run_sumy(LexRankSummarizer, parser),
-            "sumy/TextRank":  run_sumy(TextRankSummarizer, parser),
-            "sumy/LSA":       run_sumy(LsaSummarizer, parser),
+            "skimr/tfidf-v0.2":    summarize(text, max_length=TARGET_CHARS, mode="default").summary,
+            "skimr/tfidf-legacy":  summarize(text, max_length=TARGET_CHARS, mode="legacy").summary,
+            "skimr/textrank":      summarize_textrank(text, num_sentences=TARGET_SENTENCES),
+            "sumy/LexRank":        run_sumy(LexRankSummarizer, parser),
+            "sumy/TextRank":       run_sumy(TextRankSummarizer, parser),
+            "sumy/LSA":            run_sumy(LsaSummarizer, parser),
         }
 
         outputs_doc.append(f"## `{name}` ({len(text)} chars)\n")
@@ -129,7 +130,8 @@ def main() -> int:
     )
 
     corpora_names = sorted({r["corpus"] for r in rouge_rows})
-    summ_names = ["skimr/tfidf", "skimr/textrank", "sumy/LexRank", "sumy/TextRank", "sumy/LSA"]
+    summ_names = ["skimr/tfidf-v0.2", "skimr/tfidf-legacy", "skimr/textrank",
+                  "sumy/LexRank", "sumy/TextRank", "sumy/LSA"]
 
     # Headline table — R1-F and R2-F side-by-side per corpus
     rouge_doc.append("## Headline: R1-F / R2-F by corpus × summarizer\n\n")

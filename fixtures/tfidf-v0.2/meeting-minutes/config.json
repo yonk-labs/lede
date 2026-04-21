@@ -1,0 +1,7 @@
+{
+  "mode": "tfidf",
+  "params": {
+    "max_length": 500,
+    "scorer_mode": "default"
+  }
+}

@@ -1,0 +1,2 @@
+Meeting: Platform Migration Planning
+Date: 2026-04-15 Unit tests are passing at 94 percent coverage. Open questions at end of meeting: who owns the customer communication plan, when does the load test run, and whether the database migration needs a maintenance window. Sarah will circulate a follow-up note with answers by Wednesday. Action items: Jon to unblock the export path review, Priya to start the dashboard rebuild, Marcus to draft the rollback criteria, Sarah to own communication plan.
