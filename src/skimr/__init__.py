@@ -11,7 +11,7 @@ from skimr.tfidf import summarize
 from skimr.keyword import extract_keyword
 from skimr._types import SummaryResult
 
-__version__ = "0.0.1"
+__version__ = "0.2.0.dev0"
 __all__ = [
     "summarize",
     "clean_text",
