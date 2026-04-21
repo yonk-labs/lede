@@ -1,0 +1,28 @@
+"""Structured extractive primitives for skimr v0.2.
+
+Each primitive can be called standalone:
+
+    from skimr.extract import stats, outline, metadata, phrases, correlate_facts
+    s = stats(text)
+
+Or via summarize(attach=[...]):
+
+    from skimr import summarize
+    r = summarize(text, attach=["stats", "outline"])
+    r.stats      # tuple[Stat, ...]
+    r.outline    # tuple[Section, ...]
+
+Stub primitives returning empty collections land in this task (T4).
+Real implementations land in T6-T11.
+"""
+from .._types import Stat, Section, Metadata, PhraseFact
+from .stats import stats
+from .outline import outline
+from .metadata import metadata
+from .phrases import phrases
+from .correlate import correlate_facts
+
+__all__ = [
+    "Stat", "Section", "Metadata", "PhraseFact",
+    "stats", "outline", "metadata", "phrases", "correlate_facts",
+]

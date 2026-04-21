@@ -345,11 +345,15 @@ def _summarize_default(text: str, max_length: int = 500) -> str:
     return separator.join(sentences[i] for i in selected)
 
 
+_ATTACH_KEYS = {"stats", "outline", "metadata", "phrases", "correlated_facts"}
+
+
 def summarize(
     text: str,
     max_length: int = 500,
     *,
     mode: str = "default",
+    attach: list[str] | tuple[str, ...] | None = None,
 ) -> SummaryResult:
     """Extractive summary with configurable scoring mode.
 
@@ -360,16 +364,42 @@ def summarize(
 
     mode='coverage' is implemented in Task 3 (v0.2.0).
 
+    attach: iterable of enrichment names to attach to the result. Valid
+      names: 'stats', 'outline', 'metadata', 'phrases', 'correlated_facts'.
+      Unknown names raise ValueError. Stub primitives return empty
+      collections in v0.2 T4; real implementations land in T6-T11.
+
     Returns SummaryResult; __str__ returns the summary text so print() and
     f-strings continue to work. Callers needing raw str use .summary.
     """
     if mode == "coverage":
         from skimr.coverage import summarize_coverage  # module lands in Task 3
-        summary = summarize_coverage(text, max_length=max_length)
+        summary_text = summarize_coverage(text, max_length=max_length)
     elif mode == "legacy":
-        summary = _summarize_legacy(text, max_length=max_length)
+        summary_text = _summarize_legacy(text, max_length=max_length)
     elif mode == "default":
-        summary = _summarize_default(text, max_length=max_length)
+        summary_text = _summarize_default(text, max_length=max_length)
     else:
         raise ValueError(f"unknown mode: {mode!r}")
-    return SummaryResult(summary=summary)
+
+    kwargs: dict = {}
+    if attach:
+        unknown = set(attach) - _ATTACH_KEYS
+        if unknown:
+            raise ValueError(f"unknown attach key(s): {sorted(unknown)}")
+        from skimr.extract import stats as _stats
+        from skimr.extract import outline as _outline
+        from skimr.extract import metadata as _metadata
+        from skimr.extract import phrases as _phrases
+        from skimr.extract import correlate_facts as _correlate
+        if "stats" in attach:
+            kwargs["stats"] = tuple(_stats(text))
+        if "outline" in attach:
+            kwargs["outline"] = tuple(_outline(text))
+        if "metadata" in attach:
+            kwargs["metadata"] = _metadata(text)
+        if "phrases" in attach:
+            kwargs["phrases"] = tuple(_phrases(text))
+        if "correlated_facts" in attach:
+            kwargs["correlated_facts"] = tuple(_correlate(text))
+    return SummaryResult(summary=summary_text, **kwargs)

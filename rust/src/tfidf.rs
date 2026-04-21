@@ -10,7 +10,7 @@
 //! byte-identically.
 
 use crate::headings::{heading_name, is_heading};
-use crate::types::{Mode, SummaryResult};
+use crate::types::{AttachOpts, Mode, SummaryResult};
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -496,17 +496,60 @@ fn summarize_default(text: &str, max_length: usize) -> String {
         .join(" ")
 }
 
-/// Extractive summary of `text` capped at `max_length` characters.
+/// Extractive summary of `text` with optional structured enrichments.
 ///
 /// `Mode::Default` applies the v0.2 scorer tweaks (heading filter, cue-phrase
 /// boost, digit bonus, section-position weight). `Mode::Legacy` preserves
-/// v0.0.1 behavior byte-identically. `Mode::Coverage` lands in Task 3.
+/// v0.0.1 behavior byte-identically. `Mode::Coverage` is the C2 coverage mode.
+///
+/// `attach` toggles structured primitives on the result. Stub primitives
+/// return empty `Vec`s in v0.2 T4; real implementations land in T6-T11.
 #[must_use]
-pub fn summarize(text: &str, max_length: usize, mode: Mode) -> SummaryResult {
+pub fn summarize_with_attach(
+    text: &str,
+    max_length: usize,
+    mode: Mode,
+    attach: &AttachOpts,
+) -> SummaryResult {
     let summary = match mode {
         Mode::Legacy => summarize_legacy(text, max_length),
         Mode::Default => summarize_default(text, max_length),
         Mode::Coverage => crate::coverage::summarize_coverage(text, max_length),
     };
-    SummaryResult { summary }
+    SummaryResult {
+        summary,
+        stats: if attach.stats {
+            Some(crate::extract::stats::stats(text))
+        } else {
+            None
+        },
+        outline: if attach.outline {
+            Some(crate::extract::outline::outline(text))
+        } else {
+            None
+        },
+        metadata: if attach.metadata {
+            Some(crate::extract::metadata::metadata(text))
+        } else {
+            None
+        },
+        phrases: if attach.phrases {
+            Some(crate::extract::phrases::phrases(text, None))
+        } else {
+            None
+        },
+        correlated_facts: if attach.correlated_facts {
+            Some(crate::extract::correlate::correlate_facts(text))
+        } else {
+            None
+        },
+    }
+}
+
+/// Extractive summary of `text` capped at `max_length` characters.
+///
+/// Shortcut for `summarize_with_attach` with the default (empty) attach set.
+#[must_use]
+pub fn summarize(text: &str, max_length: usize, mode: Mode) -> SummaryResult {
+    summarize_with_attach(text, max_length, mode, &AttachOpts::default())
 }
