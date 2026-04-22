@@ -1,17 +1,27 @@
-# Resume: skimr v0.2 T8 done, ready for T9 (NER extra)
+# Resume: skimr v0.2 T9 done (rewritten), ready for T10
 
-**Last session:** 2026-04-21. Stopped after T8 at commit `d0607ef`, pushed. v0.0.1 shipped (Plan 1, 2026-04-19); Plan 2 Rust port complete but never tagged as v0.1.0-rc1 (we pivoted straight into v0.2 planning after the quality review). v0.2 plan in progress — **SC-A quality gate cleared** at T5, **T6 (`extract.outline`) + T7 (`extract.stats`) + T8 (`extract.metadata` core) landed**, version bumped to 0.2.0 pre-release.
+**Last session:** 2026-04-22. T9 was rewritten mid-session — original plan had spaCy living inside skimr's own distribution via a `[ner]` extra, which violated the "no neural in core" rule. Rolled back the initial T9 commit (`7341132`, local-only), drafted a spaCy integration spec, split T9 into **T9a** (pluggable backend registry in skimr core, no neural code) and **T9b** (`packages/skimr-spacy/` companion distribution that registers as the `"spacy"` backend on import). All pushed.
 
 ## Repo state
 
 - **Remote:** https://github.com/yonk-labs/skimr (private, yonk-labs org)
 - **Branch:** `main`
-- **Local HEAD:** `d0607ef` — T8 extract.metadata core. `origin/main` in sync.
+- **Local HEAD:** `18f98c5` — T9b skimr-spacy companion. `origin/main` in sync.
 - **Unpushed:** 0.
-- **Version:** `0.2.0.dev0` (Python PEP 440) / `0.2.0-dev.0` (Rust SemVer). T15 bumps to plain `0.2.0` at release.
+- **Version:** skimr `0.2.0.dev0` (Python PEP 440) / `0.2.0-dev.0` (Rust SemVer); skimr-spacy `0.2.0.dev0`. T15 bumps skimr to plain `0.2.0`; skimr-spacy version tracks.
 - **v0.0.1 tag:** pushed; points at `4c3e7d4`.
 - **No v0.1.0-rc1 tag** — pivoted into v0.2 before tagging. The Rust port from Plan 2 is still on main; v0.2 builds on it directly.
-- **CI:** `tests` + `zero-deps` + `rust` workflows all green on recent pushes.
+- **CI:** `tests` + `zero-deps` + `rust` workflows all green on recent pushes. CI does NOT yet know about `packages/skimr-spacy/` — would need a separate job if we want it in CI.
+
+## spaCy integration — decision artifact
+
+`docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md` is the authoritative doc for the companion-package approach. Read it before any work on T10/T11 that might want spaCy enhancements. Key principles:
+
+- **skimr core stays regex-only.** Zero neural code in `src/skimr/`.
+- **Backend selector** (`backend="regex" | "spacy" | "auto"`) is the user-facing switch. Per-call kwarg OR `skimr.set_default_backend()` global.
+- **skimr-spacy** is the sibling package at `packages/skimr-spacy/`. On `import skimr_spacy`, it registers the `"spacy"` backend into skimr's `_backends` registry.
+- **Rust has NO `backend=` kwarg** — spaCy is Python-only. Any future Rust neural layer would register under a different name (e.g. `"deepfrog"`) since it would be a different model.
+- **Cross-language parity contract applies only to the `"regex"` backend.** The `"spacy"` path makes no parity promises.
 
 ## v0.2 plan — progress so far
 
@@ -31,13 +41,17 @@ Spec: `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`.
 | — | Fixture-walker drift fix | `cfb5666` | Three T5 follow-ups that weren't in the plan but blocked T7. (a) Port Rust walker's `scorer_mode` dispatch to Python `tests/test_fixtures.py` (Python was hardcoding `mode='legacy'` → 10 tfidf-v0.2 fixtures all byte-mismatched). (b) Update `tests/test_tfidf.py::test_summarize_fixture_short_passthrough` from `fixtures/tfidf/short-passthrough` → `fixtures/tfidf-legacy/short-passthrough` (T5 moved the dir). (c) Same path update in `rust/tests/tfidf.rs`. |
 | — | Version bump | `19a6835` | `0.0.1` → `0.2.0.dev0` (pyproject + `__version__`) and `0.2.0-dev.0` (Cargo.toml + Cargo.lock). Avoids artifact collisions with the shipped `0.0.1`; T15 drops the pre-release suffix. |
 | T7 | `extract.stats` (Py + Rust) | `e299845` | Regex-based numeric-fact extractor — 5 pattern classes: money (`$120K`, `45 dollars`, `100 EUR`), percent (`23%`, `23 percent`), date (ISO + US slashed), duration (`3 months` etc.), count (`events`/`users`/`qps`/…). Each `Stat` carries `value`, `unit`, `phrase` (±25 char window, trimmed), full `context_sentence`, and `stat_type`. Python uses `re` module with named groups; Rust uses `regex` crate with `OnceLock` per-pattern. Parity spot-checked on all plan test inputs — 9 emitted stats byte-identical across languages. Single clippy adjustment in Rust tests (`.contains("3")` → `.contains('3')` for `single_char_pattern`). Two noted-not-blocking risks: (1) Rust `ctx()` byte-slicing panics on non-ASCII if window edge lands mid-codepoint — ASCII-only plan inputs avoid it, widen with `floor_char_boundary` if future corpora include non-ASCII. (2) Money currency-word branch compiled but untested by plan cases. |
-| T8 | `extract.metadata` core (Py + Rust) | `d0607ef` | Regex-based extractor for `dates` (ISO + US slashed), `amounts` (same $-prefix or currency-suffix patterns as T7), and `urls` (`https?://[^\\s<>\"')]+`). Results deduped via first-appearance order via `_collect_unique` (Python set + list) / `collect_unique` (Rust `HashSet` + `Vec`). `entities` intentionally always empty — T9 populates it via the optional `skimr[ner]` extra, Python-only. 5 test cases per language, parity byte-identical across all 5 inputs × 4 fields. Code-quality reviewer flagged 2 non-blockers, both applied before push: (a) docstring no longer falsely claims pattern reuse from extract.stats, (b) switched `BTreeSet` → `HashSet` + eliminated double-clone in `collect_unique` hot path. |
+| T8 | `extract.metadata` core (Py + Rust) | `d0607ef` | Regex-based extractor for `dates` (ISO + US slashed), `amounts` (same $-prefix or currency-suffix patterns as T7), and `urls` (`https?://[^\\s<>\"')]+`). Results deduped via first-appearance order via `_collect_unique` (Python set + list) / `collect_unique` (Rust `HashSet` + `Vec`). `entities` intentionally always empty. 5 test cases per language, parity byte-identical across all 5 inputs × 4 fields. Code-quality reviewer flagged 2 non-blockers, both applied before push: (a) docstring no longer falsely claims pattern reuse from extract.stats, (b) switched `BTreeSet` → `HashSet` + eliminated double-clone in `collect_unique` hot path. |
+| — | spaCy integration spec | `998e34b` + `b928208` | `docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md` — the decision doc for rewriting T9. Compares 4 placement options, recommends option B (companion package + backend-selector). Cross-language addendum clarifies that `backend=` is Python-only and the "spacy" label doesn't promise cross-runtime parity. |
+| T9a | Backend registry (Py core only) | `419a37b` | New `src/skimr/extract/_backends.py` with `register`/`resolve`/`get_default_backend`/`set_default_backend`. `metadata()` gains `backend: str \| None = None` kwarg. Regex impl split into private `_regex_metadata`, self-registers as `"regex"` at module load. `skimr.set_default_backend` re-exported. 7 new tests in `tests/test_extract_backends.py`. `backend="auto"` falls through `"spacy"` → `"regex"`. `backend="spacy"` raises `ImportError` with "install skimr-spacy" guidance. No spaCy import anywhere in skimr core. Rust unchanged (spaCy is Python-only). |
+| T9b | skimr-spacy companion package | `18f98c5` | New Python distribution at `packages/skimr-spacy/` — pyproject + `src/skimr_spacy/` + own tests. Pinned `spacy>=3.8,<3.9` + direct-URL `en_core_web_sm-3.8.0` wheel, both pulled in by `pip install skimr-spacy`. On `import skimr_spacy`, registers `"spacy"` backend for `metadata` via `skimr.extract._backends.register(...)`. `spacy_metadata(text)` delegates dates/amounts/urls to `metadata(text, backend="regex")` then augments `entities` via spaCy NER (PERSON/ORG/GPE/LOC/PRODUCT). `warmup()` pre-loads the model. 6 own tests, all pass. One hatchling tweak: `[tool.hatch.metadata] allow-direct-references = true` required to accept the direct-URL dep. Install into editable workflow uses `uv pip install --no-deps -e packages/skimr-spacy/` (uv's monorepo editable resolution quirk; `pip install skimr-spacy` from PyPI will resolve normally). |
 
-**Pending (7/15):** T9 metadata NER (skimr[ner]) · T10 phrases · T11 correlate_facts · T12 gold fixtures · T13 extraction eval (SC-D gate) · T14 comparison matrix + latency (SC-B gate) · T15 tag v0.2.0.
+**Pending (6/15):** T10 phrases · T11 correlate_facts · T12 gold fixtures · T13 extraction eval (SC-D gate) · T14 comparison matrix + latency (SC-B gate) · T15 tag v0.2.0.
 
 **Test suite state:**
-- **Python:** **122 passing** (117 post-T7 + 5 new metadata tests).
-- **Rust:** **76 passing** (71 post-T7 + 5 new metadata tests). Clippy `--all-targets -- -D warnings` clean.
+- **Python (skimr core):** **129 passing** (122 post-T8 + 7 new backend registry tests from T9a). Runs via `.venv/bin/python -m pytest -q` from repo root; `testpaths = ["tests"]` scopes to top-level `tests/` only, so skimr-spacy tests are not picked up.
+- **Python (skimr-spacy):** **6 passing.** Runs via `cd packages/skimr-spacy && ../../.venv/bin/python -m pytest -v`.
+- **Rust:** **76 passing** (unchanged since T8). Clippy `--all-targets -- -D warnings` clean.
 - **Fixtures:** 10 `tfidf-v0.2/*` (scorer_mode=default) + 1 `tfidf-legacy/short-passthrough` + clean_text + keyword + strip_think. All byte-identical Python↔Rust across both walkers.
 
 ## Quality methodology — v0.2 state
@@ -65,20 +79,20 @@ The implementer subagents caught several plan-level issues the plan writer misse
 
 Accept deviations when: (a) tests pass, (b) byte-identity holds, (c) justification matches the design intent. Reject when: byte-identity fails or scope creep.
 
-## What's next — T9 entry point
+## What's next — T10 entry point
 
-**T9 is the `skimr[ner]` optional extra** — a Python-only NER pass that populates `Metadata.entities` with spaCy `PERSON`/`ORG`/`GPE`/`PRODUCT`/`LOC` surface forms. No Rust work in T9 — Rust's `Metadata.entities` stays empty by design (documented in T8 commit). Scope (per plan §Task 9, starting line 3021):
-- Modify: `pyproject.toml` — add `[project.optional-dependencies] ner = ["spacy>=3.7,<4"]`.
-- Create: `src/skimr/extract/_ner.py` — lazy spaCy loader with `_nlp()` cached via `functools.lru_cache`, `extract_entities(text)`, and `warmup()`.
-- Modify: `src/skimr/extract/metadata.py` — wrap a try/except import around `_ner`; on ImportError keep `entities=()` and work exactly as T8.
-- Modify: `src/skimr/extract/__init__.py` — expose `warmup_ner` (real function when `_ner` importable, no-op fallback otherwise).
-- Create: `tests/test_extract_metadata_ner.py` — uses `pytest.importorskip("spacy")` so the suite stays green without spaCy installed.
+**T10 is `extract.phrases`** — heuristic noun-phrase extractor. Returns `tuple[str, ...]`. Deterministic, stdlib-only for the `"regex"` path. Scope (per plan §Task 10, starting line 3220):
+- Python: replace T4 stub at `src/skimr/extract/phrases.py`. Algorithm per plan: "runs of non-stopword tokens (length 2–5) that appear more than once in the document. Deduped, first-appearance order."
+- Rust: port at `rust/src/extract/phrases.rs` with byte-identical output on shared inputs.
+- Tests: `tests/test_extract_phrases.py` + `rust/tests/extract_phrases.rs`.
 
-**Note on environment:** T9 tests will auto-skip until spaCy + `en_core_web_sm` are installed. If the dev env has them, 3 NER tests pass; if not, they skip and the rest of the suite stays at 122. Either way T9 must not regress the 122 core tests.
+**T10 backend hook:** the new backend-registry pattern from T9a also applies. Add `phrases()` dispatch and register the regex impl under `("regex", "phrases")` — same shape as `metadata()`. skimr-spacy will gain a spaCy `noun_chunks`-based implementation for `("spacy", "phrases")` in a follow-up task (T10b, analogous to T9b). First pass: just ship regex + registry hook; skimr-spacy side comes next.
 
-After T9-T11 (each adds one primitive), T12 hand-labels gold fixtures (~25 hours of labeling work; parallelizable via subagents given the protocol at `docs/extraction-gold-labeling.md`, which is created IN T12 per the plan). T13 runs the eval harness to verify SC-D (≥0.85 recall / ≥0.80 precision per primitive). T14 produces the comparison matrix (SC-B gate — p50 < 250ms warm). T15 tags v0.2.0.
+**T11 inherits the same pattern.** `correlate_facts()` gets a `backend=` kwarg when it lands, same dispatch shape, regex impl self-registers, skimr-spacy's dep-parsed implementation lands in T11b.
 
-**No blockers for T9.** Suites are clean; walker drift is resolved; parity contract is honored.
+After T10-T11 (each adds one primitive), T12 hand-labels gold fixtures (~25 hours of labeling work; parallelizable via subagents given the protocol at `docs/extraction-gold-labeling.md`, which is created IN T12 per the plan). T13 runs the eval harness to verify SC-D (≥0.85 recall / ≥0.80 precision per primitive). T14 produces the comparison matrix (SC-B gate — p50 < 250ms warm). T15 tags v0.2.0.
+
+**No blockers for T10.** skimr core suite clean; skimr-spacy scaffold in place; parity contract honored.
 
 ### Known T6 artifact worth noting for T12
 
@@ -92,12 +106,16 @@ Rust `ctx()` in `rust/src/extract/stats.rs` byte-slices the context window. If f
 
 ```bash
 cd /home/yonk/yonk-tools/extractive_summary
-.venv/bin/python -m pytest -q                                            # 122 tests
+.venv/bin/python -m pytest -q                                            # skimr core: 129 tests
+cd packages/skimr-spacy && ../../.venv/bin/python -m pytest -v           # skimr-spacy: 6 tests
 cd rust && cargo test && cargo clippy --all-targets -- -D warnings       # 76 + clean
 .venv/bin/python benchmarks/quality_eval.py                              # A1 outputs + A2 ROUGE
 .venv/bin/python benchmarks/quality_eval_llm.py                          # A4 Qwen judge
 git log --oneline -15                                                    # progress
 gh run list --repo yonk-labs/skimr --limit 5                             # CI
+
+# Re-install skimr-spacy as editable if you blow away .venv:
+VIRTUAL_ENV=.venv uv pip install --no-deps -e packages/skimr-spacy/
 ```
 
 ## TODO list (v0.2 plan)
@@ -110,9 +128,10 @@ gh run list --repo yonk-labs/skimr --limit 5                             # CI
 - [x] **T6** extract.outline (Python + Rust) (`f4d65ce`) + fixture-walker drift fix (`cfb5666`)
 - [x] **T7** extract.stats (Python + Rust) (`e299845`) + version bump (`19a6835`)
 - [x] **T8** extract.metadata core (Python + Rust) (`d0607ef`)
-- [ ] **T9** extract.metadata NER (skimr[ner] extra, Python-only)
-- [ ] **T10** extract.phrases (Python + Rust)
-- [ ] **T11** extract.correlate_facts (Python + Rust)
+- [x] **T9a** backend registry + `backend=` kwarg in skimr core (`419a37b`) — rewrote original T9
+- [x] **T9b** `packages/skimr-spacy/` companion package, entities only (`18f98c5`)
+- [ ] **T10** extract.phrases (Python + Rust, regex + backend registry hook). T10b (skimr-spacy noun_chunks) follows.
+- [ ] **T11** extract.correlate_facts (Python + Rust, regex + backend registry hook). T11b (skimr-spacy dep-parser) follows.
 - [ ] **T12** Hand-label gold fixtures (10 corpora × 5 primitives)
 - [ ] **T13** ⛔ SC-D gate — extraction eval harness
 - [ ] **T14** ⛔ SC-B gate — comparison matrix + latency profile
@@ -120,4 +139,4 @@ gh run list --repo yonk-labs/skimr --limit 5                             # CI
 
 ## Resume prompt (paste into fresh session)
 
-> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr v0.2 plan in progress — T1-T8 complete (T8 = `extract.metadata` core, `d0607ef`). Local and remote `main` in sync. **Read `docs/RESUME.md` FIRST** for full context. Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`. Spec: `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. Python: **122 tests green**. Rust: **76 tests green + clippy clean**. All fixture byte-identity contracts honored. **Next up: T9 — `skimr[ner]` optional extra** (Python-only, NO Rust work). Plan task text starts around line 3021. Adds `[project.optional-dependencies] ner = ["spacy>=3.7,<4"]`, creates `src/skimr/extract/_ner.py` with lazy `_nlp()` loader + `extract_entities()` + `warmup()`, extends `src/skimr/extract/metadata.py` with a try/except NER import, and exposes `warmup_ner` from `src/skimr/extract/__init__.py`. Tests use `pytest.importorskip("spacy")` so suite stays green without spaCy installed.
+> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr v0.2 plan in progress — T1-T9 complete. T9 was **rewritten** mid-session per `docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md` into T9a (backend registry in skimr core, `419a37b`) + T9b (`packages/skimr-spacy/` companion, `18f98c5`). Local and remote `main` in sync. **Read `docs/RESUME.md` FIRST** for full context. Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`. Spec (v0.2 design): `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`. spaCy integration spec: `docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. skimr core: **129 Python tests green**, **76 Rust + clippy clean**. skimr-spacy: **6 Python tests green**. spaCy + en_core_web_sm already installed in `.venv/`. **Next up: T10 `extract.phrases`** — heuristic noun-phrase extractor (regex runs of non-stopword tokens, length 2-5, repeat-count > 1). Replace T4 stub at `src/skimr/extract/phrases.py` + `rust/src/extract/phrases.rs`; add `backend=` kwarg and register regex impl as `("regex", "phrases")` in skimr's `_backends` registry (same pattern as T9a did for metadata). Add tests. Plan task text starts around line 3220. skimr-spacy's noun_chunks implementation (T10b) follows in a separate commit.
