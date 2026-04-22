@@ -6,7 +6,7 @@
 
 - **Remote:** https://github.com/yonk-labs/skimr (private, yonk-labs org)
 - **Branch:** `main`
-- **Local HEAD:** `b003552` — T10 extract.phrases. `origin/main` in sync.
+- **Local HEAD:** `595843d` — T10b skimr-spacy spacy_phrases. `origin/main` in sync.
 - **Unpushed:** 0.
 - **Version:** skimr `0.2.0.dev0` (Python PEP 440) / `0.2.0-dev.0` (Rust SemVer); skimr-spacy `0.2.0.dev0`. T15 bumps skimr to plain `0.2.0`; skimr-spacy version tracks.
 - **v0.0.1 tag:** pushed; points at `4c3e7d4`.
@@ -45,14 +45,15 @@ Spec: `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`.
 | — | spaCy integration spec | `998e34b` + `b928208` | `docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md` — the decision doc for rewriting T9. Compares 4 placement options, recommends option B (companion package + backend-selector). Cross-language addendum clarifies that `backend=` is Python-only and the "spacy" label doesn't promise cross-runtime parity. |
 | T9a | Backend registry (Py core only) | `419a37b` | New `src/skimr/extract/_backends.py` with `register`/`resolve`/`get_default_backend`/`set_default_backend`. `metadata()` gains `backend: str \| None = None` kwarg. Regex impl split into private `_regex_metadata`, self-registers as `"regex"` at module load. `skimr.set_default_backend` re-exported. 7 new tests in `tests/test_extract_backends.py`. `backend="auto"` falls through `"spacy"` → `"regex"`. `backend="spacy"` raises `ImportError` with "install skimr-spacy" guidance. No spaCy import anywhere in skimr core. Rust unchanged (spaCy is Python-only). |
 | T9b | skimr-spacy companion package | `18f98c5` | New Python distribution at `packages/skimr-spacy/` — pyproject + `src/skimr_spacy/` + own tests. Pinned `spacy>=3.8,<3.9` + direct-URL `en_core_web_sm-3.8.0` wheel, both pulled in by `pip install skimr-spacy`. On `import skimr_spacy`, registers `"spacy"` backend for `metadata` via `skimr.extract._backends.register(...)`. `spacy_metadata(text)` delegates dates/amounts/urls to `metadata(text, backend="regex")` then augments `entities` via spaCy NER (PERSON/ORG/GPE/LOC/PRODUCT). `warmup()` pre-loads the model. 6 own tests, all pass. One hatchling tweak: `[tool.hatch.metadata] allow-direct-references = true` required to accept the direct-URL dep. Install into editable workflow uses `uv pip install --no-deps -e packages/skimr-spacy/` (uv's monorepo editable resolution quirk; `pip install skimr-spacy` from PyPI will resolve normally). |
-| T10 | `extract.phrases` (Py + Rust) | `b003552` | Heuristic multi-word phrase extractor. Regex impl self-registers as `("regex","phrases")`; public `phrases(text, keywords=None, *, backend=None)` dispatches through the registry. Rust has no backend= kwarg (spaCy is Python-only). 4 tests each language, parity byte-identical. **Documented deviation from plan literal code:** plan's `_runs()` emits one window per stopword gap, but the plan's own test 1 requires `"customer support"` (2 tokens) as output, which is never a full window — only a sub-n-gram of `"customer support team"`. Subagent adjusted to emit all contiguous 2-5 token n-grams per run; deviation applied identically in Python and Rust. skimr-spacy does NOT yet register a `spacy_phrases` backend — T10b/future work. |
+| T10 | `extract.phrases` (Py + Rust) | `b003552` | Heuristic multi-word phrase extractor. Regex impl self-registers as `("regex","phrases")`; public `phrases(text, keywords=None, *, backend=None)` dispatches through the registry. Rust has no backend= kwarg. 4 tests each language, parity byte-identical. **Documented deviation from plan literal code:** plan's `_runs()` emits one window per stopword gap, but the plan's own test 1 requires `"customer support"` (2 tokens) as output, which is never a full window. Subagent adjusted to emit all contiguous 2-5 token n-grams per run; applied identically in Python and Rust. Plan doc annotated at commit `d098fa4` so future maintainers see the deviation. |
+| T10b | skimr-spacy `spacy_phrases` | `595843d` | New `packages/skimr-spacy/src/skimr_spacy/_phrases.py`. Uses `doc.noun_chunks`, strips leading stopwords/punct, lowercases, requires ≥2 tokens post-clean, count ≥2 filter + keyword-singleton path. Registers `("spacy","phrases")` on import. 5 new tests (6+5 = 11 skimr-spacy tests passing). Output is NOT byte-identical to the regex backend by design — spaCy emits syntactically-grounded noun phrases, regex emits all n-grams. Test fixture for keyword path tweaked from the brief because spaCy doesn't emit multi-word chunks for bare repeated nouns like "Revenue"/"Costs"/"Margins". |
 
-**Pending (5/15):** T11 correlate_facts · T12 gold fixtures · T13 extraction eval (SC-D gate) · T14 comparison matrix + latency (SC-B gate) · T15 tag v0.2.0. Plus optional follow-ups: T10b (skimr-spacy `noun_chunks` impl), T11b (skimr-spacy dep-parsed impl).
+**Pending (4/15):** T11 correlate_facts · T12 gold fixtures · T13 extraction eval (SC-D gate) · T14 comparison matrix + latency (SC-B gate) · T15 tag v0.2.0. Plus optional follow-up: T11b (skimr-spacy dep-parsed correlate impl).
 
 **Test suite state:**
-- **Python (skimr core):** **133 passing** (129 post-T9a + 4 new phrases tests from T10). Runs via `.venv/bin/python -m pytest -q` from repo root; `testpaths = ["tests"]` scopes to top-level `tests/` only.
-- **Python (skimr-spacy):** **6 passing.** Runs via `cd packages/skimr-spacy && ../../.venv/bin/python -m pytest -v`.
-- **Rust:** **80 passing** (76 post-T9 + 4 new phrases tests). Clippy `--all-targets -- -D warnings` clean.
+- **Python (skimr core):** **133 passing.** Runs via `.venv/bin/python -m pytest -q` from repo root; `testpaths = ["tests"]` scopes to top-level `tests/` only.
+- **Python (skimr-spacy):** **11 passing** (6 T9b + 5 new T10b). Runs via `cd packages/skimr-spacy && ../../.venv/bin/python -m pytest -v`.
+- **Rust:** **80 passing.** Clippy `--all-targets -- -D warnings` clean.
 - **Fixtures:** 10 `tfidf-v0.2/*` (scorer_mode=default) + 1 `tfidf-legacy/short-passthrough` + clean_text + keyword + strip_think. All byte-identical Python↔Rust across both walkers.
 
 ## Quality methodology — v0.2 state
@@ -89,7 +90,7 @@ Accept deviations when: (a) tests pass, (b) byte-identity holds, (c) justificati
 
 After T11 (last primitive), T12 hand-labels gold fixtures (~25 hours of labeling work; parallelizable via subagents given the protocol at `docs/extraction-gold-labeling.md`, which is created IN T12 per the plan). T13 runs the eval harness to verify SC-D (≥0.85 recall / ≥0.80 precision per primitive). T14 produces the comparison matrix (SC-B gate — p50 < 250ms warm). T15 tags v0.2.0.
 
-**Deferred follow-ups (tracked in TODO):** T10b — skimr-spacy `spacy_phrases` using `doc.noun_chunks`. T11b — skimr-spacy `spacy_correlate_facts` using spaCy dep parser (much higher-quality subject-verb-object pairing than regex proximity). These can land any time after their respective core tasks; they don't block T12-T15.
+**Deferred follow-up (tracked in TODO):** T11b — skimr-spacy `spacy_correlate_facts` using spaCy dep parser (much higher-quality subject-verb-object pairing than regex proximity). T10b already landed at `595843d`. T11b doesn't block T12-T15.
 
 **No blockers for T11.** skimr core suite clean; skimr-spacy scaffold in place; parity contract honored on the regex path.
 
@@ -106,7 +107,7 @@ Rust `ctx()` in `rust/src/extract/stats.rs` byte-slices the context window. If f
 ```bash
 cd /home/yonk/yonk-tools/extractive_summary
 .venv/bin/python -m pytest -q                                            # skimr core: 133 tests
-cd packages/skimr-spacy && ../../.venv/bin/python -m pytest -v           # skimr-spacy: 6 tests
+cd packages/skimr-spacy && ../../.venv/bin/python -m pytest -v           # skimr-spacy: 11 tests
 cd rust && cargo test && cargo clippy --all-targets -- -D warnings       # 80 + clean
 .venv/bin/python benchmarks/quality_eval.py                              # A1 outputs + A2 ROUGE
 .venv/bin/python benchmarks/quality_eval_llm.py                          # A4 Qwen judge
@@ -130,7 +131,7 @@ VIRTUAL_ENV=.venv uv pip install --no-deps -e packages/skimr-spacy/
 - [x] **T9a** backend registry + `backend=` kwarg in skimr core (`419a37b`) — rewrote original T9
 - [x] **T9b** `packages/skimr-spacy/` companion package, entities only (`18f98c5`)
 - [x] **T10** extract.phrases (Python + Rust, regex + backend registry hook) (`b003552`)
-- [ ] **T10b** skimr-spacy `spacy_phrases` using `doc.noun_chunks` (follow-up)
+- [x] **T10b** skimr-spacy `spacy_phrases` using `doc.noun_chunks` (`595843d`)
 - [ ] **T11** extract.correlate_facts (Python + Rust, regex + backend registry hook)
 - [ ] **T11b** skimr-spacy `spacy_correlate_facts` using dep parser (follow-up)
 - [ ] **T12** Hand-label gold fixtures (10 corpora × 5 primitives)
@@ -140,4 +141,4 @@ VIRTUAL_ENV=.venv uv pip install --no-deps -e packages/skimr-spacy/
 
 ## Resume prompt (paste into fresh session)
 
-> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr v0.2 plan in progress — T1-T10 complete. T9 was rewritten into T9a (backend registry in skimr core, `419a37b`) + T9b (`packages/skimr-spacy/` companion, `18f98c5`). T10 (`extract.phrases`, `b003552`) adopted the same backend= plumbing; **documented plan deviation**: plan's `_runs()` code can't satisfy its own tests with literal single-window emission; subagent switched to all-contiguous-2-5-token-n-grams, applied identically in Python and Rust. Local and remote `main` in sync. **Read `docs/RESUME.md` FIRST** for full context. Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`. Spec (v0.2 design): `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`. spaCy integration spec: `docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. skimr core: **133 Python tests green**, **80 Rust + clippy clean**. skimr-spacy: **6 Python tests green**. spaCy + en_core_web_sm already installed in `.venv/`. **Next up: T11 `extract.correlate_facts`** — composition over stats + phrases. Plan task text starts around line 3500. Same backend= pattern as T9a/T10: regex impl self-registers as `("regex","correlate_facts")`; Rust has no backend= kwarg (spaCy is Python-only). Deferred follow-ups: T10b (skimr-spacy `spacy_phrases`), T11b (skimr-spacy `spacy_correlate_facts` via dep parser).
+> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr v0.2 plan in progress — T1-T10 complete + T10b follow-up. T9 was rewritten into T9a (backend registry in skimr core, `419a37b`) + T9b (`packages/skimr-spacy/` companion, `18f98c5`). T10 (`extract.phrases`, `b003552`) adopted the same backend= plumbing; **documented plan deviation** (n-gram emission, not literal single-window) annotated in the plan doc at `d098fa4`. T10b (`spacy_phrases` via `doc.noun_chunks`, `595843d`) rounds out phrases across both backends. Local and remote `main` in sync. **Read `docs/RESUME.md` FIRST** for full context. Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`. Spec (v0.2 design): `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`. spaCy integration spec: `docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. skimr core: **133 Python tests green**, **80 Rust + clippy clean**. skimr-spacy: **11 Python tests green**. spaCy + en_core_web_sm already installed in `.venv/`. **Next up: T11 `extract.correlate_facts`** — composition over stats + phrases. Plan task text starts around line 3500. Same backend= pattern as T9a/T10: regex impl self-registers as `("regex","correlate_facts")`; Rust has no backend= kwarg. Deferred follow-up: T11b (skimr-spacy `spacy_correlate_facts` via dep parser).
