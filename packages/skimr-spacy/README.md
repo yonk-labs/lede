@@ -21,12 +21,25 @@ model in one step. No separate `python -m spacy download` required.
 
 ```python
 import skimr_spacy  # side-effect: registers 'spacy' backend into skimr
-from skimr.extract import metadata
+from skimr.extract import metadata, phrases
 
 m = metadata("Sarah Jones visited Johnson Education Co.", backend="spacy")
 # m.entities == ('Sarah Jones', 'Johnson Education Co')
 # m.dates / m.amounts / m.urls populated identically to backend="regex"
+
+# phrases() also accepts backend="spacy" — uses doc.noun_chunks for
+# syntactically-grounded noun phrases instead of the regex n-gram emitter.
+p = phrases(
+    "The customer support team evaluated the deployment pipeline. "
+    "The deployment pipeline is critical to the customer support team.",
+    backend="spacy",
+)
 ```
+
+The `regex` and `spacy` phrase backends are **not byte-identical by design**:
+the regex backend emits every 2–5 token contiguous n-gram within non-stopword
+runs, while spaCy returns syntactically grounded noun phrases — typically
+fewer, larger, and more meaningful. Both satisfy the same API contract.
 
 Or set the backend once:
 
