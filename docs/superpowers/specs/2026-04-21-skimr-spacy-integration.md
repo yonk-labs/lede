@@ -289,6 +289,28 @@ from skimr_spacy import warmup
 warmup()
 ```
 
+## Cross-language implications — Rust and JS
+
+spaCy is Python-only. There is no Rust port and no mainstream JS port of the actual spaCy models. That changes what the `backend=` parameter means across runtimes, and what we promise.
+
+**Policy for cross-language parity under the backend selector:**
+
+- The **`"regex"` backend** continues to honor skimr's byte-identical parity contract across Python, Rust, and any future JS port. This is the only path skimr's tests assert parity on.
+- The **`"spacy"` backend is Python-only**. Rust does not gain a `backend=` kwarg on `metadata()` at this time — there is only one backend in Rust, so the parameter would be meaningless. Calling `skimr.extract.metadata(text, backend="spacy")` in Python and the Rust equivalent are not promised to produce the same output.
+- Any future runtime-specific neural layer is treated as its **own separate backend**, not a "spaCy equivalent":
+  - **JS**: a future companion like `skimr-js-compromise` (using `compromise.js`, rule-based) or `skimr-js-wink` (wink-nlp) would register under a backend label like `"compromise"` or `"wink"`, not `"spacy"`.
+  - **Rust**: a future companion using a native crate like `deepfrog` or `lindera` would register under a label like `"native_ner"` or `"deepfrog"`, not `"spacy"`.
+
+This keeps the contract honest: `backend="regex"` is reproducible everywhere; any neural backend name is specific to a runtime and a companion, and we don't pretend two different neural models produce the same output.
+
+**What skimr core must avoid:**
+
+- Do NOT claim the `"spacy"` backend output is stable across skimr versions. spaCy model updates change entity boundaries and labels between `en_core_web_sm` releases.
+- Do NOT promise `skimr_spacy.extract_entities(text)` == hypothetical-JS-compromise output. They're different backends by design.
+- Do NOT add the `backend=` kwarg to Rust `metadata()` until Rust has a real second backend to offer. A one-option enum is just noise.
+
+**Documentation implication:** the README for skimr-spacy should lead with "Python-only. Output is not identical to the zero-dep regex path and is not portable across runtimes."
+
 ## Open questions for the user
 
 1. **In-repo vs separate repo.** Does `skimr-spacy` live at `packages/skimr-spacy/` in this repo (simpler maintenance, shared CI) or at `yonk-labs/skimr-spacy` (stricter decoupling, separate release cadence)?
