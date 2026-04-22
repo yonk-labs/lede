@@ -35,8 +35,8 @@ Each gold file is a JSON object. Missing fields default to empty.
 }
 ```
 
-- `value` — exact string as it appears in the source (case-sensitive, punctuation included).
-- `unit` — the unit label the `extract.stats` primitive is expected to emit (e.g. `usd`, `pct`, `date`, `months`, `count`).
+- `value` — the string the primitive's regex will produce as `Stat.value` for this fact. For digit-form matches the primitive emits just the number (e.g. source `40%` → primitive `value="40"`; source `0.4 percent` → primitive `value="0.4"`). For duration matches the primitive emits just the number without the unit word (source `3 months` → primitive `value="3 months"` per pattern composition — see `src/skimr/extract/stats.py`). When in doubt, run the primitive on the source and use what it emits. Word-form numeric facts (`"eight days"`, `"thirty days"`) are labeled per the human-extraction standard even though the current regex primitive cannot match them — these become known recall gaps T13 uses to decide whether the primitive needs a word-form extension.
+- `unit` — the unit label the primitive emits. Canonical set: `"usd"` (money), `"percent"` (NOT `"pct"`), `"date"`, `"day"` / `"minute"` / `"month"` / `"week"` / `"year"` (singular — the primitive `rstrip("s")`s), and for `stat_type="count"` the concrete keyword from the source (`"events"`, `"users"`, `"documents"`, etc.).
 - `stat_type` — one of `money`, `percent`, `date`, `duration`, `count`.
 - `context_hint` — a substring that MUST appear somewhere inside the matched `Stat.context_sentence`. Short, unambiguous anchor phrase from the sentence (not the whole sentence).
 
@@ -70,7 +70,9 @@ Each gold file is a JSON object. Missing fields default to empty.
 - `dates` — exact strings in the source that are dates the primitive is expected to extract (ISO `YYYY-MM-DD` or US `MM/DD/YYYY`).
 - `amounts` — exact strings for money amounts (e.g. `$120K`, `45 dollars`, `100 EUR`).
 - `urls` — full URL strings starting with `http://` or `https://`.
-- `entities` — named people, organizations, and places a human would reasonably extract. Labeled only where a human would confidently extract them. Evaluated on the **NER-only path** (currently only the `spacy` backend emits entities; regex backend always returns empty).
+- `entities` — named people, organizations, and places a human would reasonably extract. Labeled only where a human would confidently extract them.
+
+**Eval backend routing:** the T13 harness MUST call `metadata(text, backend="regex")` to score `dates`, `amounts`, and `urls`, and call `metadata(text, backend="spacy")` (from skimr-spacy) to score `entities`. The regex backend always returns an empty `entities` list by design. A single-backend eval would either score entities against an empty set (false miss on every entity) or score dates/amounts/urls against spaCy's output (false precision drop, since spaCy may emit entity-adjacent strings the regex primitive wouldn't).
 
 ### phrases
 
@@ -117,6 +119,18 @@ These are judgment calls the first labelers made. They are not hard rules — T1
 - **Outline — `Label: Subject` document headers** (e.g. `Meeting: Platform Migration Planning`): the section name is the subject (post-colon), not the label (pre-colon). Depth 1.
 - **Phrase tokens.** "2-5 tokens" is evaluated with whitespace split. `high-dimensional` = 1 token (do not include); `high-dimensional space` = 2 tokens (include if ≥2 appearances or load-bearing).
 - **Duplicate correlate pairings.** The `(entity, polarity)` tuples are evaluated as a set — no duplicates. If one entity appears with two distinct polarities (e.g. growth and decline), that's two pairings; repeating the same polarity is not.
+
+## Known primitive gaps (T13 work items)
+
+A preview run of `extract.stats` over the 10 gold corpora shows current recall at ~37%, well below the SC-D 0.85 gate. The misses are NOT labeler errors — they are specific capability gaps in the current regex primitive, listed here so T13 can decide whether to extend the primitive, restrict the gold, or accept the recall shortfall per-corpus:
+
+1. **Word-form numbers** (~20 misses). The primitive's patterns require `\d+`, so `"eight days"`, `"thirty days"`, `"seven years"`, `"thirteen months"`, `"two weeks"`, `"five thousand"`, `"eighteen tons per year"`, `"five-day"`, etc. all fail. Fix: extend regex to recognize spelled-out numbers, or use a `num2words`-style reverse map.
+2. **Bare years as dates** (6 misses: `"1975"`, `"1998"`, `"2016"`, `"2019"`, `"2022"`, `"2023"`). Current date pattern requires ISO or US slash form. Fix: add `\b(19|20)\d{2}\b` as a weak date pattern or require a verb-adjacent year in context.
+3. **Hyphen-separated durations** (`"90-day retention"` → primitive sees `\d+` but `\s*` before unit doesn't match `-`). Fix: change `\s*` to `[\s-]*` in the duration regex.
+4. **Count-without-unit-keyword** (`"800,000"`, `"25,000"` as bare populations). The count pattern requires a following keyword (`events`, `users`, `customers`…). Fix: weaken to match bare large numbers, or expand keyword list.
+5. **Missing count keywords**: `"basis points"`, `"terabytes"`, `"tons"`, `"ULPs"`, `"documents"`, `"lines"`. Fix: expand the count pattern's keyword alternation.
+
+The gold was labeled against the protocol's "what a careful human would extract" rule (Labeling rule #1), not against what the current primitive can match. This means T13's recall number reveals the primitive gap, which is exactly what a good gold set should do.
 
 ## Iteration
 

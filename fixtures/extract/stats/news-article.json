@@ -1,7 +1,7 @@
 {
   "facts": [
     {
-      "value": "0.4 percent",
+      "value": "0.4",
       "unit": "percent",
       "stat_type": "percent",
       "context_hint": "euro strengthened against the dollar by 0.4 percent"
