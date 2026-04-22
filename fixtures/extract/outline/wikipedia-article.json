@@ -1,0 +1,8 @@
+{
+  "sections": [
+    {"name": "History", "depth": 1},
+    {"name": "Modern methods", "depth": 1},
+    {"name": "Performance", "depth": 1},
+    {"name": "Applications", "depth": 1}
+  ]
+}

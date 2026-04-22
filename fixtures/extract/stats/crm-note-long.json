@@ -1,0 +1,16 @@
+{
+  "facts": [
+    {
+      "value": "$120K",
+      "unit": "usd",
+      "stat_type": "money",
+      "context_hint": "Original quote was $120K/year"
+    },
+    {
+      "value": "30 days",
+      "unit": "day",
+      "stat_type": "duration",
+      "context_hint": "Decision expected within 30 days"
+    }
+  ]
+}

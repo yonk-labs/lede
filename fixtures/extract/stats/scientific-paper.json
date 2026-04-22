@@ -1,0 +1,34 @@
+{
+  "facts": [
+    {
+      "value": "five-thousand-document",
+      "unit": "count",
+      "stat_type": "count",
+      "context_hint": "five-thousand-document corpus"
+    },
+    {
+      "value": "five thousand",
+      "unit": "count",
+      "stat_type": "count",
+      "context_hint": "Of five thousand documents"
+    },
+    {
+      "value": "two hundred and forty-one",
+      "unit": "count",
+      "stat_type": "count",
+      "context_hint": "two hundred and forty-one produced Rust outputs"
+    },
+    {
+      "value": "twelve lines",
+      "unit": "count",
+      "stat_type": "count",
+      "context_hint": "twelve lines of safe Rust"
+    },
+    {
+      "value": "six or more",
+      "unit": "count",
+      "stat_type": "count",
+      "context_hint": "six or more terms occur"
+    }
+  ]
+}

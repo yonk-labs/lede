@@ -1,0 +1,22 @@
+{
+  "facts": [
+    {
+      "value": "$50K",
+      "unit": "usd",
+      "stat_type": "money",
+      "context_hint": "our $50K quote is 40%"
+    },
+    {
+      "value": "40%",
+      "unit": "percent",
+      "stat_type": "percent",
+      "context_hint": "$50K quote is 40% above their Q2 budget"
+    },
+    {
+      "value": "$30K",
+      "unit": "usd",
+      "stat_type": "money",
+      "context_hint": "Competitor B came in at $30K"
+    }
+  ]
+}

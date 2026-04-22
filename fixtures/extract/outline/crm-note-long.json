@@ -1,0 +1,10 @@
+{
+  "sections": [
+    {"name": "Technical Deep-Dive: Johnson Education Co", "depth": 2},
+    {"name": "Call Summary", "depth": 3},
+    {"name": "Competitive Landscape", "depth": 3},
+    {"name": "Technical Concerns", "depth": 3},
+    {"name": "Commercial Concerns", "depth": 3},
+    {"name": "Next Steps", "depth": 3}
+  ]
+}

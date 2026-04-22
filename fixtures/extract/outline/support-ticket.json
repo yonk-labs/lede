@@ -1,0 +1,10 @@
+{
+  "sections": [
+    {"name": "Original message", "depth": 1},
+    {"name": "Reply from support (Kai T., day 1)", "depth": 1},
+    {"name": "Reply from reporter (day 1)", "depth": 1},
+    {"name": "Reply from support (Kai T., day 2)", "depth": 1},
+    {"name": "Reply from reporter (day 3)", "depth": 1},
+    {"name": "Resolution", "depth": 1}
+  ]
+}

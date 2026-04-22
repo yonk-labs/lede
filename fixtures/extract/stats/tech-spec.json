@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "value": "50,000",
+      "unit": "events",
+      "stat_type": "count",
+      "context_hint": "load of 50,000 events per minute"
+    },
+    {
+      "value": "800,000",
+      "unit": "events",
+      "stat_type": "count",
+      "context_hint": "grown organically to handle nearly 800,000"
+    },
+    {
+      "value": "40",
+      "unit": "percent",
+      "stat_type": "percent",
+      "context_hint": "40 percent of our infrastructure bill"
+    },
+    {
+      "value": "13,000",
+      "unit": "events",
+      "stat_type": "count",
+      "context_hint": "13,000 events per second with peaks"
+    },
+    {
+      "value": "25,000",
+      "unit": "events",
+      "stat_type": "count",
+      "context_hint": "peaks exceeding 25,000"
+    },
+    {
+      "value": "75,000",
+      "unit": "events",
+      "stat_type": "count",
+      "context_hint": "roughly 75,000 events per second"
+    },
+    {
+      "value": "2",
+      "unit": "terabytes",
+      "stat_type": "count",
+      "context_hint": "2 terabytes per day"
+    },
+    {
+      "value": "90",
+      "unit": "day",
+      "stat_type": "duration",
+      "context_hint": "90-day retention window"
+    },
+    {
+      "value": "10",
+      "unit": "percent",
+      "stat_type": "percent",
+      "context_hint": "10 percent of real traffic"
+    },
+    {
+      "value": "50",
+      "unit": "percent",
+      "stat_type": "percent",
+      "context_hint": "Phase three ramps to 50 percent"
+    },
+    {
+      "value": "two weeks",
+      "unit": "week",
+      "stat_type": "duration",
+      "context_hint": "minimum of two weeks"
+    },
+    {
+      "value": "three to four months",
+      "unit": "month",
+      "stat_type": "duration",
+      "context_hint": "estimated at three to four months"
+    }
+  ]
+}

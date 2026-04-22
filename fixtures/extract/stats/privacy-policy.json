@@ -1,0 +1,34 @@
+{
+  "facts": [
+    {
+      "value": "2026-01-01",
+      "unit": "date",
+      "stat_type": "date",
+      "context_hint": "Effective Date: 2026-01-01"
+    },
+    {
+      "value": "seven years",
+      "unit": "year",
+      "stat_type": "duration",
+      "context_hint": "retained for seven years after account closure"
+    },
+    {
+      "value": "thirteen months",
+      "unit": "month",
+      "stat_type": "duration",
+      "context_hint": "retained for thirteen months and then deleted"
+    },
+    {
+      "value": "thirty days",
+      "unit": "day",
+      "stat_type": "duration",
+      "context_hint": "delete bucket contents within thirty days"
+    },
+    {
+      "value": "thirty days",
+      "unit": "day",
+      "stat_type": "duration",
+      "context_hint": "at least thirty days before the change takes effect"
+    }
+  ]
+}

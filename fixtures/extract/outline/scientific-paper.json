@@ -1,0 +1,10 @@
+{
+  "sections": [
+    {"name": "Abstract", "depth": 1},
+    {"name": "Introduction", "depth": 1},
+    {"name": "Methods", "depth": 1},
+    {"name": "Results", "depth": 1},
+    {"name": "Discussion", "depth": 1},
+    {"name": "Conclusion", "depth": 1}
+  ]
+}

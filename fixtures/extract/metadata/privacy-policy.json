@@ -1,0 +1,15 @@
+{
+  "dates": ["2026-01-01"],
+  "amounts": [],
+  "urls": [],
+  "entities": [
+    "Acme Cloud Platform, Inc.",
+    "European Union",
+    "United Kingdom",
+    "California",
+    "European Commission",
+    "General Data Protection Regulation",
+    "UK GDPR",
+    "California Consumer Privacy Act"
+  ]
+}

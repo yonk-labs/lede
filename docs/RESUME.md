@@ -1,13 +1,13 @@
-# Resume: skimr v0.2 T11 done, ready for T12 (gold fixtures)
+# Resume: skimr v0.2 T12 done, ready for T13 (extraction eval harness)
 
-**Last session:** 2026-04-22. All 5 enrichment primitives (outline, stats, metadata, phrases, correlate_facts) are now implemented in both skimr core (regex backend) and skimr-spacy has spaCy backends for metadata + phrases. The backend-registry pattern established in T9a carries cleanly through T10, T10b, and T11. Remaining v0.2 work is fixture/eval work (T12-T15), plus an optional T11b (spaCy dep-parser correlate).
+**Last session:** 2026-04-22 (cont'd). T12 hand-labeled all 50 gold fixtures (10 corpora × 5 primitives). Labeling done by 10 parallel sonnet subagents (one per corpus); opus spec-reviewer caught 2 blockers + unit-label drift; fixed in a single canonicalization pass. Protocol doc authored at `docs/extraction-gold-labeling.md` including an edge-case-conventions section capturing the labeler judgment calls. Next up: T13 (SC-D gate — extraction eval harness).
 
 ## Repo state
 
 - **Remote:** https://github.com/yonk-labs/skimr (private, yonk-labs org)
 - **Branch:** `main`
-- **Local HEAD:** `343a7be` — T11 extract.correlate_facts. `origin/main` in sync.
-- **Unpushed:** 0.
+- **Local HEAD:** T12 gold fixtures (commit pending at time of doc write). `origin/main` at `343a7be` (T11).
+- **Unpushed:** 1 (T12 commit).
 - **Version:** skimr `0.2.0.dev0` (Python PEP 440) / `0.2.0-dev.0` (Rust SemVer); skimr-spacy `0.2.0.dev0`. T15 bumps skimr to plain `0.2.0`; skimr-spacy version tracks.
 - **v0.0.1 tag:** pushed; points at `4c3e7d4`.
 - **No v0.1.0-rc1 tag** — pivoted into v0.2 before tagging. The Rust port from Plan 2 is still on main; v0.2 builds on it directly.
@@ -28,7 +28,7 @@
 Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md` (15 tasks).
 Spec: `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`.
 
-**Done (6/15):**
+**Done (through T12):**
 
 | # | Task | SHA | Notes |
 |---|---|---|---|
@@ -48,8 +48,9 @@ Spec: `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`.
 | T10 | `extract.phrases` (Py + Rust) | `b003552` | Heuristic multi-word phrase extractor. Regex impl self-registers as `("regex","phrases")`; public `phrases(text, keywords=None, *, backend=None)` dispatches through the registry. Rust has no backend= kwarg. 4 tests each language, parity byte-identical. **Documented deviation from plan literal code:** plan's `_runs()` emits one window per stopword gap, but the plan's own test 1 requires `"customer support"` (2 tokens) as output, which is never a full window. Subagent adjusted to emit all contiguous 2-5 token n-grams per run; applied identically in Python and Rust. Plan doc annotated at commit `d098fa4` so future maintainers see the deviation. |
 | T10b | skimr-spacy `spacy_phrases` | `595843d` | New `packages/skimr-spacy/src/skimr_spacy/_phrases.py`. Uses `doc.noun_chunks`, strips leading stopwords/punct, lowercases, requires ≥2 tokens post-clean, count ≥2 filter + keyword-singleton path. Registers `("spacy","phrases")` on import. 5 new tests (6+5 = 11 skimr-spacy tests passing). Output is NOT byte-identical to the regex backend by design. |
 | T11 | `extract.correlate_facts` (Py + Rust) | `343a7be` | Composition over `stats()` + `phrases()` + single-word frequency. Each `PhraseFact(entity, number, polarity, sentence)` pairs a repeated entity with a numeric fact in the same sentence. Polarity inferred from cue words (`grew`/`rose` → `growth`, `fell`/`declined` → `decline`, else `absolute`). Final filter: entity must appear with ≥2 distinct facts. `_regex_correlate_facts` self-registers as `("regex","correlate_facts")`; public `correlate_facts(text, *, backend=None)` dispatches through the registry. **Internal `phrases()` call pinned to `backend="regex"`** to keep the regex-backed correlate internally consistent (a future `spacy_correlate_facts` / T11b would build its own dep-parsed version). Rust has no backend= kwarg. Same tie-break fix as T6: Rust `max_by_key` switched to explicit `max_by` with `bi.cmp(ai)` fallback so Python's `max` first-wins-on-tie semantics match. 4 tests each language; parity byte-identical. Rust uses `HashSet` consistently per T8/T10 reviewer preference. |
+| T12 | Hand-labeled gold fixtures | (pending commit) | 50 gold JSON files at `fixtures/extract/<primitive>/<corpus>.json` + protocol at `docs/extraction-gold-labeling.md`. Fanned out to 10 parallel sonnet subagents (one per corpus). Opus spec-reviewer sampled 4 corpora × 5 primitives, caught 2 blockers (unit=`"absolute"` in sci-paper, duplicate correlate pairing in privacy-policy) + unit drift (`pct`/`percent`, plural vs singular durations). Single canonicalization pass normalized all 50 files to match the primitive's emit space: `unit="percent"` (not `pct`), durations singular (primitive `rstrip("s")`s), counts keep concrete unit from source. Second dupe found in support-ticket, also deduped. 1 phrase violated the 2-5 token rule (`"high-dimensional"`, 1 token), dropped. Protocol doc extended with "Edge-case conventions" section codifying the labeler judgment calls (numbered sections, title lines, inline vs block colon-labels, `Label: Subject` pattern). Outline-policy advisories from reviewer deferred to T13 iteration. |
 
-**Pending (3/15):** T12 gold fixtures · T13 extraction eval (SC-D gate) · T14 comparison matrix + latency (SC-B gate) · T15 tag v0.2.0. Plus optional follow-up: T11b (skimr-spacy dep-parsed correlate impl).
+**Pending (2/15):** T13 extraction eval (SC-D gate) · T14 comparison matrix + latency (SC-B gate) · T15 tag v0.2.0. Plus optional follow-up: T11b (skimr-spacy dep-parsed correlate impl).
 
 **Test suite state:**
 - **Python (skimr core):** **137 passing** (133 post-T10 + 4 new correlate tests from T11).
@@ -82,32 +83,39 @@ The implementer subagents caught several plan-level issues the plan writer misse
 
 Accept deviations when: (a) tests pass, (b) byte-identity holds, (c) justification matches the design intent. Reject when: byte-identity fails or scope creep.
 
-## What's next — T12 entry point
+## What's next — T13 entry point
 
-**T12 is the gold-fixture labeling task** — 10 corpora × 5 primitives = 50 hand-labeled JSON files plus a protocol doc. Per plan §Task 12 (starting around line 3849):
+**T13 is the extraction eval harness** — precision/recall over the T12 gold set, per primitive. SC-D gate: ≥0.85 recall / ≥0.80 precision. Plan task text at `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md` line 4045.
 
-- Create: `fixtures/extract/stats/{corpus}.json` × 10
-- Create: `fixtures/extract/outline/{corpus}.json` × 10
-- Create: `fixtures/extract/metadata/{corpus}.json` × 10
-- Create: `fixtures/extract/phrases/{corpus}.json` × 10
-- Create: `fixtures/extract/correlate/{corpus}.json` × 10
-- Create: `docs/extraction-gold-labeling.md` — the protocol doc itself
+The harness compares `extract.<primitive>(corpus)` output against `fixtures/extract/<primitive>/<corpus>.json` gold labels. Per-primitive matching rules (from the protocol):
 
-Corpora live at `benchmarks/corpus/*.txt`. The protocol defines the JSON schema per primitive (e.g. `stats` uses `{"facts": [{"value": "$120K", "unit": "usd", "stat_type": "money", "context_hint": "..."}]}`).
+- `stats`: match on (value, stat_type) exact; `context_hint` must be a substring of `Stat.context_sentence`.
+- `outline`: match on section `name` (order-insensitive for precision/recall, though order is recorded).
+- `metadata`: match on list contents per field (`dates`, `amounts`, `urls`, `entities`). Entities eval only hits the spaCy backend.
+- `phrases`: set membership on the phrase string (lowercase).
+- `correlate`: set membership on (entity, polarity) tuples.
 
-Plan calls this ~25 hours of labeling work, parallelizable via subagents. Good candidates to dispatch multiple subagents in parallel — one per corpus or one per primitive family. Authoring the protocol doc first (step 1 of T12) is the human-judgement bottleneck; once that's written, the actual labeling can fan out.
+After T13: **T14** produces the comparison matrix against sumy/TextRank/etc. (SC-B gate — p50 < 250ms warm). **T15** tags v0.2.0.
 
-After T12: **T13** runs the eval harness to verify SC-D (≥0.85 recall / ≥0.80 precision per primitive). **T14** produces the comparison matrix against sumy/TextRank/etc. (SC-B gate — p50 < 250ms warm). **T15** tags v0.2.0.
+**Deferred follow-ups (tracked in TODO):** T11b — skimr-spacy `spacy_correlate_facts` using spaCy dep parser. Doesn't block T13-T15.
 
-**Deferred follow-up (tracked in TODO):** T11b — skimr-spacy `spacy_correlate_facts` using spaCy dep parser. Doesn't block T12-T15; slot it in wherever.
+### Known gold-label advisories for T13
 
-**No blockers for T12.** All 5 primitives implemented and green; parity honored; backend registry pattern consistent across the three primitives that have it.
+The opus spec-reviewer flagged several judgment calls during T12 that weren't blockers but may surface as systematic false positives/negatives in the eval:
 
-### Known T6 artifact worth noting for T12
+- **Outline colon-label policy.** `meeting-minutes.json` includes `"Action items"` but excludes `"Date"`, `"Attendees"`, `"Open questions at end of meeting"` — the labeler treated block-introducing colon-labels as structural but single-line metadata as non-structural. Protocol codified this in "Edge-case conventions," but the eval may surface cases where the primitive disagrees.
+- **`Label: Subject` document headers.** `meeting-minutes.json` labels `"Platform Migration Planning"` (post-colon subject) rather than `"Meeting"` (pre-colon label). Protocol codified but primitive may emit differently.
+- **Numbered sections.** `privacy-policy.json` and similar include `1. Foo` sections with the number prefix stripped. Primitive's regex may or may not handle numbered sections — likely a miss.
+- **Hyphenated-duration values.** `stats/meeting-minutes.json` keeps `"five-day"` as the value; `stats/tech-spec.json` uses `"90"` (dropping the `-day` suffix). Primitive output determines what matches. Both kept as-labeled by the subagents.
+- **Metadata entity asymmetry.** `privacy-policy.json` includes `"European Union"` but not `"United States"` (both appear in source). Advisory, not a bug.
 
-`outline()` uses a **narrower** heading predicate than `tfidf.summarize`'s `is_heading`. The shared `_headings.is_heading` fires on "<4 content tokens" too — useful for dropping short paragraph-enders during summarization, harmful for section detection because legitimate short body sentences like "Costs declined." (2 content tokens) would be classified as headings and strand a section with zero representative candidates. Both languages use the same narrower predicate (just the 3 structural regex patterns) so parity holds. T12 fixture design should assume outline sections are detected by structural markers only, not by the "short sentence" heuristic.
+Expect T13 to surface ~10-15 more items in this class across the unsampled 6 corpora. The protocol's iteration clause authorizes revising labels after T13 evidence.
 
-### Known T7 fragility worth watching in T12
+### Known T6 artifact
+
+`outline()` uses a **narrower** heading predicate than `tfidf.summarize`'s `is_heading`. The shared `_headings.is_heading` fires on "<4 content tokens" too — useful for dropping short paragraph-enders during summarization, harmful for section detection because legitimate short body sentences like "Costs declined." (2 content tokens) would be classified as headings and strand a section with zero representative candidates. Both languages use the same narrower predicate (just the 3 structural regex patterns) so parity holds.
+
+### Known T7 fragility
 
 Rust `ctx()` in `rust/src/extract/stats.rs` byte-slices the context window. If future parity corpora include non-ASCII characters (accented words, currency symbols like €/£, smart quotes) and one lands exactly at the window edge, `sent[l..r]` panics. Two-line fix with `floor_char_boundary` / `ceil_char_boundary` when it becomes real; not fixed preemptively to match plan scope.
 
@@ -143,11 +151,11 @@ VIRTUAL_ENV=.venv uv pip install --no-deps -e packages/skimr-spacy/
 - [x] **T10b** skimr-spacy `spacy_phrases` using `doc.noun_chunks` (`595843d`)
 - [x] **T11** extract.correlate_facts (Python + Rust, regex + backend registry hook) (`343a7be`)
 - [ ] **T11b** skimr-spacy `spacy_correlate_facts` using dep parser (follow-up)
-- [ ] **T12** Hand-label gold fixtures (10 corpora × 5 primitives)
+- [x] **T12** Hand-label gold fixtures (10 corpora × 5 primitives) — 50 JSON + protocol + edge-case conventions
 - [ ] **T13** ⛔ SC-D gate — extraction eval harness
 - [ ] **T14** ⛔ SC-B gate — comparison matrix + latency profile
 - [ ] **T15** Tag v0.2.0 release
 
 ## Resume prompt (paste into fresh session)
 
-> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr v0.2 plan in progress — T1-T11 complete, plus T10b follow-up; all 5 enrichment primitives (outline, stats, metadata, phrases, correlate_facts) are implemented. T9 was rewritten into T9a (backend registry, `419a37b`) + T9b (`packages/skimr-spacy/` companion, `18f98c5`). T10 (`extract.phrases`, `b003552`) + T10b (`spacy_phrases`, `595843d`) + T11 (`extract.correlate_facts`, `343a7be`) all follow the backend-registry pattern. Local and remote `main` in sync. **Read `docs/RESUME.md` FIRST** for full context. Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`. Spec (v0.2 design): `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`. spaCy integration spec: `docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. skimr core: **137 Python tests green**, **84 Rust + clippy clean**. skimr-spacy: **11 Python tests green**. spaCy + en_core_web_sm already installed in `.venv/`. **Next up: T12 — hand-label gold fixtures.** 10 corpora × 5 primitives = 50 JSON files under `fixtures/extract/<primitive>/<corpus>.json`, plus a protocol doc at `docs/extraction-gold-labeling.md`. Plan task text starts around line 3849. Corpora live at `benchmarks/corpus/*.txt`. Parallelizable via subagents (one per corpus or one per primitive) once the protocol is authored. Deferred: T11b (skimr-spacy dep-parser correlate).
+> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr v0.2 plan in progress — T1-T12 complete, plus T10b follow-up. All 5 enrichment primitives implemented in skimr core (regex backend) and 2 (metadata, phrases) in skimr-spacy. T12 hand-labeled 50 gold fixtures (10 corpora × 5 primitives) at `fixtures/extract/<primitive>/<corpus>.json` + protocol doc at `docs/extraction-gold-labeling.md` (includes an Edge-case conventions section codifying labeler judgment calls). **Read `docs/RESUME.md` FIRST** for full context. Plan: `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`. Specs in `docs/superpowers/specs/`. Execution is subagent-driven per `superpowers:subagent-driven-development`; user has given full-send autonomous consent. skimr core: **137 Python tests green**, **84 Rust + clippy clean**. skimr-spacy: **11 Python tests green**. spaCy + en_core_web_sm already installed in `.venv/`. **Next up: T13 — extraction eval harness (SC-D gate, ≥0.85 recall / ≥0.80 precision per primitive).** Plan task text around line 4045. Gold labels live in `fixtures/extract/`; primitive output is `extract.<primitive>(corpus)`; per-primitive matching rules are in the protocol doc. Expect T13 to surface systematic false positives/negatives tied to the outline-policy / hyphenated-duration / numbered-section edge cases the labelers made judgment calls on — the protocol's iteration clause authorizes revising labels after T13 evidence. Deferred: T11b (skimr-spacy dep-parser correlate).

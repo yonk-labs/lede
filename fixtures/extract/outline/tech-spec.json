@@ -1,0 +1,11 @@
+{
+  "sections": [
+    {"name": "Design: Async Event Pipeline v2", "depth": 1},
+    {"name": "Goals", "depth": 2},
+    {"name": "Non-goals", "depth": 2},
+    {"name": "Proposed architecture", "depth": 2},
+    {"name": "Capacity planning", "depth": 2},
+    {"name": "Migration plan", "depth": 2},
+    {"name": "Risks", "depth": 2}
+  ]
+}

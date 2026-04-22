@@ -1,0 +1,6 @@
+{
+  "pairings": [
+    {"entity": "event pipeline", "polarity": "growth"},
+    {"entity": "event pipeline", "polarity": "absolute"}
+  ]
+}

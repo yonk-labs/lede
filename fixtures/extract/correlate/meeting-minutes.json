@@ -1,0 +1,8 @@
+{
+  "pairings": [
+    {"entity": "risk register", "polarity": "growth"},
+    {"entity": "risk register", "polarity": "decline"},
+    {"entity": "canary period", "polarity": "absolute"},
+    {"entity": "backend service", "polarity": "absolute"}
+  ]
+}

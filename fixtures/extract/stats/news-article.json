@@ -1,0 +1,16 @@
+{
+  "facts": [
+    {
+      "value": "0.4 percent",
+      "unit": "percent",
+      "stat_type": "percent",
+      "context_hint": "euro strengthened against the dollar by 0.4 percent"
+    },
+    {
+      "value": "8 basis points",
+      "unit": "basis_points",
+      "stat_type": "count",
+      "context_hint": "German two-year climbing 8 basis points"
+    }
+  ]
+}

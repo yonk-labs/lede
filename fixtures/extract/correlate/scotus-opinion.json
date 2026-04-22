@@ -1,0 +1,8 @@
+{
+  "pairings": [
+    {"entity": "Cascade Processing LLC", "polarity": "absolute"},
+    {"entity": "Cascade Processing LLC", "polarity": "decline"},
+    {"entity": "Environmental Protection Agency", "polarity": "decline"},
+    {"entity": "Environmental Protection Agency", "polarity": "absolute"}
+  ]
+}

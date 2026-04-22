@@ -1,0 +1,34 @@
+{
+  "facts": [
+    {
+      "value": "eighteen tons per year",
+      "unit": "count",
+      "stat_type": "count",
+      "context_hint": "authorizing the discharge of up to eighteen tons per year"
+    },
+    {
+      "value": "eleven tons per year",
+      "unit": "count",
+      "stat_type": "count",
+      "context_hint": "reduced the allowable discharge to eleven tons per year"
+    },
+    {
+      "value": "2019",
+      "unit": "date",
+      "stat_type": "date",
+      "context_hint": "In 2019, petitioner's affiliate, Cascade Processing LLC"
+    },
+    {
+      "value": "2022",
+      "unit": "date",
+      "stat_type": "date",
+      "context_hint": "In 2022, EPA promulgated a final rule"
+    },
+    {
+      "value": "2023",
+      "unit": "date",
+      "stat_type": "date",
+      "context_hint": "Cascade's 2022 and 2023 discharges exceeded the new limit"
+    }
+  ]
+}

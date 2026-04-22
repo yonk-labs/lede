@@ -1,0 +1,16 @@
+{
+  "facts": [
+    {
+      "value": "22 minutes",
+      "unit": "minute",
+      "stat_type": "duration",
+      "context_hint": "job completes in 22 minutes as usual"
+    },
+    {
+      "value": "19 minutes",
+      "unit": "minute",
+      "stat_type": "duration",
+      "context_hint": "completed overnight in 19 minutes"
+    }
+  ]
+}

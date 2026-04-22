@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "value": "1975",
+      "unit": "date",
+      "stat_type": "date",
+      "context_hint": "k-d trees, proposed by Bentley in 1975"
+    },
+    {
+      "value": "1998",
+      "unit": "date",
+      "stat_type": "date",
+      "context_hint": "introduced by Indyk and Motwani in 1998"
+    },
+    {
+      "value": "2016",
+      "unit": "date",
+      "stat_type": "date",
+      "context_hint": "introduced by Malkov and Yashunin in 2016"
+    },
+    {
+      "value": "95",
+      "unit": "percent",
+      "stat_type": "percent",
+      "context_hint": "achieve 95 percent recall at over fifty thousand"
+    }
+  ]
+}

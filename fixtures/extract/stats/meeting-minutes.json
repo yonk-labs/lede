@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "value": "2026-04-15",
+      "unit": "date",
+      "stat_type": "date",
+      "context_hint": "Date: 2026-04-15"
+    },
+    {
+      "value": "94",
+      "unit": "percent",
+      "stat_type": "percent",
+      "context_hint": "passing at 94 percent coverage"
+    },
+    {
+      "value": "eight days",
+      "unit": "day",
+      "stat_type": "duration",
+      "context_hint": "in staging for eight days"
+    },
+    {
+      "value": "two weeks",
+      "unit": "week",
+      "stat_type": "duration",
+      "context_hint": "estimated two weeks of work"
+    },
+    {
+      "value": "seven days",
+      "unit": "day",
+      "stat_type": "duration",
+      "context_hint": "seven days instead of three"
+    },
+    {
+      "value": "three",
+      "unit": "day",
+      "stat_type": "duration",
+      "context_hint": "seven days instead of three"
+    },
+    {
+      "value": "five-day",
+      "unit": "day",
+      "stat_type": "duration",
+      "context_hint": "agreed to a five-day canary"
+    },
+    {
+      "value": "three",
+      "unit": "count",
+      "stat_type": "count",
+      "context_hint": "three items added"
+    },
+    {
+      "value": "two",
+      "unit": "count",
+      "stat_type": "count",
+      "context_hint": "two downgraded"
+    }
+  ]
+}
