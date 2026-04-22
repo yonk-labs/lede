@@ -24,7 +24,7 @@ def test_metadata_collects_urls():
 
 
 def test_metadata_no_entities_in_core():
-    """Core path leaves entities empty; Task 9 populates when skimr[ner] is installed."""
+    """Core path leaves entities empty; entities is reserved for skimr-spacy companion."""
     m = metadata("Sarah Jones visited Johnson Education Co in Chicago.")
     # Core path never populates entities.
     assert m.entities == ()

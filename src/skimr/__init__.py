@@ -5,11 +5,13 @@ Public API:
   clean_text(text) -> str
   strip_think(text) -> str
   extract_keyword(text, keywords, num_sentences=10) -> str
+  set_default_backend(name) -> None   # enrichment backend selector
 """
 from skimr.clean import clean_text, strip_think
 from skimr.tfidf import summarize
 from skimr.keyword import extract_keyword
 from skimr._types import SummaryResult
+from skimr.extract._backends import set_default_backend
 
 __version__ = "0.2.0.dev0"
 __all__ = [
@@ -18,5 +20,6 @@ __all__ = [
     "strip_think",
     "extract_keyword",
     "SummaryResult",
+    "set_default_backend",
     "__version__",
 ]
