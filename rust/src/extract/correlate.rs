@@ -1,6 +1,6 @@
 //! Pair repeated entities with numeric facts. Mirrors correlate.py.
 
-use crate::extract::phrases::phrases;
+use crate::extract::phrases::{phrases, stop};
 use crate::extract::stats::{stats, Stat};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -76,7 +76,7 @@ pub fn correlate_facts(text: &str) -> Vec<PhraseFact> {
     }
     let repeated_words: HashSet<String> = word_counts
         .iter()
-        .filter(|(_, c)| **c >= 2)
+        .filter(|(w, c)| **c >= 2 && !stop().contains(w.as_str()))
         .map(|(w, _)| w.clone())
         .collect();
 

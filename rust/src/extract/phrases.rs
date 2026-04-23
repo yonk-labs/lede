@@ -9,7 +9,7 @@ fn word_re() -> &'static Regex {
     RE.get_or_init(|| Regex::new(r"[a-z]{3,}").expect("static regex"))
 }
 
-fn stop() -> &'static HashSet<&'static str> {
+pub(crate) fn stop() -> &'static HashSet<&'static str> {
     static S: OnceLock<HashSet<&'static str>> = OnceLock::new();
     S.get_or_init(|| {
         [

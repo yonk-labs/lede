@@ -4,7 +4,7 @@ from collections import Counter
 from .._types import PhraseFact
 from ._backends import register, resolve, get_default_backend
 from .stats import stats as _stats
-from .phrases import phrases as _phrases
+from .phrases import phrases as _phrases, _STOP
 
 
 _GROWTH_WORDS = frozenset({
@@ -40,7 +40,10 @@ def _regex_correlate_facts(text: str) -> tuple[PhraseFact, ...]:
     single_word_counts: dict[str, int] = {}
     for w in re.findall(r"[a-zA-Z]{3,}", text.lower()):
         single_word_counts[w] = single_word_counts.get(w, 0) + 1
-    repeated_words = {w for w, c in single_word_counts.items() if c >= 2}
+    repeated_words = {
+        w for w, c in single_word_counts.items()
+        if c >= 2 and w not in _STOP
+    }
 
     # Prefer multi-word phrases from the regex phrases() backend.
     # Pinning backend='regex' keeps this impl internally consistent —

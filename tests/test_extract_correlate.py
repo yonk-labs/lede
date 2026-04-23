@@ -39,3 +39,20 @@ def test_decline_polarity_detected():
 
 def test_empty_input():
     assert correlate_facts("") == ()
+
+
+def test_correlate_facts_excludes_stopword_entities():
+    """Regression for T13c: `the`, `their` etc. were leaking as entity candidates."""
+    text = (
+        "The project finished its first phase. The team grew by 5 people. "
+        "The team grew by 10 people. The latency dropped by 20 ms. "
+        "The latency dropped by 30 ms."
+    )
+    facts = correlate_facts(text)
+    entities = {pf.entity for pf in facts}
+    # Should pick meaningful repeated words ("team", "latency", "grew", "dropped"),
+    # not stopwords.
+    stopwords = {"the", "its", "by"}
+    assert not (entities & stopwords), (
+        f"stopword entities leaked through: {entities & stopwords}"
+    )

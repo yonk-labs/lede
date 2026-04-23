@@ -35,3 +35,22 @@ fn decline_polarity_detected() {
 fn empty_input() {
     assert!(correlate_facts("").is_empty());
 }
+
+#[test]
+fn correlate_facts_excludes_stopword_entities() {
+    // Regression for T13c: `the`, `their` etc. were leaking as entity candidates.
+    let text = concat!(
+        "The project finished its first phase. The team grew by 5 people. ",
+        "The team grew by 10 people. The latency dropped by 20 ms. ",
+        "The latency dropped by 30 ms."
+    );
+    let facts = correlate_facts(text);
+    let stopwords = ["the", "its", "by"];
+    for pf in &facts {
+        assert!(
+            !stopwords.contains(&pf.entity.as_str()),
+            "stopword entity leaked through: {}",
+            pf.entity
+        );
+    }
+}
