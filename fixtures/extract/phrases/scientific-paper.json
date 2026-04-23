@@ -13,6 +13,8 @@
     "naive left-fold summation",
     "stable-sort order",
     "safe rust",
-    "units in the last place"
+    "units in the last place",
+    "observed divergence",
+    "score differences"
   ]
 }
