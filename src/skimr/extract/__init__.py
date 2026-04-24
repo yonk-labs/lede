@@ -22,6 +22,13 @@ from .metadata import metadata
 from .phrases import phrases
 from .correlate import correlate_facts
 
+# Optional backend: YAKE ('yake','phrases'). Self-registers when the yake
+# package is installed; otherwise silently skipped so default deps stay zero.
+try:
+    from . import _yake  # noqa: F401 — self-registers ('yake','phrases')
+except ImportError:
+    pass
+
 __all__ = [
     "Stat", "Section", "Metadata", "PhraseFact",
     "stats", "outline", "metadata", "phrases", "correlate_facts",

@@ -15,12 +15,18 @@ from skimr.extract import _backends
 def _restore_default():
     """Guarantee no test leaks a mutated default backend into siblings."""
     saved = _backends.get_default_backend()
+    # Snapshot registered backends so optional backends (yake, spacy) survive
+    # dummy-backend cleanup.
+    saved_backends = {
+        name: dict(fns) for name, fns in _backends._REGISTRY.items()
+    }
     yield
-    # Restore default and scrub any dummy backends tests registered.
+    # Restore default and original registry state — drops any dummy backends
+    # tests may have registered.
     _backends._DEFAULT = saved
-    for name in list(_backends._REGISTRY.keys()):
-        if name != "regex":
-            del _backends._REGISTRY[name]
+    _backends._REGISTRY.clear()
+    for name, fns in saved_backends.items():
+        _backends._REGISTRY[name] = dict(fns)
 
 
 def test_register_and_resolve_dummy_backend():
