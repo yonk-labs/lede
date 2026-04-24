@@ -32,6 +32,20 @@ _BARE_TITLE_RE = re.compile(r"^\s*[A-Z][A-Za-z0-9][A-Za-z0-9 ]{0,58}$")
 # stripped by `heading_name()` so the emitted name matches gold.
 _NUMBERED_SECTION_RE = re.compile(r"^\s*\d+\.\s+[A-Z][A-Za-z0-9 ]{0,58}$")
 
+# Title-with-dash heading (T13d): document title line of the form
+# "Title — Metadata" (em-dash U+2014, en-dash U+2013, or hyphen-minus), e.g.
+# "Privacy Policy — Effective Date: 2026-01-01". Authorized by the labeling
+# protocol's Edge-case conventions (docs/extraction-gold-labeling.md).
+# Requires a space on both sides of the dash so hyphenated single words
+# ("state-of-the-art") don't match.
+#
+# The trailing character class `[^.!?]*$` (no terminal `.`/`!`/`?`) mirrors
+# the `_BARE_TITLE_RE` safety constraint — excludes body sentences like
+# "Main concern is pricing — our $50K quote is 40% above their Q2 budget."
+# that would otherwise match. The dash-metadata suffix is stripped by
+# `heading_name()`.
+_TITLE_WITH_DASH_RE = re.compile(r"^\s*[A-Z][A-Za-z0-9 ]{0,58}\s+[—–\-]\s+\S[^.!?]*$")
+
 
 def is_heading(sentence: str) -> bool:
     """True when `sentence` matches any heading pattern."""
@@ -47,6 +61,8 @@ def is_heading(sentence: str) -> bool:
         return True
     if _NUMBERED_SECTION_RE.match(sentence):
         return True
+    if _TITLE_WITH_DASH_RE.match(sentence):
+        return True
     # Fewer than 4 content-word tokens (rough "title-like" filter).
     toks = [t for t in re.findall(r"[A-Za-z]{3,}", sentence)]
     if len(toks) < 4:
@@ -59,9 +75,11 @@ def heading_name(sentence: str) -> str | None:
     s = sentence.strip()
     if not s:
         return None
-    # Strip markdown #'s, numeric-section prefix, and trailing colon.
+    # Strip markdown #'s, numeric-section prefix, em-dash metadata suffix,
+    # and trailing colon.
     s = re.sub(r"^#+\s+", "", s)
     s = re.sub(r"^\d+\.\s+", "", s)
+    s = re.sub(r"\s+[—–\-]\s+.*$", "", s)  # T13d: strip em-dash metadata
     s = s.rstrip(":").strip()
     if not s:
         return None

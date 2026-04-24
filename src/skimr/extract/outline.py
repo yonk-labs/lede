@@ -31,10 +31,17 @@ _BARE_TITLE_RE = re.compile(r"^\s*[A-Z][A-Za-z0-9][A-Za-z0-9 ]{0,58}$")
 # Numbered-section prefix (T13b Class B); numeric prefix stripped by
 # `heading_name()` in _headings.py so emitted name matches gold.
 _NUMBERED_SECTION_RE = re.compile(r"^\s*\d+\.\s+[A-Z][A-Za-z0-9 ]{0,58}$")
+# Title-with-dash (T13d): "Title — Metadata" document title line. The
+# trailing `[^.!?]*$` constraint excludes body sentences with an em-dash
+# clause (e.g. "Main concern is pricing — $50K over budget.") — mirrors
+# the terminal-punctuation exclusion used by _BARE_TITLE_RE. The em-dash
+# suffix is stripped by `heading_name()` so the emitted name is just the
+# title portion. See _headings.py for the authorization note.
+_TITLE_WITH_DASH_RE = re.compile(r"^\s*[A-Z][A-Za-z0-9 ]{0,58}\s+[—–\-]\s+\S[^.!?]*$")
 _MD_DEPTH_RE = re.compile(r"^\s*(#+)\s+")
 
-# T13b Class D cases intentionally NOT handled here (need gold-protocol
-# revisit, tracked as T13d):
+# T13b Class D cases intentionally NOT handled here (still tracked as
+# follow-ups after T13d closed the title-with-dash case):
 #   - "Meeting: Platform Migration Planning" (Label:Subject inline pattern)
 #   - "Held: Section 412(b) does not authorize..." (inline colon-label with
 #     body text after the colon on the same line; adding a pattern broad
@@ -61,6 +68,8 @@ def _is_structural_heading(sentence: str) -> bool:
     if _BARE_TITLE_RE.match(sentence):
         return True
     if _NUMBERED_SECTION_RE.match(sentence):
+        return True
+    if _TITLE_WITH_DASH_RE.match(sentence):
         return True
     return False
 

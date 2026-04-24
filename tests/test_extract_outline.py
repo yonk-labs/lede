@@ -101,3 +101,19 @@ def test_outline_still_excludes_short_body_sentences():
     names = {s.name for s in outline(text)}
     assert "Costs declined" not in names  # body sentence, not heading
     assert "Finance" in names              # markdown heading, legitimate
+
+
+def test_outline_extracts_em_dash_title_line():
+    """T13d: 'Privacy Policy — Effective Date: ...' → heading 'Privacy Policy'.
+
+    Labeling protocol authorizes stripping em-dash metadata on title lines.
+    """
+    text = (
+        "Privacy Policy — Effective Date: 2026-01-01\n\n"
+        "This policy describes how we handle your data.\n\n"
+        "Further details follow.\n"
+    )
+    names = {s.name for s in outline(text)}
+    assert "Privacy Policy" in names
+    # Must NOT include the em-dash suffix in the name:
+    assert not any("—" in n or "–" in n for n in names)

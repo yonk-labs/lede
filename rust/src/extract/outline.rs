@@ -56,13 +56,25 @@ fn numbered_section_re() -> &'static Regex {
     })
 }
 
+// Title-with-dash (T13d): "Title — Metadata" document title line. Trailing
+// `[^.!?]*$` excludes body sentences with em-dash clauses. Em-dash suffix
+// stripped by `crate::headings::heading_name` so emitted name is just the
+// title portion.
+fn title_with_dash_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(r"^\s*[A-Z][A-Za-z0-9 ]{0,58}\s+[\x{2014}\x{2013}\-]\s+\S[^.!?]*$")
+            .expect("static regex")
+    })
+}
+
 fn md_depth_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(r"^\s*(#+)\s+").expect("static regex"))
 }
 
-// T13b Class D cases intentionally NOT handled here (need gold-protocol
-// revisit, tracked as T13d):
+// T13b Class D cases intentionally NOT handled here (still tracked as
+// follow-ups after T13d closed the title-with-dash case):
 //   - "Meeting: Platform Migration Planning" (Label:Subject inline pattern)
 //   - "Held: Section 412(b) does not authorize..." (inline colon-label with
 //     body text after the colon on the same line)
@@ -80,6 +92,7 @@ fn is_structural_heading(sentence: &str) -> bool {
         || short_label_re().is_match(sentence)
         || bare_title_re().is_match(sentence)
         || numbered_section_re().is_match(sentence)
+        || title_with_dash_re().is_match(sentence)
 }
 
 fn md_depth(heading_line: &str) -> usize {

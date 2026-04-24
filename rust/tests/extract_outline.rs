@@ -140,3 +140,22 @@ fn outline_still_excludes_short_body_sentences() {
     assert!(!names.contains(&"Costs declined"), "names = {names:?}");
     assert!(names.contains(&"Finance"), "names = {names:?}");
 }
+
+#[test]
+fn outline_extracts_em_dash_title_line() {
+    // T13d: "Privacy Policy — Effective Date: ..." → heading "Privacy Policy".
+    // Labeling protocol authorizes stripping em-dash metadata on title lines.
+    let text = concat!(
+        "Privacy Policy \u{2014} Effective Date: 2026-01-01\n\n",
+        "This policy describes how we handle your data.\n\n",
+        "Further details follow.\n",
+    );
+    let out = outline(text);
+    let names: Vec<&str> = out.iter().map(|s| s.name.as_str()).collect();
+    assert!(names.contains(&"Privacy Policy"), "names = {names:?}");
+    // Must NOT include the em-dash suffix in the name:
+    assert!(
+        !names.iter().any(|n| n.contains('\u{2014}') || n.contains('\u{2013}')),
+        "names = {names:?}"
+    );
+}
