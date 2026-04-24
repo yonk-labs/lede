@@ -12,7 +12,7 @@ except OSError:
 # Importing skimr_spacy must happen AFTER the skip guards so a clean
 # skip message surfaces when the env lacks the model.
 import skimr_spacy  # noqa: E402  — import-for-side-effect: registers 'spacy' backend
-from skimr.extract import metadata, phrases  # noqa: E402
+from skimr.extract import correlate_facts, metadata, phrases  # noqa: E402
 from skimr.extract._backends import resolve  # noqa: E402
 from skimr_spacy import spacy_phrases  # noqa: E402,F401
 
@@ -128,3 +128,67 @@ def test_auto_backend_picks_spacy_phrases_after_import():
     assert auto_out != regex_out or not regex_out
     # Both should be non-empty on this test input
     assert auto_out
+
+
+# --- T11b: spacy_correlate_facts tests ---
+
+
+def test_spacy_correlate_facts_registers_on_import():
+    fn = resolve("spacy", "correlate_facts")
+    assert callable(fn)
+
+
+def test_correlate_facts_spacy_picks_up_entity_number_pairings():
+    """T11b: spaCy backend finds entity-number pairings via NER + dependency."""
+    text = (
+        "Acme Cloud grew 14 percent in Q1. "
+        "Acme Cloud saw revenues rise to $200 million. "
+        "By contrast, Beta Inc fell 3 percent this quarter. "
+        "Beta Inc lost another 5 percent in Q2."
+    )
+    pairings = correlate_facts(text, backend="spacy")
+    entities = {p.entity for p in pairings}
+    # Both entities should appear since each has 2 facts
+    assert "acme cloud" in entities
+    assert "beta inc" in entities
+
+
+def test_correlate_facts_spacy_polarity_inference():
+    """T11b: polarity comes from verb lemmas (grew -> growth, fell -> decline)."""
+    text = (
+        "Acme Cloud grew 10 percent. Acme Cloud grew 20 percent more. "
+        "Beta Inc fell 5 percent. Beta Inc fell 8 percent further."
+    )
+    pairings = correlate_facts(text, backend="spacy")
+    polarities_by_entity: dict[str, list[str]] = {}
+    for p in pairings:
+        polarities_by_entity.setdefault(p.entity, []).append(p.polarity)
+    if "acme cloud" in polarities_by_entity:
+        assert "growth" in polarities_by_entity["acme cloud"]
+    if "beta inc" in polarities_by_entity:
+        assert "decline" in polarities_by_entity["beta inc"]
+
+
+def test_correlate_facts_spacy_filters_single_facts():
+    """T11b: entities with only one numeric fact are excluded (>=2 rule)."""
+    text = "Single Corp mentioned 10 percent. Other things happen."
+    pairings = correlate_facts(text, backend="spacy")
+    assert not any(p.entity == "single corp" for p in pairings)
+
+
+def test_correlate_facts_spacy_empty_text():
+    """T11b: empty input returns an empty tuple."""
+    assert correlate_facts("", backend="spacy") == ()
+
+
+def test_correlate_facts_spacy_deterministic():
+    """T11b: same input produces identical output across calls (same model)."""
+    text = (
+        "Acme Cloud grew 14 percent in Q1. "
+        "Acme Cloud saw revenues rise to $200 million. "
+        "Beta Inc fell 3 percent this quarter. "
+        "Beta Inc lost another 5 percent in Q2."
+    )
+    a = correlate_facts(text, backend="spacy")
+    b = correlate_facts(text, backend="spacy")
+    assert a == b
