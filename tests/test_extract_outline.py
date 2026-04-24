@@ -51,3 +51,53 @@ def test_outline_returns_empty_for_no_headings():
     text = "Just some sentences. No headings here. Plain prose only."
     out = outline(text)
     assert out == ()
+
+
+def test_outline_extracts_bare_title_case_headings():
+    """T13b Class A: bare title-case single-line headings (Abstract, Results, etc.)."""
+    text = (
+        "Title: Test Paper\n\nAbstract\n\nWe investigate.\n\n"
+        "Introduction\n\nDeterministic output matters.\n\n"
+        "Conclusion\n\nFix is trivial.\n"
+    )
+    names = {s.name for s in outline(text)}
+    assert "Abstract" in names
+    assert "Introduction" in names
+    assert "Conclusion" in names
+
+
+def test_outline_extracts_numbered_sections():
+    """T13b Class B: `\\d+. Section Name` with prefix stripped from name."""
+    text = (
+        "Privacy Policy\n\n"
+        "1. Information We Collect\n\nWe collect data.\n\n"
+        "2. How We Use Information\n\nWe process it.\n"
+    )
+    names = {s.name for s in outline(text)}
+    assert "Information We Collect" in names
+    assert "How We Use Information" in names
+
+
+def test_outline_extracts_long_allcaps_title():
+    """T13b Class C: ALLCAPS headings up to 80 chars."""
+    text = (
+        "SUPREME COURT OF THE UNITED STATES\n\n"
+        "Opinion follows here with enough body to form a section.\n"
+    )
+    names = {s.name for s in outline(text)}
+    assert "SUPREME COURT OF THE UNITED STATES" in names
+
+
+def test_outline_still_excludes_short_body_sentences():
+    """T13b regression: short body sentences like 'Costs declined.' must NOT match.
+
+    Terminal period excludes them from _BARE_TITLE_RE; verify this invariant
+    to prevent reintroducing the T6 FP class.
+    """
+    text = (
+        "# Finance\n\n"
+        "Costs declined. Revenue grew by 20 percent.\n"
+    )
+    names = {s.name for s in outline(text)}
+    assert "Costs declined" not in names  # body sentence, not heading
+    assert "Finance" in names              # markdown heading, legitimate

@@ -12,16 +12,36 @@ fn md_heading_re() -> &'static Regex {
     RE.get_or_init(|| Regex::new(r"^\s*#+\s+.+$").expect("static regex"))
 }
 
-// ALL-CAPS short line: 4-30 chars of A-Z/space/colon, no lowercase
+// ALL-CAPS short line: 4-80 chars of A-Z/space/colon, no lowercase.
+// Upper bound extended from 28 -> 80 in T13b so long document-title
+// conventions like "SUPREME COURT OF THE UNITED STATES" (32 chars) match.
 fn allcaps_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| Regex::new(r"^\s*[A-Z][A-Z\s]{3,28}:?\s*$").expect("static regex"))
+    RE.get_or_init(|| Regex::new(r"^\s*[A-Z][A-Z\s]{3,80}:?\s*$").expect("static regex"))
 }
 
 // Short label ending in colon (<=30 chars including the colon)
 fn short_label_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(r"^\s*.{1,30}:\s*$").expect("static regex"))
+}
+
+// Bare title-case single-line heading (T13b Class A). The "no terminal
+// punctuation" constraint (enforced by the restricted character class
+// `[A-Za-z0-9 ]`) is load-bearing: it excludes short body sentences like
+// "Costs declined." that end in a period.
+fn bare_title_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^\s*[A-Z][A-Za-z0-9][A-Za-z0-9 ]{0,58}$").expect("static regex"))
+}
+
+// Numbered-section-prefix heading (T13b Class B). The numeric prefix is
+// stripped by `heading_name()` so the emitted name matches gold.
+fn numbered_section_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(r"^\s*\d+\.\s+[A-Z][A-Za-z0-9 ]{0,58}$").expect("static regex")
+    })
 }
 
 // Content-word finder — used for the "fewer than 4 content tokens" heuristic.
@@ -34,6 +54,14 @@ fn content_word_re() -> &'static Regex {
 fn strip_md_prefix_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(r"^#+\s+").expect("static regex"))
+}
+
+// Numeric-section-prefix stripper (T13b) — leading `\d+. ` run before
+// heading-name extraction so "1. Information We Collect" -> "Information
+// We Collect".
+fn strip_numbered_prefix_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^\d+\.\s+").expect("static regex"))
 }
 
 /// True when `sentence` matches any heading pattern.
@@ -52,6 +80,12 @@ pub fn is_heading(sentence: &str) -> bool {
     if short_label_re().is_match(sentence) {
         return true;
     }
+    if bare_title_re().is_match(sentence) {
+        return true;
+    }
+    if numbered_section_re().is_match(sentence) {
+        return true;
+    }
     // Fewer than 4 content-word tokens (rough "title-like" filter).
     let toks = content_word_re().find_iter(sentence).count();
     toks < 4
@@ -59,14 +93,16 @@ pub fn is_heading(sentence: &str) -> bool {
 
 /// Extract the name portion of a heading, or None if not a heading or empty.
 ///
-/// Strips leading markdown `#` markers and a trailing colon.
+/// Strips leading markdown `#` markers, leading numeric-section prefix
+/// (`\d+\. `), and a trailing colon.
 #[must_use]
 pub fn heading_name(sentence: &str) -> Option<String> {
     let s = sentence.trim();
     if s.is_empty() {
         return None;
     }
-    let stripped = strip_md_prefix_re().replace(s, "");
+    let stripped_md = strip_md_prefix_re().replace(s, "");
+    let stripped = strip_numbered_prefix_re().replace(&stripped_md, "");
     let cleaned = stripped.trim_end_matches(':').trim();
     if cleaned.is_empty() {
         None

@@ -28,9 +28,11 @@ fn md_heading_re() -> &'static Regex {
     RE.get_or_init(|| Regex::new(r"^\s*#+\s+.+$").expect("static regex"))
 }
 
+// ALLCAPS upper bound widened to 80 (T13b Class C) for long title
+// conventions like "SUPREME COURT OF THE UNITED STATES".
 fn allcaps_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| Regex::new(r"^\s*[A-Z][A-Z\s]{3,28}:?\s*$").expect("static regex"))
+    RE.get_or_init(|| Regex::new(r"^\s*[A-Z][A-Z\s]{3,80}:?\s*$").expect("static regex"))
 }
 
 fn short_label_re() -> &'static Regex {
@@ -38,10 +40,34 @@ fn short_label_re() -> &'static Regex {
     RE.get_or_init(|| Regex::new(r"^\s*.{1,30}:\s*$").expect("static regex"))
 }
 
+// Bare title-case heading (T13b Class A). Terminal-punctuation exclusion
+// prevents re-introducing the T6 "Costs declined." false-positive class.
+fn bare_title_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^\s*[A-Z][A-Za-z0-9][A-Za-z0-9 ]{0,58}$").expect("static regex"))
+}
+
+// Numbered-section prefix (T13b Class B); numeric prefix stripped by
+// `crate::headings::heading_name` so emitted name matches gold.
+fn numbered_section_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(r"^\s*\d+\.\s+[A-Z][A-Za-z0-9 ]{0,58}$").expect("static regex")
+    })
+}
+
 fn md_depth_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(r"^\s*(#+)\s+").expect("static regex"))
 }
+
+// T13b Class D cases intentionally NOT handled here (need gold-protocol
+// revisit, tracked as T13d):
+//   - "Meeting: Platform Migration Planning" (Label:Subject inline pattern)
+//   - "Held: Section 412(b) does not authorize..." (inline colon-label with
+//     body text after the colon on the same line)
+//   - "Reply from support (Kai T., day 1)" (parenthetical structured heading;
+//     too corpus-specific for a general predicate)
 
 /// True when `sentence` matches a structural heading pattern. Narrower than
 /// `crate::headings::is_heading` — drops the "< 4 content tokens" fallback.
@@ -52,6 +78,8 @@ fn is_structural_heading(sentence: &str) -> bool {
     md_heading_re().is_match(sentence)
         || allcaps_re().is_match(sentence)
         || short_label_re().is_match(sentence)
+        || bare_title_re().is_match(sentence)
+        || numbered_section_re().is_match(sentence)
 }
 
 fn md_depth(heading_line: &str) -> usize {

@@ -79,3 +79,64 @@ fn outline_tie_break_prefers_earlier_index_like_python() {
         .expect("section H present");
     assert_eq!(h.representative_sentence, "alpha beta gamma here.");
 }
+
+#[test]
+fn outline_extracts_bare_title_case_headings() {
+    // T13b Class A: bare title-case single-line headings.
+    let text = concat!(
+        "Title: Test Paper\n\nAbstract\n\nWe investigate.\n\n",
+        "Introduction\n\nDeterministic output matters.\n\n",
+        "Conclusion\n\nFix is trivial.\n",
+    );
+    let out = outline(text);
+    let names: Vec<&str> = out.iter().map(|s| s.name.as_str()).collect();
+    assert!(names.contains(&"Abstract"), "names = {names:?}");
+    assert!(names.contains(&"Introduction"), "names = {names:?}");
+    assert!(names.contains(&"Conclusion"), "names = {names:?}");
+}
+
+#[test]
+fn outline_extracts_numbered_sections() {
+    // T13b Class B: `\d+. Section Name` with prefix stripped from name.
+    let text = concat!(
+        "Privacy Policy\n\n",
+        "1. Information We Collect\n\nWe collect data.\n\n",
+        "2. How We Use Information\n\nWe process it.\n",
+    );
+    let out = outline(text);
+    let names: Vec<&str> = out.iter().map(|s| s.name.as_str()).collect();
+    assert!(
+        names.contains(&"Information We Collect"),
+        "names = {names:?}"
+    );
+    assert!(
+        names.contains(&"How We Use Information"),
+        "names = {names:?}"
+    );
+}
+
+#[test]
+fn outline_extracts_long_allcaps_title() {
+    // T13b Class C: ALLCAPS headings up to 80 chars.
+    let text = concat!(
+        "SUPREME COURT OF THE UNITED STATES\n\n",
+        "Opinion follows here with enough body to form a section.\n",
+    );
+    let out = outline(text);
+    let names: Vec<&str> = out.iter().map(|s| s.name.as_str()).collect();
+    assert!(
+        names.contains(&"SUPREME COURT OF THE UNITED STATES"),
+        "names = {names:?}"
+    );
+}
+
+#[test]
+fn outline_still_excludes_short_body_sentences() {
+    // T13b regression: short body sentences like "Costs declined." must NOT match.
+    // Terminal period excludes them from bare_title_re.
+    let text = "# Finance\n\nCosts declined. Revenue grew by 20 percent.\n";
+    let out = outline(text);
+    let names: Vec<&str> = out.iter().map(|s| s.name.as_str()).collect();
+    assert!(!names.contains(&"Costs declined"), "names = {names:?}");
+    assert!(names.contains(&"Finance"), "names = {names:?}");
+}
