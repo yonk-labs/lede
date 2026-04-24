@@ -85,6 +85,21 @@ def test_stats_extracts_common_count_nouns():
     assert ("3", "entries") in counts
 
 
+def test_stats_extracts_tons_per_year():
+    """T13g2: 'N tons per year' (and month/day) match as counts."""
+    text = (
+        "The permit authorizes 18 tons per year. "
+        "EPA reduced the limit to 11 tons per year. "
+        "The site emits 5 tons per month during peaks. "
+        "Daily average is 2 tons per day."
+    )
+    counts = {(f.value, f.unit) for f in stats(text) if f.stat_type == "count"}
+    assert ("18", "tons per year") in counts
+    assert ("11", "tons per year") in counts
+    assert ("5",  "tons per month") in counts
+    assert ("2",  "tons per day") in counts
+
+
 def test_stats_common_count_nouns_word_form():
     """T13g + T13e: word-form + common count noun (e.g. 'three items added')."""
     pytest.importorskip("text_to_num")

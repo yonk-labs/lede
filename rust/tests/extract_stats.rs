@@ -98,6 +98,24 @@ fn stats_extracts_common_count_nouns() {
     assert!(counts.contains(&("3".to_string(), "entries".to_string())));
 }
 
+#[test]
+fn stats_extracts_tons_per_year() {
+    // T13g2: 'N tons per year' (and month/day) match as counts.
+    let text = "The permit authorizes 18 tons per year. \
+                EPA reduced the limit to 11 tons per year. \
+                The site emits 5 tons per month during peaks. \
+                Daily average is 2 tons per day.";
+    let counts: Vec<(String, String)> = stats(text)
+        .iter()
+        .filter(|f| f.stat_type == "count")
+        .map(|f| (f.value.clone(), f.unit.clone()))
+        .collect();
+    assert!(counts.contains(&("18".to_string(), "tons per year".to_string())));
+    assert!(counts.contains(&("11".to_string(), "tons per year".to_string())));
+    assert!(counts.contains(&("5".to_string(), "tons per month".to_string())));
+    assert!(counts.contains(&("2".to_string(), "tons per day".to_string())));
+}
+
 // ----- T13e: optional word-form number support via text2num -----
 
 #[cfg(feature = "wordforms")]

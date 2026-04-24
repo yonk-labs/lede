@@ -85,7 +85,8 @@ fn count_re() -> &'static Regex {
             r"(?P<u>events?|users?|customers?|requests?|per second|per minute|",
             r"per hour|qps|rps|chunks?",
             r"|terabytes?|basis\s+points?",
-            r"|items?|documents?|lines?|entries?|records?|files?|actions?|sections?)",
+            r"|items?|documents?|lines?|entries?|records?|files?|actions?|sections?",
+            r"|tons?\s+per\s+(?:year|month|day))",
         ))
         .expect("static regex")
     })

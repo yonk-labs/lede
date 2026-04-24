@@ -8,7 +8,7 @@ Match rule: format-tolerant. Bidirectional substring on value after hyphen/under
 
 | primitive | precision | recall | F1 | TP_p | FP | TP_r | FN | status |
 |---|---|---|---|---|---|---|---|---|
-| `stats` | 0.909 | 0.816 | 0.860 | 40 | 4 | 40 | 9 | **FAIL** |
+| `stats` | 0.913 | 0.857 | 0.884 | 42 | 4 | 42 | 7 | **pass** |
 | `outline` | 0.972 | 0.854 | 0.909 | 35 | 1 | 35 | 6 | **pass** |
 | `metadata` | 1.000 | 1.000 | 1.000 | 5 | 0 | 5 | 0 | **pass** |
 | `phrases` | 0.809 | 0.478 | 0.601 | 55 | 13 | 55 | 60 | **FAIL** |
@@ -26,7 +26,7 @@ Match rule: format-tolerant. Bidirectional substring on value after hyphen/under
 | `news-article` | 2 | 1 | 2 | 0 |
 | `privacy-policy` | 5 | 0 | 5 | 0 |
 | `scientific-paper` | 2 | 1 | 2 | 3 |
-| `scotus-opinion` | 3 | 1 | 3 | 2 |
+| `scotus-opinion` | 5 | 1 | 5 | 0 |
 | `support-ticket` | 2 | 0 | 2 | 0 |
 | `tech-spec` | 10 | 1 | 10 | 2 |
 | `wikipedia-article` | 4 | 0 | 4 | 0 |
