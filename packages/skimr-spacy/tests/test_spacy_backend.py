@@ -115,19 +115,21 @@ def test_spacy_phrases_empty_input():
 
 
 def test_auto_backend_picks_spacy_phrases_after_import():
-    # Since skimr_spacy is imported at module top, auto should dispatch to spacy
+    # Since skimr_spacy is imported at module top, auto should dispatch to spacy.
+    # Use an input where the two backends produce different output: spaCy's
+    # noun_chunks-based extractor requires a head noun (it won't emit
+    # "learning models" without the determiner structure), while the regex
+    # backend treats both as repeated n-grams.
     text = (
-        "The customer support team evaluated the deployment pipeline. "
-        "The deployment pipeline is critical to the customer support team."
+        "Machine learning models are powerful. "
+        "Deep learning models work well. Models scale."
     )
     regex_out = phrases(text, backend="regex")
+    spacy_out = phrases(text, backend="spacy")
     auto_out = phrases(text, backend="auto")
-    # auto resolves to spacy in this test environment -> different from regex
-    # (we can't assert exact equality because the two backends intentionally
-    # produce different output shapes)
+    # auto resolves to spacy in this test environment -> matches spacy, not regex
+    assert auto_out == spacy_out
     assert auto_out != regex_out or not regex_out
-    # Both should be non-empty on this test input
-    assert auto_out
 
 
 # --- T11b: spacy_correlate_facts tests ---

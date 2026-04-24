@@ -32,6 +32,41 @@ def test_phrases_empty_input():
     assert phrases("") == ()
 
 
+# -------- T13h: subsumption — drop redundant sub-ngrams --------
+
+def test_phrases_subsumption_drops_redundant_sub_ngrams():
+    """T13h: 'environmental protection' dropped when 'environmental protection agency'
+    has equal count — the shorter ngram adds no info.
+    """
+    text = (
+        "The environmental protection agency is important. "
+        "We believe the environmental protection agency does good work. "
+        "The environmental protection agency announced new rules."
+    )
+    out = set(phrases(text, backend="regex"))
+    # Longer ngram survives
+    assert "environmental protection agency" in out
+    # Shorter ngrams (equal count, fully absorbed) subsumed
+    assert "environmental protection" not in out
+    assert "protection agency" not in out
+
+
+def test_phrases_preserves_independently_appearing_sub_ngram():
+    """T13h: 'united states' is preserved if it appears outside longer-ngram contexts.
+    Its count strictly exceeds that of any containing ngram.
+    """
+    text = (
+        "The United States is a country. "
+        "The United States Environmental Protection Agency is an org. "
+        "The United States requires compliance. "
+        "United States citizens have rights. "
+        "The United States Environmental Protection Agency regulates."
+    )
+    out = set(phrases(text, backend="regex"))
+    # 'united states' count > any containing ngram count -> preserved
+    assert "united states" in out
+
+
 # -------- T13f: YAKE-backed phrases backend (optional dep) --------
 
 def test_phrases_yake_backend_returns_ranked_phrases():

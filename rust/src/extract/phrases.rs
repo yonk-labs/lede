@@ -56,6 +56,48 @@ fn runs(text: &str) -> Vec<String> {
     runs_out
 }
 
+/// T13h: identify sub-ngrams absorbed by a longer emitted ngram (same count).
+///
+/// Drop ngram A if there is a longer emitted ngram B whose tokens contain A
+/// contiguously AND counts\[A\] == counts\[B\]. The equal-count signal means
+/// A only ever appears inside B's context. Sub-ngrams with counts\[A\] >
+/// counts\[B\] (i.e. A has standalone occurrences) are preserved.
+fn subsumed(candidates: &[String], counts: &HashMap<String, usize>) -> HashSet<String> {
+    let tok_map: HashMap<&String, Vec<&str>> = candidates
+        .iter()
+        .map(|p| (p, p.split(' ').collect()))
+        .collect();
+    let mut drop: HashSet<String> = HashSet::new();
+    for a in candidates {
+        let a_toks = &tok_map[a];
+        let a_len = a_toks.len();
+        for b in candidates {
+            if a == b {
+                continue;
+            }
+            let b_toks = &tok_map[b];
+            if b_toks.len() <= a_len {
+                continue;
+            }
+            if counts[b] != counts[a] {
+                continue;
+            }
+            let mut contained = false;
+            for i in 0..=(b_toks.len() - a_len) {
+                if &b_toks[i..i + a_len] == a_toks.as_slice() {
+                    contained = true;
+                    break;
+                }
+            }
+            if contained {
+                drop.insert(a.clone());
+                break;
+            }
+        }
+    }
+    drop
+}
+
 #[must_use]
 pub fn phrases(text: &str, keywords: Option<&str>) -> Vec<String> {
     if text.is_empty() {
@@ -71,11 +113,17 @@ pub fn phrases(text: &str, keywords: Option<&str>) -> Vec<String> {
         }
         *e += 1;
     }
-    let mut out: Vec<String> = order
+    let repeated: Vec<String> = order
         .iter()
         .filter(|p| counts[*p] >= 2)
         .cloned()
         .collect();
+    // T13h: subsumption — drop sub-ngrams that only appear inside a longer
+    // emitted ngram (same count). Tightens precision by eliminating n-gram
+    // explosion noise like "environmental protection" / "protection agency"
+    // when "environmental protection agency" is also emitted.
+    let drop = subsumed(&repeated, &counts);
+    let mut out: Vec<String> = repeated.into_iter().filter(|p| !drop.contains(p)).collect();
     if let Some(kws) = keywords {
         let kw_set: HashSet<String> = word_re()
             .find_iter(&kws.to_lowercase())

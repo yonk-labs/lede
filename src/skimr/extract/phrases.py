@@ -39,6 +39,38 @@ def _runs(text: str) -> list[str]:
     return runs
 
 
+def _subsumed(candidates: list[str], counts: dict[str, int]) -> set[str]:
+    """Identify sub-ngrams that are fully absorbed by a longer emitted ngram.
+
+    T13h: drop ngram A if there exists a longer emitted ngram B such that A's
+    tokens appear contiguously within B's tokens AND counts[A] == counts[B].
+    The equal-count signal means A only ever appears inside B's context and
+    adds no independent information. Sub-ngrams with counts[A] > counts[B]
+    (i.e. A has standalone occurrences) are preserved.
+    """
+    tok_map = {p: p.split() for p in candidates}
+    drop: set[str] = set()
+    for a in candidates:
+        a_toks = tok_map[a]
+        a_len = len(a_toks)
+        for b in candidates:
+            if a == b:
+                continue
+            b_toks = tok_map[b]
+            if len(b_toks) <= a_len:
+                continue
+            if counts[b] != counts[a]:
+                continue
+            # is a contiguous inside b?
+            for i in range(len(b_toks) - a_len + 1):
+                if b_toks[i:i + a_len] == a_toks:
+                    drop.add(a)
+                    break
+            if a in drop:
+                break
+    return drop
+
+
 def _regex_phrases(text: str, keywords: str | None = None) -> tuple[str, ...]:
     """Regex/heuristic phrase extractor. Registered as the 'regex' backend."""
     if not text:
@@ -50,7 +82,13 @@ def _regex_phrases(text: str, keywords: str | None = None) -> tuple[str, ...]:
         counts[r] = counts.get(r, 0) + 1
         if r not in order:
             order.append(r)
-    out = [r for r in order if counts[r] >= 2]
+    repeated = [r for r in order if counts[r] >= 2]
+    # T13h: subsumption — drop sub-ngrams that only appear inside a longer
+    # emitted ngram (same count). Tightens precision by eliminating n-gram
+    # explosion noise like "environmental protection" / "protection agency"
+    # when "environmental protection agency" is also emitted.
+    drop = _subsumed(repeated, counts)
+    out = [r for r in repeated if r not in drop]
     if keywords:
         kw_set = {k.lower() for k in re.findall(r"[a-z]{3,}", keywords.lower())}
         for r in order:
