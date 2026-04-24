@@ -1,7 +1,7 @@
 //! Pair repeated entities with numeric facts. Mirrors correlate.py.
 
 use crate::extract::phrases::{phrases, stop};
-use crate::extract::stats::{stats, Stat};
+use crate::extract::stats::{stats, stats_with_options, Stat, StatsOptions};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
@@ -60,10 +60,22 @@ fn polarity(sentence: &str) -> &'static str {
 
 #[must_use]
 pub fn correlate_facts(text: &str) -> Vec<PhraseFact> {
+    correlate_facts_with_options(text, StatsOptions::default())
+}
+
+/// Same as [`correlate_facts`] but forwards [`StatsOptions`] to the
+/// internal `stats_with_options` call (T13e). Mirrors Python's
+/// `correlate_facts(text, convert_word_names=...)`.
+#[must_use]
+pub fn correlate_facts_with_options(text: &str, options: StatsOptions) -> Vec<PhraseFact> {
     if text.is_empty() {
         return Vec::new();
     }
-    let stats_list: Vec<Stat> = stats(text);
+    let stats_list: Vec<Stat> = if options.convert_word_names {
+        stats_with_options(text, options)
+    } else {
+        stats(text)
+    };
     if stats_list.is_empty() {
         return Vec::new();
     }

@@ -81,3 +81,90 @@ fn stats_extracts_basis_points_and_terabytes() {
     assert!(counts.contains(&("8".to_string(), "basis points".to_string())));
     assert!(counts.contains(&("2".to_string(), "terabytes".to_string())));
 }
+
+// ----- T13e: optional word-form number support via text2num -----
+
+#[cfg(feature = "wordforms")]
+mod wordforms {
+    use skimr::extract::stats::{stats, stats_with_options, StatsOptions};
+
+    #[test]
+    fn extracts_word_form_durations() {
+        let text = "He stayed in staging for eight days. The project took two weeks.";
+        let facts = stats_with_options(
+            text,
+            StatsOptions { convert_word_names: true },
+        );
+        let durs: Vec<(String, String)> = facts
+            .iter()
+            .filter(|f| f.stat_type == "duration")
+            .map(|f| (f.value.clone(), f.unit.clone()))
+            .collect();
+        assert!(durs.contains(&("eight days".to_string(), "day".to_string())));
+        assert!(durs.contains(&("two weeks".to_string(), "week".to_string())));
+    }
+
+    #[test]
+    fn extracts_word_form_counts() {
+        let text = "We saw five thousand users and processed seven hundred requests.";
+        let facts = stats_with_options(
+            text,
+            StatsOptions { convert_word_names: true },
+        );
+        let values: Vec<String> = facts
+            .iter()
+            .filter(|f| f.stat_type == "count")
+            .map(|f| f.value.clone())
+            .collect();
+        assert!(values.iter().any(|v| v.contains("five thousand")));
+        assert!(values.iter().any(|v| v.contains("seven hundred")));
+    }
+
+    #[test]
+    fn default_flag_off_unchanged() {
+        // The plain stats() helper and explicit flag-off must agree, and
+        // neither must surface word-forms.
+        let text = "He stayed eight days and two weeks.";
+        let a = stats(text);
+        let b = stats_with_options(text, StatsOptions::default());
+        assert_eq!(a, b);
+        assert!(a.iter().all(|f| !f.value.to_lowercase().contains("eight")));
+        assert!(a.iter().all(|f| !f.value.to_lowercase().contains("two")));
+    }
+
+    #[test]
+    fn word_form_preserves_original_spans() {
+        // Emitted value must be the ORIGINAL word-form text, not the digit.
+        let text = "Retention was seven years after account closure.";
+        let facts = stats_with_options(
+            text,
+            StatsOptions { convert_word_names: true },
+        );
+        let dur = facts
+            .iter()
+            .find(|f| f.stat_type == "duration")
+            .expect("duration emitted");
+        assert_eq!(dur.value, "seven years");
+        assert!(dur.phrase.contains("seven years"));
+        assert!(dur.context_sentence.contains("seven years"));
+        // Crucially the digit form '7' must NOT appear.
+        assert!(!dur.value.contains('7'));
+    }
+
+    #[test]
+    fn word_form_and_digit_mix_in_same_text() {
+        // Mixed digit + word-form input: both must surface.
+        let text = "We ran for 5 minutes. Then idled for eight days.";
+        let facts = stats_with_options(
+            text,
+            StatsOptions { convert_word_names: true },
+        );
+        let durs: Vec<String> = facts
+            .iter()
+            .filter(|f| f.stat_type == "duration")
+            .map(|f| f.value.clone())
+            .collect();
+        assert!(durs.contains(&"5 minutes".to_string()));
+        assert!(durs.contains(&"eight days".to_string()));
+    }
+}

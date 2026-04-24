@@ -54,3 +54,29 @@ fn correlate_facts_excludes_stopword_entities() {
         );
     }
 }
+
+#[cfg(feature = "wordforms")]
+#[test]
+fn correlate_facts_with_options_propagates_convert_word_names() {
+    // T13e: correlate_facts_with_options forwards the flag to stats().
+    use skimr::extract::correlate::correlate_facts_with_options;
+    use skimr::extract::stats::StatsOptions;
+
+    let text = concat!(
+        "Retention was seven years after account closure. ",
+        "New regime extended it to thirteen months. ",
+        "After compliance review it dropped to thirty days. ",
+        "Retention was adjusted again to sixty days."
+    );
+    // Without flag: no word-form stats → no pairings.
+    assert!(correlate_facts(text).is_empty());
+    // With flag: at least one pairing should surface.
+    let pairings = correlate_facts_with_options(
+        text,
+        StatsOptions { convert_word_names: true },
+    );
+    assert!(
+        !pairings.is_empty(),
+        "expected at least one pairing with word-form stats"
+    );
+}

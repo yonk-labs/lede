@@ -28,11 +28,15 @@ def _polarity(sentence: str) -> str:
     return "absolute"
 
 
-def _regex_correlate_facts(text: str) -> tuple[PhraseFact, ...]:
-    """Regex-backed entity-number correlator. Registered as ('regex','correlate_facts')."""
+def _regex_correlate_facts(text: str, *, convert_word_names: bool = False) -> tuple[PhraseFact, ...]:
+    """Regex-backed entity-number correlator. Registered as ('regex','correlate_facts').
+
+    `convert_word_names` is forwarded to the internal stats() call so
+    word-form numbers surface as pairing candidates (T13e).
+    """
     if not text:
         return ()
-    stats_list = _stats(text)
+    stats_list = _stats(text, convert_word_names=convert_word_names)
     if not stats_list:
         return ()
 
@@ -82,15 +86,32 @@ def _regex_correlate_facts(text: str) -> tuple[PhraseFact, ...]:
 register("regex", "correlate_facts", _regex_correlate_facts)
 
 
-def correlate_facts(text: str, *, backend: str | None = None) -> tuple[PhraseFact, ...]:
+def correlate_facts(
+    text: str,
+    *,
+    backend: str | None = None,
+    convert_word_names: bool = False,
+) -> tuple[PhraseFact, ...]:
     """Pair repeated entities with their numeric facts.
 
     backend='regex' (default): composition over stats() + regex phrases() + cue-word polarity.
     backend='spacy': requires skimr-spacy installed (dep-parser-based impl, future T11b).
     backend='auto': spacy if registered else regex.
     backend=None: uses the global default (see `skimr.set_default_backend`).
+
+    convert_word_names (T13e): forwarded to the internal stats() call so
+    spelled-out numbers like "eight days" or "five thousand" surface as
+    pairing candidates. Ignored by backends that don't support it — the
+    regex backend accepts it; the spacy backend currently does not and
+    will raise TypeError if you pass True. Default False preserves the
+    zero-runtime-dep contract.
     """
     if backend is None:
         backend = get_default_backend()
     impl = resolve(backend, "correlate_facts")
+    # Only the regex backend accepts convert_word_names today. For other
+    # backends, forward only when explicitly opted in so the default path
+    # is unchanged.
+    if convert_word_names:
+        return impl(text, convert_word_names=True)
     return impl(text)

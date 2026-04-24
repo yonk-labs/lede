@@ -12,6 +12,13 @@ rust-version = "1.85"
 
 [dependencies]
 regex = "1"
+text2num = { version = "2.6", optional = true }
+
+[features]
+# Optional support for spelled-out numbers ("eight days") in extract::stats
+# via the text2num crate (MIT, crates.io). Mirrors Python's `wordforms`
+# extra. Default off → default build stays stdlib+regex-only.
+wordforms = ["dep:text2num"]
 
 [[bin]]
 name = "skimr"

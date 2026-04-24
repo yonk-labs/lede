@@ -1,5 +1,7 @@
 """extract.stats tests."""
-from skimr.extract import stats
+import pytest
+
+from skimr.extract import correlate_facts, stats
 
 
 def test_stats_finds_money():
@@ -70,3 +72,78 @@ def test_stats_extracts_basis_points_and_terabytes():
     counts = {(f.value, f.unit) for f in stats(text) if f.stat_type == "count"}
     assert ("8", "basis points") in counts
     assert ("2", "terabytes") in counts
+
+
+# -------- T13e: optional word-form number support via text_to_num --------
+
+def test_stats_extracts_word_form_durations():
+    """T13e: convert_word_names enables 'eight days' style matches."""
+    pytest.importorskip("text_to_num")
+    text = "He stayed in staging for eight days. The project took two weeks."
+    facts = stats(text, convert_word_names=True)
+    durations = {(f.value, f.unit) for f in facts if f.stat_type == "duration"}
+    # Value preserves original word-form; unit is the regex-matched keyword.
+    assert ("eight days", "day") in durations
+    assert ("two weeks", "week") in durations
+
+
+def test_stats_extracts_word_form_counts():
+    """T13e: word-form counts like 'five thousand users'."""
+    pytest.importorskip("text_to_num")
+    text = "We saw five thousand users and processed seven hundred requests."
+    facts = stats(text, convert_word_names=True)
+    values = {f.value for f in facts if f.stat_type == "count"}
+    assert any("five thousand" in v for v in values)
+    assert any("seven hundred" in v for v in values)
+
+
+def test_stats_default_flag_off_unchanged():
+    """T13e: convert_word_names=False (default) keeps digit-only behavior."""
+    text = "He stayed eight days and two weeks."
+    facts = stats(text)  # default False
+    # No word-form emissions in digit-only mode.
+    assert not any("eight" in f.value.lower() for f in facts)
+    assert not any("two" in f.value.lower() for f in facts)
+
+
+def test_stats_word_form_flag_without_dep_raises():
+    """T13e: flag on without text_to_num installed raises helpful ImportError."""
+    try:
+        import text_to_num  # noqa: F401
+    except ImportError:
+        with pytest.raises(ImportError, match="wordforms"):
+            stats("eight days", convert_word_names=True)
+    else:
+        pytest.skip("text_to_num is installed; no-dep path cannot be exercised")
+
+
+def test_stats_word_form_preserves_original_spans():
+    """T13e: emitted value and phrase use the ORIGINAL word-form text,
+    not the digit substitution."""
+    pytest.importorskip("text_to_num")
+    text = "Retention was seven years after account closure."
+    facts = stats(text, convert_word_names=True)
+    durs = [f for f in facts if f.stat_type == "duration"]
+    assert durs
+    f = durs[0]
+    assert f.value == "seven years"
+    assert "seven years" in f.phrase
+    assert "seven years" in f.context_sentence
+    # Crucially the digit form '7' should NOT appear in the emitted value.
+    assert "7" not in f.value
+
+
+def test_correlate_facts_propagates_convert_word_names():
+    """T13e: correlate_facts forwards the flag to its internal stats() call."""
+    pytest.importorskip("text_to_num")
+    text = (
+        "Retention was seven years after account closure. "
+        "New regime extended it to thirteen months. "
+        "After compliance review it dropped to thirty days. "
+        "Retention was adjusted again to sixty days."
+    )
+    # Without flag: no word-form stats → no pairings.
+    assert correlate_facts(text) == ()
+    # With flag: should produce at least one pairing.
+    pairings = correlate_facts(text, convert_word_names=True)
+    assert len(pairings) >= 1
