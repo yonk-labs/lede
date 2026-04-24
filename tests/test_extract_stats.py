@@ -45,3 +45,28 @@ def test_stats_attaches_context_sentence():
 def test_stats_empty_on_no_numbers():
     assert stats("No numbers here.") == ()
     assert stats("") == ()
+
+
+def test_stats_extracts_bare_year_as_date():
+    """T13a: bare 4-digit years in 1900-2099 emit as stat_type='date'."""
+    text = "Proposed by Bentley in 1975. Refined by Malkov in 2016."
+    facts = stats(text)
+    years = [f.value for f in facts if f.stat_type == "date"]
+    assert "1975" in years
+    assert "2016" in years
+
+
+def test_stats_extracts_hyphenated_duration():
+    """T13a: hyphenated number-unit forms like '90-day' match."""
+    text = "We keep a 90-day retention window. The 14-day trial ends soon."
+    durations = {(f.value, f.unit) for f in stats(text) if f.stat_type == "duration"}
+    assert ("90 day", "day") in durations
+    assert ("14 day", "day") in durations
+
+
+def test_stats_extracts_basis_points_and_terabytes():
+    """T13a: added count keywords 'basis points' and 'terabytes'."""
+    text = "Yields climbed 8 basis points. Volume reached 2 terabytes per day."
+    counts = {(f.value, f.unit) for f in stats(text) if f.stat_type == "count"}
+    assert ("8", "basis points") in counts
+    assert ("2", "terabytes") in counts

@@ -31,11 +31,19 @@ fn percent_re() -> &'static Regex {
     })
 }
 
+// NOTE: `year` alternative matches bare 4-digit years in 1900-2099. Known
+// collision: numerals like "1500 dollars" would also match as a date stat
+// because primitives run independently. No current corpus exercises this;
+// future work could add a negative lookahead for currency/unit context.
 fn date_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
-        Regex::new(r"(?P<iso>\d{4}-\d{2}-\d{2})|(?P<us>\d{1,2}/\d{1,2}/\d{2,4})")
-            .expect("static regex")
+        Regex::new(concat!(
+            r"(?P<iso>\d{4}-\d{2}-\d{2})",
+            r"|(?P<us>\d{1,2}/\d{1,2}/\d{2,4})",
+            r"|(?P<year>\b(?:19|20)\d{2}\b)",
+        ))
+        .expect("static regex")
     })
 }
 
@@ -43,7 +51,7 @@ fn duration_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
         Regex::new(concat!(
-            r"(?i)(?P<v>\d+)\s*",
+            r"(?i)(?P<v>\d+)[-\s]*",
             r"(?P<u>seconds?|minutes?|hours?|days?|weeks?|months?|years?)",
         ))
         .expect("static regex")
@@ -56,7 +64,8 @@ fn count_re() -> &'static Regex {
         Regex::new(concat!(
             r"(?i)(?P<v>\d[\d,]*)\s*",
             r"(?P<u>events?|users?|customers?|requests?|per second|per minute|",
-            r"per hour|qps|rps|chunks?)",
+            r"per hour|qps|rps|chunks?",
+            r"|terabytes?|basis\s+points?)",
         ))
         .expect("static regex")
     })
@@ -103,6 +112,7 @@ pub fn stats(text: &str) -> Vec<Stat> {
             let value = caps
                 .name("iso")
                 .or_else(|| caps.name("us"))
+                .or_else(|| caps.name("year"))
                 .map(|x| x.as_str().to_string())
                 .unwrap_or_default();
             out.push(Stat {
