@@ -38,7 +38,8 @@ _DURATION_RE = re.compile(
 _COUNT_RE = re.compile(
     r"(?P<value>\d[\d,]*)\s*(?P<unit>events?|users?|customers?|requests?"
     r"|per second|per minute|per hour|qps|rps|chunks?"
-    r"|terabytes?|basis\s+points?)",
+    r"|terabytes?|basis\s+points?"
+    r"|items?|documents?|lines?|entries?|records?|files?|actions?|sections?)",
     re.IGNORECASE,
 )
 

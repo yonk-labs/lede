@@ -74,6 +74,27 @@ def test_stats_extracts_basis_points_and_terabytes():
     assert ("2", "terabytes") in counts
 
 
+def test_stats_extracts_common_count_nouns():
+    """T13g: _COUNT_RE matches 'N items', 'N documents', 'N lines' style counts."""
+    text = "We reviewed 5 items and 12 documents. Report had 47 lines. 3 entries were dropped."
+    facts = stats(text)
+    counts = {(f.value, f.unit) for f in facts if f.stat_type == "count"}
+    assert ("5", "items") in counts
+    assert ("12", "documents") in counts
+    assert ("47", "lines") in counts
+    assert ("3", "entries") in counts
+
+
+def test_stats_common_count_nouns_word_form():
+    """T13g + T13e: word-form + common count noun (e.g. 'three items added')."""
+    pytest.importorskip("text_to_num")
+    text = "Three items added this week. Five documents reviewed."
+    facts = stats(text, convert_word_names=True)
+    counts = {f.value for f in facts if f.stat_type == "count"}
+    assert any("three" in v.lower() or "3" in v for v in counts)
+    assert any("five" in v.lower() or "5" in v for v in counts)
+
+
 # -------- T13e: optional word-form number support via text_to_num --------
 
 def test_stats_extracts_word_form_durations():

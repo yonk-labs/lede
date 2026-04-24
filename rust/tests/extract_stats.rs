@@ -82,6 +82,22 @@ fn stats_extracts_basis_points_and_terabytes() {
     assert!(counts.contains(&("2".to_string(), "terabytes".to_string())));
 }
 
+#[test]
+fn stats_extracts_common_count_nouns() {
+    // T13g: _COUNT_RE matches 'N items', 'N documents', 'N lines' style counts.
+    let text =
+        "We reviewed 5 items and 12 documents. Report had 47 lines. 3 entries were dropped.";
+    let counts: Vec<(String, String)> = stats(text)
+        .iter()
+        .filter(|f| f.stat_type == "count")
+        .map(|f| (f.value.clone(), f.unit.clone()))
+        .collect();
+    assert!(counts.contains(&("5".to_string(), "items".to_string())));
+    assert!(counts.contains(&("12".to_string(), "documents".to_string())));
+    assert!(counts.contains(&("47".to_string(), "lines".to_string())));
+    assert!(counts.contains(&("3".to_string(), "entries".to_string())));
+}
+
 // ----- T13e: optional word-form number support via text2num -----
 
 #[cfg(feature = "wordforms")]
@@ -166,5 +182,22 @@ mod wordforms {
             .collect();
         assert!(durs.contains(&"5 minutes".to_string()));
         assert!(durs.contains(&"eight days".to_string()));
+    }
+
+    #[test]
+    fn common_count_nouns_word_form() {
+        // T13g + T13e: word-form + common count noun ("three items").
+        let text = "Three items added this week. Five documents reviewed.";
+        let facts = stats_with_options(
+            text,
+            StatsOptions { convert_word_names: true },
+        );
+        let counts: Vec<String> = facts
+            .iter()
+            .filter(|f| f.stat_type == "count")
+            .map(|f| f.value.clone())
+            .collect();
+        assert!(counts.iter().any(|v| v.to_lowercase().contains("three") || v.contains('3')));
+        assert!(counts.iter().any(|v| v.to_lowercase().contains("five") || v.contains('5')));
     }
 }
