@@ -172,3 +172,14 @@ pub fn outline(text: &str) -> Vec<Section> {
     }
     out
 }
+
+/// Lightweight table of contents — section names in document order.
+///
+/// Equivalent to `outline(text).into_iter().map(|s| s.name).collect()` but
+/// exposed as its own primitive for discoverability. Uses the regex heading
+/// detector; no backend parameter (regex is the only option, same as
+/// `outline()`).
+#[must_use]
+pub fn toc(text: &str) -> Vec<String> {
+    outline(text).into_iter().map(|s| s.name).collect()
+}

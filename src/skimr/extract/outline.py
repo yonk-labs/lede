@@ -123,3 +123,23 @@ def outline(text: str) -> tuple[Section, ...]:
             representative_sentence=sentences[best_idx],
         ))
     return tuple(out)
+
+
+def toc(text: str) -> tuple[str, ...]:
+    """Return section names in document order. Lightweight TOC.
+
+    Equivalent to ``tuple(s.name for s in outline(text))`` but exposed as
+    its own primitive for discoverability. Uses the regex heading detector;
+    no backend kwarg because the only backend is regex (parity with
+    ``outline()``).
+    """
+    return tuple(s.name for s in outline(text))
+
+
+# Register 'regex' backend entry for registry symmetry with metadata/phrases/
+# correlate_facts. The public `toc()` function does not accept a backend kwarg
+# (regex is the only option, same as outline); registration keeps the registry
+# complete so any introspection shows toc.
+from ._backends import register as _register  # noqa: E402
+
+_register("regex", "toc", toc)

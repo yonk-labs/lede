@@ -17,10 +17,11 @@ Real implementations land in T6-T11.
 """
 from .._types import Stat, Section, Metadata, PhraseFact
 from .stats import stats
-from .outline import outline
+from .outline import outline, toc
 from .metadata import metadata
 from .phrases import phrases
 from .correlate import correlate_facts
+from .key_facts import key_facts
 
 # Optional backend: YAKE ('yake','phrases'). Self-registers when the yake
 # package is installed; otherwise silently skipped so default deps stay zero.
@@ -31,5 +32,6 @@ except ImportError:
 
 __all__ = [
     "Stat", "Section", "Metadata", "PhraseFact",
-    "stats", "outline", "metadata", "phrases", "correlate_facts",
+    "stats", "outline", "toc", "metadata", "phrases", "correlate_facts",
+    "key_facts",
 ]
