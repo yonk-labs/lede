@@ -16,12 +16,15 @@ fn run(args: &[&str], stdin: Option<&str>) -> (i32, String, String) {
     }
     let mut child = cmd.spawn().expect("spawn");
     if let Some(data) = stdin {
-        child
-            .stdin
-            .as_mut()
-            .unwrap()
-            .write_all(data.as_bytes())
-            .unwrap();
+        // BrokenPipe is expected when the child exits before draining stdin
+        // (e.g. arg-validation failure). Other I/O errors are real bugs.
+        if let Err(e) = child.stdin.as_mut().unwrap().write_all(data.as_bytes()) {
+            assert_eq!(
+                e.kind(),
+                std::io::ErrorKind::BrokenPipe,
+                "stdin write failed: {e}"
+            );
+        }
     }
     let out = child.wait_with_output().expect("wait");
     (
