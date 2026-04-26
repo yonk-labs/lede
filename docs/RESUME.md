@@ -1,17 +1,16 @@
-# Resume: skimr v0.2.0 tagged locally — push to origin pending
+# Resume: skimr v0.2.0 shipped — origin green
 
-**Last session:** 2026-04-26. Closed v0.2: T14 SC-B comparison matrix landed (10 corpora × 11 methods, every cell ≤ 4 ms vs the 250 ms budget), T15 release prep done (versions bumped, README "What's new in v0.2" section added, brief.rs clippy lint allow-listed). Local tag `v0.2.0` placed; **`git push origin main && git push origin v0.2.0` is the only remaining step** and is held back per standing instruction (no push without explicit request).
+**Last session:** 2026-04-26. v0.2 closed: T14 SC-B comparison matrix landed (10 corpora × 11 methods, worst skimr cell 3.56 ms p50 vs the 250 ms budget), T15 release tagged, pushed, and validated through CI. The initial `5380530` tag commit failed CI's rust workflow on a long-standing fmt drift and a CLI test race; both fixed in `2a38abe` (cargo fmt) and `6b1591a` (BrokenPipe tolerance), and the `v0.2.0` tag was retargeted to include them so anyone checking out the tag gets a CI-green tree.
 
 SC-D ships at **3/5 pass** by design — `phrases` and `correlate` have documented gold/primitive design mismatches, flagged in `README.md` § "Known v0.2 gates", `docs/REFERENCE.md`, and the v0.2.0 tag annotation. They're tracked for v0.3+, not blockers for v0.2.
 
 ## Repo state
 
 - **Remote:** https://github.com/yonk-labs/skimr (private, yonk-labs org)
-- **Branch:** `main`
-- **Local HEAD:** `5380530` (release: v0.2.0). Annotated tag `v0.2.0` points at the same commit. `origin/main` still at `e005c20` (T11).
-- **Unpushed:** 27 commits — everything from T12 through `5380530` plus the `v0.2.0` tag.
-- **Version:** skimr `0.2.0` / Rust `0.2.0`; skimr-spacy `0.2.0`. Cargo.lock refreshed.
-- **CI:** `tests` + `zero-deps` + `rust` green on origin/main. After push, verify all three workflows go green on the tag commit (`gh run list --repo yonk-labs/skimr --limit 5`).
+- **Branch:** `main` — pushed and current.
+- **Tag:** `v0.2.0` annotated, points at the latest CI-green commit on `main`. No GitHub Release object attached (just the git tag).
+- **Version:** skimr `0.2.0` / Rust `0.2.0`; skimr-spacy `0.2.0`. Cargo.lock pinned at 0.2.0.
+- **CI:** all three workflows (`tests`, `zero-deps`, `rust`) green on the tagged commit. Verify with `gh run list --repo yonk-labs/skimr --branch main --limit 3`.
 
 ## Test suite state (all green)
 
@@ -55,11 +54,11 @@ Latest eval: `benchmarks/quality/extraction-2026-04-26.md` (re-run at T15 verifi
 | T16 | `extract.toc()` + `extract.key_facts()` | `d4b9730` | `toc(text)` → section names. `key_facts(text, max_facts=10, convert_word_names=False)` → sentences containing stats, ranked by composite-tfidf + stat-density, deduped by `(stat_type, norm value)`, document order. Py + Rust byte-identical. |
 | T17 | `skimr.brief()` | `92b9820` | Composes summarize + key_facts + toc. `format="string" \| "markdown" \| "dict"`. `overview_max=0.35` clamped `[0.05, 0.50]`. `include_phrases=False` default. Agnostic of doc type. Auto-enables wordforms when text2num importable (Python) / `wordforms` feature on (Rust). 9 Python + 7 Rust tests. |
 
-**v0.2 closeout:**
+**v0.2 closeout (all done):**
 - [x] **T14** SC-B gate — comparison matrix + latency profile (`efeba34`). Worst skimr cell 3.56 ms p50; sumy 11–12 ms p50; rust 0.13 ms p50. ~70× headroom on the 250 ms budget.
 - [x] **T15** Tag v0.2.0 release. Versions bumped, README v0.2 section, brief.rs clippy allow-list, RESUME refreshed, `release: v0.2.0` commit + annotated `v0.2.0` tag.
-- [ ] `git push origin main && git push origin v0.2.0` — held for explicit user request.
-- [ ] Post-push: `gh run list --repo yonk-labs/skimr --limit 5` to confirm CI green on tag.
+- [x] `git push origin main` + `git push origin v0.2.0`.
+- [x] Post-push CI clean. Initial push surfaced two pre-existing CI gaps (rustfmt drift + a `tests/cli.rs` BrokenPipe race) that the `rust` workflow had been failing on across earlier commits; both fixed and the tag retargeted onto the CI-green commit.
 
 ## Key artifacts & where they live
 
@@ -138,4 +137,4 @@ gh run list --repo yonk-labs/skimr --limit 5                             # CI
 
 ## Resume prompt (paste into fresh session)
 
-> Working directory: `/home/yonk/yonk-tools/extractive_summary`. **skimr v0.2.0 tagged locally**; only `git push origin main && git push origin v0.2.0` remains (held back per the standing no-push-without-request rule). All four SC gates evidenced: SC-A `benchmarks/quality/review-2026-04-21.md`, SC-B `benchmarks/quality/matrix-2026-04-26.md` (worst skimr cell 3.56 ms vs 250 ms budget), SC-C rust fixture walker green, SC-D `benchmarks/quality/extraction-2026-04-26.md` ships at 3/5 pass with phrases + correlate documented as v0.3+ work, SC-E matrix doc present, SC-F `docs/integration-memo.md` present. **Test state:** 176 Python core + 17 skimr-spacy + 113 Rust default + 121 Rust wordforms, all green, clippy `--all-targets -- -D warnings` clean on both feature sets. **Versions:** all manifests at `0.2.0`. After pushing the tag, run `gh run list --repo yonk-labs/skimr --limit 5` to confirm CI green and then run the fresh-clone smoke test from plan §T15 step 7. v0.3+ work tracked in this file's TODO list.
+> Working directory: `/home/yonk/yonk-tools/extractive_summary`. **skimr v0.2.0 shipped** — `main` and tag pushed to `github.com:yonk-labs/skimr`, all three CI workflows (`tests`, `zero-deps`, `rust`) green on the tag commit. SC evidence: SC-A `benchmarks/quality/review-2026-04-21.md`, SC-B `benchmarks/quality/matrix-2026-04-26.md` (worst skimr cell 3.56 ms vs 250 ms budget), SC-C rust fixture walker green, SC-D `benchmarks/quality/extraction-2026-04-26.md` ships at 3/5 pass with phrases + correlate documented as v0.3+ work, SC-E matrix doc present, SC-F `docs/integration-memo.md` present (still v0.1-era prose; refresh for v0.2 `attach=[…]` shape is a pending nicety). **Test state:** 176 Python core + 17 skimr-spacy + 113 Rust default + 121 Rust wordforms, all green; `cargo fmt --check` and `cargo clippy --all-targets -- -D warnings` both clean. **Versions:** all manifests at `0.2.0`. v0.3+ TODO list lives in this file. Optional post-release housekeeping: fresh-clone smoke test from plan §T15 step 7; create a GitHub Release object on the v0.2.0 tag if you want a release page.
