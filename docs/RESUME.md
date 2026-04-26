@@ -8,8 +8,8 @@ SC-D ships at **3/5 pass** by design — `phrases` and `correlate` have document
 
 - **Remote:** https://github.com/yonk-labs/skimr (private, yonk-labs org)
 - **Branch:** `main`
-- **Local HEAD:** `<release commit>` (release: v0.2.0). Tag `v0.2.0` annotated on the same commit. `origin/main` still at `e005c20` (T11).
-- **Unpushed:** ~26 commits — everything from T12 through the release commit + the v0.2.0 tag.
+- **Local HEAD:** `5380530` (release: v0.2.0). Annotated tag `v0.2.0` points at the same commit. `origin/main` still at `e005c20` (T11).
+- **Unpushed:** 27 commits — everything from T12 through `5380530` plus the `v0.2.0` tag.
 - **Version:** skimr `0.2.0` / Rust `0.2.0`; skimr-spacy `0.2.0`. Cargo.lock refreshed.
 - **CI:** `tests` + `zero-deps` + `rust` green on origin/main. After push, verify all three workflows go green on the tag commit (`gh run list --repo yonk-labs/skimr --limit 5`).
 
