@@ -16,9 +16,7 @@ fn collects_money_amounts() {
 
 #[test]
 fn collects_urls() {
-    let m = metadata(
-        "See https://example.com/docs and http://example.org for details."
-    );
+    let m = metadata("See https://example.com/docs and http://example.org for details.");
     assert!(m.urls.iter().any(|u| u == "https://example.com/docs"));
     assert!(m.urls.iter().any(|u| u == "http://example.org"));
 }
@@ -26,7 +24,10 @@ fn collects_urls() {
 #[test]
 fn entities_always_empty_in_rust() {
     let m = metadata("Sarah Jones visited Johnson Education Co in Chicago.");
-    assert!(m.entities.is_empty(), "Rust port does not populate entities");
+    assert!(
+        m.entities.is_empty(),
+        "Rust port does not populate entities"
+    );
 }
 
 #[test]

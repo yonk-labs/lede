@@ -85,8 +85,7 @@ fn stats_extracts_basis_points_and_terabytes() {
 #[test]
 fn stats_extracts_common_count_nouns() {
     // T13g: _COUNT_RE matches 'N items', 'N documents', 'N lines' style counts.
-    let text =
-        "We reviewed 5 items and 12 documents. Report had 47 lines. 3 entries were dropped.";
+    let text = "We reviewed 5 items and 12 documents. Report had 47 lines. 3 entries were dropped.";
     let counts: Vec<(String, String)> = stats(text)
         .iter()
         .filter(|f| f.stat_type == "count")
@@ -120,14 +119,16 @@ fn stats_extracts_tons_per_year() {
 
 #[cfg(feature = "wordforms")]
 mod wordforms {
-    use skimr::extract::stats::{stats, stats_with_options, StatsOptions};
+    use skimr::extract::stats::{StatsOptions, stats, stats_with_options};
 
     #[test]
     fn extracts_word_form_durations() {
         let text = "He stayed in staging for eight days. The project took two weeks.";
         let facts = stats_with_options(
             text,
-            StatsOptions { convert_word_names: true },
+            StatsOptions {
+                convert_word_names: true,
+            },
         );
         let durs: Vec<(String, String)> = facts
             .iter()
@@ -143,7 +144,9 @@ mod wordforms {
         let text = "We saw five thousand users and processed seven hundred requests.";
         let facts = stats_with_options(
             text,
-            StatsOptions { convert_word_names: true },
+            StatsOptions {
+                convert_word_names: true,
+            },
         );
         let values: Vec<String> = facts
             .iter()
@@ -172,7 +175,9 @@ mod wordforms {
         let text = "Retention was seven years after account closure.";
         let facts = stats_with_options(
             text,
-            StatsOptions { convert_word_names: true },
+            StatsOptions {
+                convert_word_names: true,
+            },
         );
         let dur = facts
             .iter()
@@ -191,7 +196,9 @@ mod wordforms {
         let text = "We ran for 5 minutes. Then idled for eight days.";
         let facts = stats_with_options(
             text,
-            StatsOptions { convert_word_names: true },
+            StatsOptions {
+                convert_word_names: true,
+            },
         );
         let durs: Vec<String> = facts
             .iter()
@@ -208,14 +215,24 @@ mod wordforms {
         let text = "Three items added this week. Five documents reviewed.";
         let facts = stats_with_options(
             text,
-            StatsOptions { convert_word_names: true },
+            StatsOptions {
+                convert_word_names: true,
+            },
         );
         let counts: Vec<String> = facts
             .iter()
             .filter(|f| f.stat_type == "count")
             .map(|f| f.value.clone())
             .collect();
-        assert!(counts.iter().any(|v| v.to_lowercase().contains("three") || v.contains('3')));
-        assert!(counts.iter().any(|v| v.to_lowercase().contains("five") || v.contains('5')));
+        assert!(
+            counts
+                .iter()
+                .any(|v| v.to_lowercase().contains("three") || v.contains('3'))
+        );
+        assert!(
+            counts
+                .iter()
+                .any(|v| v.to_lowercase().contains("five") || v.contains('5'))
+        );
     }
 }

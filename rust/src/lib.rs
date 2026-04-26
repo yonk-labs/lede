@@ -14,7 +14,7 @@ pub mod sentences;
 pub mod tfidf;
 pub mod types;
 
-pub use brief::{brief, brief_with_options, BriefDict, BriefFormat, BriefOptions, BriefOutput};
+pub use brief::{BriefDict, BriefFormat, BriefOptions, BriefOutput, brief, brief_with_options};
 pub use clean::{clean_text, strip_think};
 pub use keyword::extract_keyword;
 pub use tfidf::{summarize, summarize_with_attach};

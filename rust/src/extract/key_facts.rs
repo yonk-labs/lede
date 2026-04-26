@@ -9,7 +9,7 @@
 //! with Python). The `convert_word_names` flag is surfaced via
 //! [`KeyFactsOptions`] mirroring the stats API.
 
-use crate::extract::stats::{stats_with_options, StatsOptions};
+use crate::extract::stats::{StatsOptions, stats_with_options};
 use crate::sentences::split_sentences;
 use crate::tfidf::composite_score_parts;
 use regex::Regex;
@@ -123,8 +123,7 @@ pub fn key_facts_with_options(text: &str, opts: KeyFactsOptions) -> Vec<String> 
     // Group stats by their context_sentence index. Preserve insertion order
     // so the same stat ordering feeds both the density count and the dedup
     // key set.
-    let mut stats_by_sentence: HashMap<usize, Vec<&crate::extract::stats::Stat>> =
-        HashMap::new();
+    let mut stats_by_sentence: HashMap<usize, Vec<&crate::extract::stats::Stat>> = HashMap::new();
     for stat in &all_stats {
         if let Some(&idx) = sent_to_idx.get(stat.context_sentence.as_str()) {
             stats_by_sentence.entry(idx).or_default().push(stat);
@@ -141,10 +140,7 @@ pub fn key_facts_with_options(text: &str, opts: KeyFactsOptions) -> Vec<String> 
         let (t, p, l) = parts[*idx];
         let composite = TFIDF_WEIGHT * t + POSITION_WEIGHT * p + LENGTH_WEIGHT * l;
         // Whitespace-token count; matches Python's sentences[idx].split().
-        let tok_count = sentences[*idx]
-            .split_whitespace()
-            .count()
-            .max(1);
+        let tok_count = sentences[*idx].split_whitespace().count().max(1);
         let density = stat_list.len() as f64 / tok_count as f64;
         let score = composite + STAT_DENSITY_WEIGHT * density;
 

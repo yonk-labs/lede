@@ -13,7 +13,7 @@
 //! `stats_with_options` / `key_facts_with_options` gate the same
 //! feature.
 
-use crate::extract::key_facts::{key_facts_with_options, KeyFactsOptions};
+use crate::extract::key_facts::{KeyFactsOptions, key_facts_with_options};
 use crate::extract::outline::toc;
 use crate::extract::phrases::phrases;
 use crate::tfidf::summarize;
@@ -126,7 +126,9 @@ pub fn brief_with_options(text: &str, opts: BriefOptions) -> BriefOutput {
     // Clamp overview_max to sane fraction bounds, then char-clamp.
     // chars().count() is non-negative; frac is clamped to a positive range,
     // so the product fits in usize after rounding (and is then clamped again).
-    let frac = opts.overview_max.clamp(OVERVIEW_MIN_FRAC, OVERVIEW_MAX_FRAC);
+    let frac = opts
+        .overview_max
+        .clamp(OVERVIEW_MIN_FRAC, OVERVIEW_MAX_FRAC);
     let raw_budget = (text.chars().count() as f64 * frac) as usize;
     let budget = raw_budget.clamp(OVERVIEW_MIN_CHARS, OVERVIEW_MAX_CHARS);
 
@@ -161,11 +163,8 @@ pub fn brief_with_options(text: &str, opts: BriefOptions) -> BriefOutput {
             },
         }),
         BriefFormat::Markdown => {
-            let mut parts: Vec<String> = vec![
-                "## Overview\n".to_string(),
-                overview_text,
-                String::new(),
-            ];
+            let mut parts: Vec<String> =
+                vec!["## Overview\n".to_string(), overview_text, String::new()];
             if !facts.is_empty() {
                 parts.push("\n## Key facts\n".to_string());
                 for f in &facts {
@@ -188,11 +187,8 @@ pub fn brief_with_options(text: &str, opts: BriefOptions) -> BriefOutput {
             BriefOutput::Text(parts.join("\n"))
         }
         BriefFormat::String => {
-            let mut parts: Vec<String> = vec![
-                "Overview:".to_string(),
-                overview_text,
-                String::new(),
-            ];
+            let mut parts: Vec<String> =
+                vec!["Overview:".to_string(), overview_text, String::new()];
             if !facts.is_empty() {
                 parts.push("Key facts:".to_string());
                 for f in &facts {

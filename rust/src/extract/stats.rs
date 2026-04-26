@@ -205,11 +205,11 @@ mod wordforms_impl {
     //! `_word_form_spans` + `_substitute` + `_map_back_impl` +
     //! `_stats_regex_on` pipeline.
 
-    use super::{ctx, count_re, date_re, duration_re, money_re, percent_re, Stat};
+    use super::{Stat, count_re, ctx, date_re, duration_re, money_re, percent_re};
     use regex::Regex;
     use std::sync::OnceLock;
     use text2num::lang::English;
-    use text2num::word_to_digit::{find_numbers, Token};
+    use text2num::word_to_digit::{Token, find_numbers};
 
     fn token_re() -> &'static Regex {
         static RE: OnceLock<Regex> = OnceLock::new();
@@ -298,8 +298,8 @@ mod wordforms_impl {
             let mut delta: isize = 0;
             for (orig_s, orig_e, sub_s, sub_e) in span_map {
                 if *sub_e <= sub_pos {
-                    delta += (*sub_e as isize - *sub_s as isize)
-                        - (*orig_e as isize - *orig_s as isize);
+                    delta +=
+                        (*sub_e as isize - *sub_s as isize) - (*orig_e as isize - *orig_s as isize);
                     continue;
                 }
                 if *sub_s >= sub_pos {

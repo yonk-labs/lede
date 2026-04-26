@@ -8,7 +8,10 @@ fn correlates_entity_with_multiple_numbers() {
         "Revenue per customer rose by 8 percent."
     );
     let r = correlate_facts(text);
-    assert!(r.iter().any(|pf| pf.entity.to_lowercase().contains("revenue")));
+    assert!(
+        r.iter()
+            .any(|pf| pf.entity.to_lowercase().contains("revenue"))
+    );
     assert!(r.iter().any(|pf| pf.polarity == "growth"));
 }
 
@@ -73,7 +76,9 @@ fn correlate_facts_with_options_propagates_convert_word_names() {
     // With flag: at least one pairing should surface.
     let pairings = correlate_facts_with_options(
         text,
-        StatsOptions { convert_word_names: true },
+        StatsOptions {
+            convert_word_names: true,
+        },
     );
     assert!(
         !pairings.is_empty(),

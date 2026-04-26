@@ -8,14 +8,13 @@ pub struct Metadata {
     pub dates: Vec<String>,
     pub amounts: Vec<String>,
     pub urls: Vec<String>,
-    pub entities: Vec<String>,  // always empty; Python-only via skimr[ner]
+    pub entities: Vec<String>, // always empty; Python-only via skimr[ner]
 }
 
 fn date_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
-        Regex::new(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}/\d{1,2}/\d{2,4}\b")
-            .expect("static regex")
+        Regex::new(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}/\d{1,2}/\d{2,4}\b").expect("static regex")
     })
 }
 
@@ -32,9 +31,7 @@ fn amount_re() -> &'static Regex {
 
 fn url_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| {
-        Regex::new(r#"(?i)https?://[^\s<>"')]+"#).expect("static regex")
-    })
+    RE.get_or_init(|| Regex::new(r#"(?i)https?://[^\s<>"')]+"#).expect("static regex"))
 }
 
 fn collect_unique(re: &Regex, text: &str) -> Vec<String> {

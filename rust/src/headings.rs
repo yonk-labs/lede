@@ -39,9 +39,7 @@ fn bare_title_re() -> &'static Regex {
 // stripped by `heading_name()` so the emitted name matches gold.
 fn numbered_section_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| {
-        Regex::new(r"^\s*\d+\.\s+[A-Z][A-Za-z0-9 ]{0,58}$").expect("static regex")
-    })
+    RE.get_or_init(|| Regex::new(r"^\s*\d+\.\s+[A-Z][A-Za-z0-9 ]{0,58}$").expect("static regex"))
 }
 
 // Title-with-dash heading (T13d): "Title — Metadata" document title line.
@@ -86,9 +84,7 @@ fn strip_numbered_prefix_re() -> &'static Regex {
 // "Privacy Policy".
 fn strip_dash_metadata_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| {
-        Regex::new(r"\s+[\x{2014}\x{2013}\-]\s+.*$").expect("static regex")
-    })
+    RE.get_or_init(|| Regex::new(r"\s+[\x{2014}\x{2013}\-]\s+.*$").expect("static regex"))
 }
 
 /// True when `sentence` matches any heading pattern.

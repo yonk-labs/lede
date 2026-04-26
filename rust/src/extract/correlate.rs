@@ -1,7 +1,7 @@
 //! Pair repeated entities with numeric facts. Mirrors correlate.py.
 
 use crate::extract::phrases::{phrases, stop};
-use crate::extract::stats::{stats, stats_with_options, Stat, StatsOptions};
+use crate::extract::stats::{Stat, StatsOptions, stats, stats_with_options};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
@@ -23,8 +23,15 @@ fn growth_words() -> &'static HashSet<&'static str> {
     static S: OnceLock<HashSet<&'static str>> = OnceLock::new();
     S.get_or_init(|| {
         [
-            "grew", "grow", "increased", "increase", "rose", "up",
-            "higher", "gained", "added",
+            "grew",
+            "grow",
+            "increased",
+            "increase",
+            "rose",
+            "up",
+            "higher",
+            "gained",
+            "added",
         ]
         .into_iter()
         .collect()
@@ -35,8 +42,16 @@ fn decline_words() -> &'static HashSet<&'static str> {
     static S: OnceLock<HashSet<&'static str>> = OnceLock::new();
     S.get_or_init(|| {
         [
-            "fell", "fall", "declined", "decline", "decreased", "decrease",
-            "dropped", "down", "lower", "lost",
+            "fell",
+            "fall",
+            "declined",
+            "decline",
+            "decreased",
+            "decrease",
+            "dropped",
+            "down",
+            "lower",
+            "lost",
         ]
         .into_iter()
         .collect()

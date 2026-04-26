@@ -13,16 +13,14 @@ pub(crate) fn stop() -> &'static HashSet<&'static str> {
     static S: OnceLock<HashSet<&'static str>> = OnceLock::new();
     S.get_or_init(|| {
         [
-            "the", "a", "an", "and", "or", "but", "if", "then", "with", "by",
-            "of", "to", "in", "on", "at", "for", "from", "as", "is", "are",
-            "was", "were", "be", "been", "being", "has", "have", "had", "do",
-            "does", "did", "will", "would", "could", "should", "may", "might",
-            "can", "must", "this", "that", "these", "those", "it", "its",
-            "they", "them", "their", "there", "here", "about", "up", "down",
-            "into", "out", "over", "off", "just", "also", "not", "no", "our",
-            "we", "you", "your", "he", "she", "his", "her", "him", "under",
-            "more", "most", "less", "least", "all", "any", "some", "both",
-            "each", "every", "one", "two", "three", "per",
+            "the", "a", "an", "and", "or", "but", "if", "then", "with", "by", "of", "to", "in",
+            "on", "at", "for", "from", "as", "is", "are", "was", "were", "be", "been", "being",
+            "has", "have", "had", "do", "does", "did", "will", "would", "could", "should", "may",
+            "might", "can", "must", "this", "that", "these", "those", "it", "its", "they", "them",
+            "their", "there", "here", "about", "up", "down", "into", "out", "over", "off", "just",
+            "also", "not", "no", "our", "we", "you", "your", "he", "she", "his", "her", "him",
+            "under", "more", "most", "less", "least", "all", "any", "some", "both", "each",
+            "every", "one", "two", "three", "per",
         ]
         .into_iter()
         .collect()
@@ -113,11 +111,7 @@ pub fn phrases(text: &str, keywords: Option<&str>) -> Vec<String> {
         }
         *e += 1;
     }
-    let repeated: Vec<String> = order
-        .iter()
-        .filter(|p| counts[*p] >= 2)
-        .cloned()
-        .collect();
+    let repeated: Vec<String> = order.iter().filter(|p| counts[*p] >= 2).cloned().collect();
     // T13h: subsumption — drop sub-ngrams that only appear inside a longer
     // emitted ngram (same count). Tightens precision by eliminating n-gram
     // explosion noise like "environmental protection" / "protection agency"
@@ -130,9 +124,7 @@ pub fn phrases(text: &str, keywords: Option<&str>) -> Vec<String> {
             .map(|m| m.as_str().to_string())
             .collect();
         for phrase in &order {
-            if counts[phrase] == 1
-                && phrase.split_whitespace().any(|w| kw_set.contains(w))
-            {
+            if counts[phrase] == 1 && phrase.split_whitespace().any(|w| kw_set.contains(w)) {
                 out.push(phrase.clone());
             }
         }

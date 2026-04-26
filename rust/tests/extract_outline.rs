@@ -155,7 +155,9 @@ fn outline_extracts_em_dash_title_line() {
     assert!(names.contains(&"Privacy Policy"), "names = {names:?}");
     // Must NOT include the em-dash suffix in the name:
     assert!(
-        !names.iter().any(|n| n.contains('\u{2014}') || n.contains('\u{2013}')),
+        !names
+            .iter()
+            .any(|n| n.contains('\u{2014}') || n.contains('\u{2013}')),
         "names = {names:?}"
     );
 }

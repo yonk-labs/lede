@@ -51,9 +51,7 @@ fn bare_title_re() -> &'static Regex {
 // `crate::headings::heading_name` so emitted name matches gold.
 fn numbered_section_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| {
-        Regex::new(r"^\s*\d+\.\s+[A-Z][A-Za-z0-9 ]{0,58}$").expect("static regex")
-    })
+    RE.get_or_init(|| Regex::new(r"^\s*\d+\.\s+[A-Z][A-Za-z0-9 ]{0,58}$").expect("static regex"))
 }
 
 // Title-with-dash (T13d): "Title — Metadata" document title line. Trailing

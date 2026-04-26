@@ -1,9 +1,8 @@
 //! Tests for `skimr::brief` — at-a-glance document brief composition primitive.
 
-use skimr::{brief, brief_with_options, BriefFormat, BriefOptions, BriefOutput};
+use skimr::{BriefFormat, BriefOptions, BriefOutput, brief, brief_with_options};
 
-const MULTI_SECTION: &str =
-    "# Introduction\n\nThis report covers Q1 performance.\n\n\
+const MULTI_SECTION: &str = "# Introduction\n\nThis report covers Q1 performance.\n\n\
      # Results\n\nRevenue grew 40 percent. Costs fell 10 percent. \
      Team size reached 50 users.\n\n\
      # Conclusion\n\nStrong quarter overall.\n";
@@ -58,8 +57,7 @@ fn brief_markdown_format_has_headers_and_bullets() {
 
 #[test]
 fn brief_include_phrases_flips_behavior() {
-    let text =
-        "# Section\n\nCustomer support team handles deployment pipeline work. \
+    let text = "# Section\n\nCustomer support team handles deployment pipeline work. \
          The customer support team reviews requests. \
          Our deployment pipeline processes events. \
          Customer support team also handles incidents.\n";

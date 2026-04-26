@@ -14,13 +14,19 @@ fn finds_repeated_multiword_terms() {
 
 #[test]
 fn ignores_singletons() {
-    let r = phrases("This unique term shows up only once elsewhere never again.", None);
+    let r = phrases(
+        "This unique term shows up only once elsewhere never again.",
+        None,
+    );
     assert!(r.is_empty());
 }
 
 #[test]
 fn keywords_include_hits() {
-    let r = phrases("Revenue grew. Costs fell. Margins expanded.", Some("revenue"));
+    let r = phrases(
+        "Revenue grew. Costs fell. Margins expanded.",
+        Some("revenue"),
+    );
     assert!(r.iter().any(|p| p.to_lowercase().contains("revenue")));
 }
 

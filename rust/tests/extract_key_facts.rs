@@ -1,4 +1,4 @@
-use skimr::extract::key_facts::{key_facts, key_facts_with_options, KeyFactsOptions};
+use skimr::extract::key_facts::{KeyFactsOptions, key_facts, key_facts_with_options};
 
 #[test]
 fn key_facts_returns_sentences_containing_stats() {
@@ -17,8 +17,7 @@ fn key_facts_returns_sentences_containing_stats() {
 
 #[test]
 fn key_facts_respects_max_facts() {
-    let text =
-        "We saw 1 event. Then 2 events. Then 3 events. Then 4 events. Then 5 events.";
+    let text = "We saw 1 event. Then 2 events. Then 3 events. Then 4 events. Then 5 events.";
     let out = key_facts(text, 2);
     assert_eq!(out.len(), 2);
 }
