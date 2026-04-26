@@ -4,11 +4,71 @@
 
 Python + Rust library + CLI that shrinks text before it hits an LLM, cache, or preview. Same algorithm, reproducible output, sub-millisecond latency, byte-identical across runtimes.
 
+## What's new in v0.2
+
+skimr v0.2 is the RAG-prep primitive: one call returns a summary plus structured enrichments that ride along.
+
+```python
+from skimr import summarize
+
+r = summarize(
+    doc_text,
+    max_length=500,
+    mode="default",   # also "coverage" (paragraph-aware) or "legacy" (v0.0.1 bytes)
+    attach=["stats", "outline", "metadata", "phrases", "correlated_facts"],
+)
+
+r.summary            # str (also: str(r) / f"{r}")
+r.stats              # tuple[Stat, ...]      — numeric facts with context
+r.outline            # tuple[Section, ...]   — section headings + key sentence
+r.metadata           # Metadata(dates, amounts, urls, entities)
+r.phrases            # tuple[str, ...]       — repeated multi-word phrases
+r.correlated_facts   # tuple[PhraseFact, ...]— entity ↔ number/polarity pairs
+```
+
+Or call any primitive standalone:
+
+```python
+from skimr.extract import stats, outline, metadata, phrases, correlate_facts, toc, key_facts
+```
+
+There's also `skimr.brief(text)` for a paste-ready at-a-glance brief (overview + key facts + table of contents) in `string`, `markdown`, or `dict` form.
+
+**Latency:** core path stays sub-millisecond; full enrichment with all five attachments runs in ~2-4 ms p50 per document. See [`benchmarks/quality/matrix-2026-04-26.md`](benchmarks/quality/matrix-2026-04-26.md) for the full method × corpus matrix and the comparison against Sumy LexRank/TextRank/LSA.
+
+### Optional extras
+
+```bash
+pip install "skimr[ner]"
+python -m spacy download en_core_web_sm
+```
+
+Enables `Metadata.entities` via spaCy's `en_core_web_sm`. The Rust port does not ship NER by design — `entities` stays empty there.
+
+```bash
+pip install "skimr[wordforms]"
+```
+
+Adds spelled-out number support to `stats()` and `correlate_facts()` (`"five thousand documents"` → a `Stat`). Available as the `wordforms` cargo feature on the Rust side, which binds to the same Rust crate so output stays byte-identical.
+
+```bash
+pip install "skimr[yake]"
+```
+
+Registers a `backend="yake"` for `phrases()` — salient-phrase ranking instead of the default repeated-n-gram heuristic. Python only.
+
+### Known v0.2 gates
+
+`extract.phrases` and `extract.correlate_facts` ship with documented gold-vs-primitive design mismatches and are tracked for v0.3+. The other three primitives (`stats`, `outline`, `metadata`) all clear the SC-D quality gate (recall ≥ 0.85, precision ≥ 0.80) under the format-tolerant match rule. See [`docs/REFERENCE.md`](docs/REFERENCE.md) and [`benchmarks/quality/extraction-2026-04-26.md`](benchmarks/quality/extraction-2026-04-26.md).
+
 ## Install
 
 ```bash
 pip install skimr                    # default: zero deps
 pip install "skimr[textrank]"        # adds optional networkx-based TextRank mode
+pip install "skimr[ner]"             # adds spaCy-backed Metadata.entities
+pip install "skimr[wordforms]"       # adds spelled-out number recognition
+pip install "skimr[yake]"            # adds YAKE phrases backend
 ```
 
 From source:

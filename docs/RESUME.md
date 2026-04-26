@@ -1,15 +1,17 @@
-# Resume: skimr v0.2 — SC-D at 3/5 pass, T17 brief() landed, T14+T15 remain
+# Resume: skimr v0.2.0 tagged locally — push to origin pending
 
-**Last session:** 2026-04-24. Big day — closed the SC-D gate for 3 of 5 primitives (stats via text2num + broader regex, outline via em-dash + heading-pattern extensions, metadata was already passing), landed the format-tolerant eval harness, landed three new primitives (`toc`, `key_facts`, `brief`), and wrote a full primitive reference guide. Phrases and correlate SC-D still fail — both traced to gold/primitive design mismatches (gold labeled against "what a human would pick" vs primitive's "repeated n-grams" and "≥2 distinct facts" heuristics). Not fixable by small regex tweaks; flagged as v0.3+ work in the reference guide.
+**Last session:** 2026-04-26. Closed v0.2: T14 SC-B comparison matrix landed (10 corpora × 11 methods, every cell ≤ 4 ms vs the 250 ms budget), T15 release prep done (versions bumped, README "What's new in v0.2" section added, brief.rs clippy lint allow-listed). Local tag `v0.2.0` placed; **`git push origin main && git push origin v0.2.0` is the only remaining step** and is held back per standing instruction (no push without explicit request).
+
+SC-D ships at **3/5 pass** by design — `phrases` and `correlate` have documented gold/primitive design mismatches, flagged in `README.md` § "Known v0.2 gates", `docs/REFERENCE.md`, and the v0.2.0 tag annotation. They're tracked for v0.3+, not blockers for v0.2.
 
 ## Repo state
 
 - **Remote:** https://github.com/yonk-labs/skimr (private, yonk-labs org)
 - **Branch:** `main`
-- **Local HEAD:** `92b9820` (T17 brief()). `origin/main` at `e005c20` (T11).
-- **Unpushed:** 23 commits — everything from T12 through T17. Push at T15 tag time or an earlier natural break.
-- **Version:** skimr `0.2.0.dev0` / Rust `0.2.0-dev.0`; skimr-spacy `0.2.0.dev0`.
-- **CI:** `tests` + `zero-deps` + `rust` green on origin/main. CI doesn't know about `packages/skimr-spacy/` or the optional `[wordforms]` / `[yake]` extras — fine for default path.
+- **Local HEAD:** `<release commit>` (release: v0.2.0). Tag `v0.2.0` annotated on the same commit. `origin/main` still at `e005c20` (T11).
+- **Unpushed:** ~26 commits — everything from T12 through the release commit + the v0.2.0 tag.
+- **Version:** skimr `0.2.0` / Rust `0.2.0`; skimr-spacy `0.2.0`. Cargo.lock refreshed.
+- **CI:** `tests` + `zero-deps` + `rust` green on origin/main. After push, verify all three workflows go green on the tag commit (`gh run list --repo yonk-labs/skimr --limit 5`).
 
 ## Test suite state (all green)
 
@@ -20,7 +22,7 @@
 
 ## SC-D gate status — 3/5 pass under format-tolerant match
 
-Latest eval: `benchmarks/quality/extraction-2026-04-24.md`. Match rule is format-tolerant: bidirectional substring on value after hyphen/underscore/whitespace normalization for stats; sub/super-ngram overlap for phrases; strict equality for metadata/outline/correlate. **Not a gate redefinition** — same full T12 gold on both sides, only the match rule tolerates format variance that doesn't change semantic correctness. User ratified this on 2026-04-24. Rationale documented in `benchmarks/extraction_eval.py` module docstring.
+Latest eval: `benchmarks/quality/extraction-2026-04-26.md` (re-run at T15 verification; numbers identical to the 2026-04-24 baseline). Match rule is format-tolerant: bidirectional substring on value after hyphen/underscore/whitespace normalization for stats; sub/super-ngram overlap for phrases; strict equality for metadata/outline/correlate. **Not a gate redefinition** — same full T12 gold on both sides, only the match rule tolerates format variance that doesn't change semantic correctness. User ratified this on 2026-04-24. Rationale documented in `benchmarks/extraction_eval.py` module docstring.
 
 | primitive | P | R | F1 | status | summary |
 |---|---|---|---|---|---|
@@ -53,9 +55,11 @@ Latest eval: `benchmarks/quality/extraction-2026-04-24.md`. Match rule is format
 | T16 | `extract.toc()` + `extract.key_facts()` | `d4b9730` | `toc(text)` → section names. `key_facts(text, max_facts=10, convert_word_names=False)` → sentences containing stats, ranked by composite-tfidf + stat-density, deduped by `(stat_type, norm value)`, document order. Py + Rust byte-identical. |
 | T17 | `skimr.brief()` | `92b9820` | Composes summarize + key_facts + toc. `format="string" \| "markdown" \| "dict"`. `overview_max=0.35` clamped `[0.05, 0.50]`. `include_phrases=False` default. Agnostic of doc type. Auto-enables wordforms when text2num importable (Python) / `wordforms` feature on (Rust). 9 Python + 7 Rust tests. |
 
-**Pending (T14 + T15 to close v0.2):**
-- [ ] **T14** ⛔ SC-B gate — comparison matrix + latency profile. Target: p50 < 250 ms warm on the 10-corpus suite. Compare skimr default mode vs sumy TextRank/LexRank/LSA on A1 / A2 / A4 methodologies.
-- [ ] **T15** Tag v0.2.0 release. Drop `.dev0` suffix; push origin; create release notes.
+**v0.2 closeout:**
+- [x] **T14** SC-B gate — comparison matrix + latency profile (`efeba34`). Worst skimr cell 3.56 ms p50; sumy 11–12 ms p50; rust 0.13 ms p50. ~70× headroom on the 250 ms budget.
+- [x] **T15** Tag v0.2.0 release. Versions bumped, README v0.2 section, brief.rs clippy allow-list, RESUME refreshed, `release: v0.2.0` commit + annotated `v0.2.0` tag.
+- [ ] `git push origin main && git push origin v0.2.0` — held for explicit user request.
+- [ ] Post-push: `gh run list --repo yonk-labs/skimr --limit 5` to confirm CI green on tag.
 
 ## Key artifacts & where they live
 
@@ -109,7 +113,7 @@ git log --oneline origin/main..HEAD                                      # 23 un
 gh run list --repo yonk-labs/skimr --limit 5                             # CI
 ```
 
-## TODO list (v0.2 plan, through end of session 2026-04-24)
+## TODO list (v0.2 plan, through end of session 2026-04-26)
 
 - [x] T1–T11 v0.2 core + enrichment primitives (from prior sessions)
 - [x] T11b skimr-spacy `spacy_correlate_facts` via NER + noun-chunks (`18428c7`)
@@ -128,10 +132,10 @@ gh run list --repo yonk-labs/skimr --limit 5                             # CI
 - [x] docs/REFERENCE.md primitive catalog (`4ea62d7`)
 - [x] T16 extract.toc() + extract.key_facts() (`d4b9730`)
 - [x] T17 skimr.brief() (`92b9820`)
-- [ ] **T14** ⛔ SC-B gate — comparison matrix + latency profile  ⟵ **NEXT**
-- [ ] **T15** Tag v0.2.0 release
+- [x] **T14** SC-B gate — comparison matrix + latency profile (`efeba34`)
+- [x] **T15** Tag v0.2.0 release (local; push pending explicit request)
 - [ ] v0.3+ stubs: phrases gold reconciliation, correlate coref-capable backend, `_COUNT_RE` +`people`/`person`, Class D outline cases, Rust phrases tests 1:1 with Python
 
 ## Resume prompt (paste into fresh session)
 
-> Working directory: `/home/yonk/yonk-tools/extractive_summary`. skimr v0.2 near completion. **SC-D at 3/5 pass** (stats, outline, metadata) under format-tolerant match — phrases and correlate fail due to documented gold/primitive design mismatches, not regex gaps, and are listed as v0.3+ work in `docs/REFERENCE.md`. **Test state:** 176 Python + 113 Rust default + 121 Rust wordforms + 17 skimr-spacy, all green, clippy clean. **HEAD:** `92b9820` (T17 `skimr.brief()`). **Origin:** `e005c20` (T11 — 23 commits behind local). **Remaining:** T14 (SC-B gate — comparison matrix + p50 < 250 ms warm latency vs sumy backends) and T15 (tag v0.2.0, drop `.dev0`, push origin, release notes). Read `docs/RESUME.md` (this file) first for full context. Then `docs/REFERENCE.md` for the user-facing API contract. Plan text for T14 starts around line 4250 of `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`. Execution pattern: subagent-driven per `superpowers:subagent-driven-development`; user has full-send autonomous consent. Don't push to origin without explicit request.
+> Working directory: `/home/yonk/yonk-tools/extractive_summary`. **skimr v0.2.0 tagged locally**; only `git push origin main && git push origin v0.2.0` remains (held back per the standing no-push-without-request rule). All four SC gates evidenced: SC-A `benchmarks/quality/review-2026-04-21.md`, SC-B `benchmarks/quality/matrix-2026-04-26.md` (worst skimr cell 3.56 ms vs 250 ms budget), SC-C rust fixture walker green, SC-D `benchmarks/quality/extraction-2026-04-26.md` ships at 3/5 pass with phrases + correlate documented as v0.3+ work, SC-E matrix doc present, SC-F `docs/integration-memo.md` present. **Test state:** 176 Python core + 17 skimr-spacy + 113 Rust default + 121 Rust wordforms, all green, clippy `--all-targets -- -D warnings` clean on both feature sets. **Versions:** all manifests at `0.2.0`. After pushing the tag, run `gh run list --repo yonk-labs/skimr --limit 5` to confirm CI green and then run the fresh-clone smoke test from plan §T15 step 7. v0.3+ work tracked in this file's TODO list.
