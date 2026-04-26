@@ -117,8 +117,15 @@ pub fn brief(text: &str) -> String {
 /// call so spelled-out numbers ("five thousand documents") surface
 /// in the key-facts section. Without the feature the flag is `false`.
 #[must_use]
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss
+)]
 pub fn brief_with_options(text: &str, opts: BriefOptions) -> BriefOutput {
     // Clamp overview_max to sane fraction bounds, then char-clamp.
+    // chars().count() is non-negative; frac is clamped to a positive range,
+    // so the product fits in usize after rounding (and is then clamped again).
     let frac = opts.overview_max.clamp(OVERVIEW_MIN_FRAC, OVERVIEW_MAX_FRAC);
     let raw_budget = (text.chars().count() as f64 * frac) as usize;
     let budget = raw_budget.clamp(OVERVIEW_MIN_CHARS, OVERVIEW_MAX_CHARS);
