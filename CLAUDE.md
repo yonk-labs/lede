@@ -2,9 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Active mission brief
+## Status & contracts
 
-`skill-output/mission-brief/Mission-Brief-skimr.md` — v0.1.0 scope. Re-read it at any phase transition. Project name is `skimr`. v1 = Python + Rust only; Node + Go defer to v0.2+. Neural summarization is out of core forever (companion package at most). The file is the contract.
+**Shipped:** `v0.2.0` (tag on `github.com:yonk-labs/skimr`). All three CI workflows green on the tagged commit.
+
+**Authoritative docs in priority order:**
+- `docs/RESUME.md` — current state, where to pick up next session.
+- `docs/REFERENCE.md` — primitive catalog and public API contract for v0.2.
+- `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md` — v0.2 design spec (SC-A through SC-F).
+- `skill-output/mission-brief/Mission-Brief-skimr.md` — original v0.1.0 mission brief, retained as **historical contract**. Don't take it as the live spec; v0.2 has shipped on top of it.
+
+When restarting, re-read `docs/RESUME.md` first, then the v0.2 spec for SC framing. Project name is `skimr`. v1 + v0.2 = Python + Rust; Node + Go defer further. Neural summarization stays out of core.
 
 ## Project intent
 
@@ -14,15 +22,20 @@ Extractive is the default because it is deterministic, sub-millisecond, and depe
 
 ## Current state
 
-No implementation code exists yet. The repo is **seed material** for the design:
+v0.2.0 shipped on 2026-04-26. Implementation lives at:
 
-- `extractive_functions.sql` / `extractive_functions.md` — reference implementation as pure PL/pgSQL (`clean_text`, `extract_sentences`, `extract_relevant`, `strip_think`). The canonical spec for the keyword-scored extractor and the text-cleaner.
-- `summarize-output.py` — a working standalone extractive summarizer with a different scoring model (keyword frequency × position × length penalty). Closest thing to a reference Python implementation; no external deps.
-- `SUMMARIZATION.md` — the algorithmic spec for the TF-IDF + position + length pipeline (60/25/15 weighting), including sentence splitting rules, greedy selection, and reorder-by-original-position. This is the authoritative pipeline description for the library.
-- `extractive-performance.md` — benchmark results from pre-filtering 1,828 notes before an LLM call (~50% size reduction, ~22% faster). Useful for validating that new implementations stay in the same ballpark.
-- `ARCHITECTURE.md` — architectural doc from the upstream `yonk-taskstash` project. Background on *why* extractive matters (middleware hot path, MCP previews). Not the spec for this repo — read selectively.
+- `src/skimr/` — Python core. Public surface: `summarize(attach=…)`, `brief()`, `clean_text`, `strip_think`, `extract_keyword`, plus `skimr.extract.{outline,toc,stats,key_facts,metadata,phrases,correlate_facts}`. Default install is zero-dep; `[ner]`, `[wordforms]`, `[yake]`, `[textrank]` are opt-in extras.
+- `rust/src/` — Rust mirror. Public surface mirrors Python's regex backend; `Mode::{Default, Legacy, Coverage}` selects the scorer. Optional `wordforms` cargo feature bridges to the same `text2num` crate as Python's `[wordforms]` extra so output stays byte-identical.
+- `packages/skimr-spacy/` — companion package providing `extract_entities`, `spacy_metadata`, `spacy_phrases`, `spacy_correlate_facts` for callers who install `skimr-spacy` and `en_core_web_sm`.
+- `fixtures/` — language-agnostic input/output corpus that both implementations must reproduce byte-for-byte. `rust/tests/fixtures.rs` walks every fixture on every push (SC-C / SC-002).
 
-When building out the implementation, treat `SUMMARIZATION.md` as the behavioral contract and the SQL functions as the reference for the cleaning/keyword-scoring variant.
+Reference / seed material that's still useful but **not the live spec**:
+- `extractive_functions.sql` / `extractive_functions.md` — original PL/pgSQL reference for `clean_text` / `extract_relevant` / `strip_think`.
+- `summarize-output.py` — original standalone Python prototype with the keyword-frequency scoring variant.
+- `SUMMARIZATION.md` — original algorithmic spec for the TF-IDF + position + length pipeline. v0.2 default mode adds C1 scorer tweaks (heading filter, cue-phrase boost, digit bonus, section-position weighting) on top of this; legacy mode preserves the original 60/25/15 bytes.
+- `extractive-performance.md` / `ARCHITECTURE.md` — context-only.
+
+For the live API contract see `docs/REFERENCE.md`. For SC-level acceptance tests see `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`.
 
 ## Two scoring modes to implement
 

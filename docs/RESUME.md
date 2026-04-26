@@ -18,6 +18,7 @@ SC-D ships at **3/5 pass** by design — `phrases` and `correlate` have document
 - **Python (skimr-spacy):** **17 passing**. Runs via `cd packages/skimr-spacy && ../../.venv/bin/python -m pytest -v`.
 - **Rust default features:** **113 passing**, clippy `--all-targets -- -D warnings` clean.
 - **Rust `--features wordforms`:** **121 passing**, clippy clean.
+- **SC-010 fresh-clone timing (2026-04-26):** clone + `uv venv` + `uv pip install -e .` + first `summarize()` call + CLI sanity = **1 second** on the build machine. Spec target: under 5 min from `git clone` to a working summary.
 
 ## SC-D gate status — 3/5 pass under format-tolerant match
 
