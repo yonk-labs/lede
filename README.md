@@ -250,7 +250,20 @@ Dependencies: `regex` crate only. No other runtime deps.
 - **Cross-runtime parity.** Shared fixture corpus under `fixtures/` is the contract. Python and Rust produce byte-identical output for every fixture; the `rust/tests/fixtures.rs` walker asserts this on every CI push.
 - **Extractive, not abstractive.** No LLM calls. For abstractive summarization, use a different tool.
 
-Full v0.2 design contract: [`docs/v0-2-design.md`](docs/v0-2-design.md). Primitive catalog: [`docs/REFERENCE.md`](docs/REFERENCE.md). Method × corpus benchmark: [`benchmarks/quality/matrix-2026-04-26.md`](benchmarks/quality/matrix-2026-04-26.md). For a worked side-by-side comparison vs Sumy and LLM APIs, see [`docs/comparison.md`](docs/comparison.md).
+**New here?** Start with the [**tutorial guide**](docs/guide.md) — a
+walk-through of every feature with real outputs and "change this knob,
+see what changes" examples. Includes a per-feature note on Python ↔
+Rust parity.
+
+Deeper material:
+
+- [`docs/REFERENCE.md`](docs/REFERENCE.md) — full primitive catalog
+  with type signatures + the [runtime parity matrix](docs/REFERENCE.md#runtime-parity)
+  (Python vs Rust per feature).
+- [`docs/comparison.md`](docs/comparison.md) — worked side-by-side
+  examples vs Sumy + LLM APIs with measured timings.
+- [`docs/v0-2-design.md`](docs/v0-2-design.md) — v0.2 design contract.
+- [`benchmarks/quality/matrix-2026-04-26.md`](benchmarks/quality/matrix-2026-04-26.md) — method × corpus latency matrix.
 
 ## License
 

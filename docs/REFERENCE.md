@@ -223,11 +223,32 @@ Install with `pip install skimr[EXTRA]`:
 | `dev` | `pytest`, `pytest-subtests` | Running the test suite. |
 | `bench` | `sumy`, `numpy` | Running the benchmark comparisons. |
 
-**Rust equivalents:** built with `--features FEATURE`:
-- `wordforms` — pulls the Rust `text2num = "2.6"` crate. Gates `stats_with_options(text, StatsOptions { convert_word_names: true })`.
-- No `yake` feature in Rust (yake is Python-only; use the regex backend or skimr-spacy noun-chunks when running from Rust).
-
 **Companion package:** `skimr-spacy` (separate PyPI distribution) registers the `"spacy"` backend for `metadata`, `phrases`, and `correlate_facts` when imported. Pulls `spacy>=3.8` + `en_core_web_sm-3.8.0`.
+
+## Runtime parity
+
+Every public function on the **regex backend** is byte-identical
+between Python and Rust — that's the SC-C contract, enforced on every
+push by `rust/tests/fixtures.rs::v0_2_extract_primitives_byte_identical`
+(70 fixtures × 7 primitives) and `every_fixture_byte_identical` (the
+v0.1 surface). Optional extras are intentionally asymmetric:
+
+| Feature | Python | Rust | Why the asymmetry |
+|---|---|---|---|
+| Core `summarize` / `brief` / `extract.*` (regex backend) | ✅ | ✅ | The parity contract. Same input → same bytes from either runtime. |
+| **`wordforms`** — spelled-out numbers ("eight days") | `[wordforms]` extra (text2num) | `--features wordforms` (same `text2num` crate) | Both bind the same Rust crate. Byte-identical parity. |
+| **`textrank`** — graph-based PageRank summarizer | `[textrank]` extra (networkx) | ❌ not available | Feasible to add — `petgraph` ships PageRank, or a pure power-iteration impl is ~80 lines. Skipped in v0.2 because the regex backend is the parity contract and graph algos pull transitive deps. **Open an issue if you'd use a Rust `textrank` cargo feature.** |
+| **`yake`** — statistical key-phrase extractor | `[yake]` extra | ❌ not available | No maintained Rust port of YAKE today. The algorithm is statistical (not ML), so a port is feasible but non-trivial. Open an issue if you'd consume one. |
+| **spaCy NER** — entity extraction | `skimr-spacy` companion package | ❌ not available, by design | Pure-Rust transformer NER requires shipping model weights and a heavy ML runtime (`rust-bert`/`tch-rs` are ONNX/torch-backed). That contradicts skimr's "stdlib + regex only" Rust contract. Rust returns `Metadata.entities` as an empty `Vec` under the regex backend; callers needing NER from a Rust service should call out to a separate NER endpoint (Python skimr-spacy or a hosted service). |
+| Backend registry / `set_default_backend()` | ✅ | ❌ | Rust ships only the regex backend — no plug-in dispatch. |
+| CLI binary | ✅ `skimr` | ✅ `skimr` | Same flags. UTF-8 reads on both. BrokenPipe handled. |
+
+Bottom line: if your callers use only the regex backend, the two ports
+are equivalent. Feature requests for Rust ports of textrank or yake
+are welcome on GitHub Issues with the `rust-feature-parity` label.
+spaCy NER on the Rust side will not be added inside `skimr` (heavy
+deps); a future `skimr-rust-ner` companion crate could ship if there's
+demand.
 
 ---
 
