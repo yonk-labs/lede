@@ -39,23 +39,31 @@ There's also `skimr.brief(text)` for a paste-ready at-a-glance brief (overview +
 ### Optional extras
 
 ```bash
-pip install "skimr[ner]"
-python -m spacy download en_core_web_sm
-```
-
-Enables `Metadata.entities` via spaCy's `en_core_web_sm`. The Rust port does not ship NER by design — `entities` stays empty there.
-
-```bash
-pip install "skimr[wordforms]"
+pip install -e ".[wordforms]"
 ```
 
 Adds spelled-out number support to `stats()` and `correlate_facts()` (`"five thousand documents"` → a `Stat`). Available as the `wordforms` cargo feature on the Rust side, which binds to the same Rust crate so output stays byte-identical.
 
 ```bash
-pip install "skimr[yake]"
+pip install -e ".[yake]"
 ```
 
 Registers a `backend="yake"` for `phrases()` — salient-phrase ranking instead of the default repeated-n-gram heuristic. Python only.
+
+```bash
+pip install -e ".[textrank]"
+```
+
+Enables `summarize_textrank` for graph-based extractive on long docs (Python-only, requires `networkx`).
+
+For spaCy-backed `Metadata.entities` (PERSON / ORG / GPE), install the companion package from `packages/skimr-spacy/` and the spaCy model:
+
+```bash
+pip install -e packages/skimr-spacy
+python -m spacy download en_core_web_sm
+```
+
+Importing `skimr_spacy` registers itself as a backend; `extract.metadata(text, backend="spacy")` then populates `entities`. The Rust port does not ship NER by design — `entities` stays empty under the regex backend in either runtime.
 
 ### Known v0.2 gates
 
@@ -63,21 +71,19 @@ Registers a `backend="yake"` for `phrases()` — salient-phrase ranking instead 
 
 ## Install
 
-```bash
-pip install skimr                    # default: zero deps
-pip install "skimr[textrank]"        # adds optional networkx-based TextRank mode
-pip install "skimr[ner]"             # adds spaCy-backed Metadata.entities
-pip install "skimr[wordforms]"       # adds spelled-out number recognition
-pip install "skimr[yake]"            # adds YAKE phrases backend
-```
-
-From source:
+skimr is not yet on PyPI — install from source:
 
 ```bash
-git clone https://github.com/<YOUR-ORG>/skimr.git
+git clone git@github.com:yonk-labs/skimr.git
 cd skimr
-pip install -e ".[dev]"
+pip install -e .                     # default: zero deps
+pip install -e ".[textrank]"         # adds networkx-based TextRank mode
+pip install -e ".[wordforms]"        # adds spelled-out number recognition
+pip install -e ".[yake]"             # adds YAKE phrases backend
+pip install -e packages/skimr-spacy  # adds spaCy-backed entities (companion)
 ```
+
+PyPI / crates.io publication is tracked for a later release.
 
 ## Quick Start
 

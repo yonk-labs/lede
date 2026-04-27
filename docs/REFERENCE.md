@@ -25,7 +25,7 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 
 **Attach:** pass a list of primitive names to include structured extractions alongside the summary text, e.g. `attach=["stats", "outline"]`. Returns `SummaryResult` with fields populated.
 
-**Returns:** `SummaryResult` with `.text`, `.source_chars`, `.summary_chars`, and optional `.stats` / `.outline` / etc. when attached.
+**Returns:** `SummaryResult` — a frozen dataclass with `.summary: str` plus optional `.stats`, `.outline`, `.metadata`, `.phrases`, `.correlated_facts` populated when the corresponding name appears in `attach=`. `str(r)` and `f"{r}"` evaluate to `.summary` so legacy callers expecting a string still work.
 
 **When to use:** you have too much text and need less of it. The output preserves reading flow.
 

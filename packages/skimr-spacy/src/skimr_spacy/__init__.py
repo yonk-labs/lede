@@ -16,7 +16,7 @@ register("spacy", "metadata", spacy_metadata)
 register("spacy", "phrases", spacy_phrases)
 register("spacy", "correlate_facts", spacy_correlate_facts)
 
-__version__ = "0.2.0.dev0"
+__version__ = "0.2.0"
 __all__ = [
     "extract_entities",
     "spacy_correlate_facts",
