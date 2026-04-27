@@ -20,9 +20,9 @@ venv/
 !.claude/agents/
 !.claude/commands/
 
-# Skill output (research artifacts, not code)
-# Keep committed for now; revisit if repo grows large
-# skill-output/
+# Skill output (research/audit artifacts — point-in-time, not source).
+# Per the skill-output-hygiene rule. Never commit these to a public repo.
+skill-output/
 
 # Secrets — defensive, even though none exist today
 .env

@@ -8,9 +8,9 @@ risk that goes with that:
 - Issues and PRs are reviewed when time allows. Best-effort, no SLA.
 - Security reports go to `<matt@theyonk.com>` — please do not file public
   issues for security findings (see [`SECURITY.md`](SECURITY.md)).
-- Major design decisions get written down in `docs/superpowers/specs/` and
-  `docs/superpowers/plans/` as they happen, so the project's intent is
-  recoverable from the repo even without me.
+- Major design decisions get written down in `docs/` (e.g. `v0-2-design.md`,
+  `skimr-spacy-integration.md`) so the project's intent is recoverable from
+  the repo even without me.
 
 If you'd like to help maintain skimr or take over a piece of it long-term,
 open an issue tagged `maintainers` or email me directly. The license
@@ -22,8 +22,8 @@ a determined fork can keep going without me.
 ## Decision authority
 
 - **API surface changes** (new public functions, breaking signature changes,
-  default-mode changes): require a written design note in
-  `docs/superpowers/specs/` before implementation.
+  default-mode changes): require a written design note in `docs/` before
+  implementation.
 - **Bug fixes and quality improvements**: PRs welcome; CI must stay green
   on Python + Rust + skimr-spacy + clippy + fmt.
 - **Performance changes**: must include a benchmark delta from
@@ -35,5 +35,6 @@ a determined fork can keep going without me.
 ## Release cadence
 
 skimr does not have a fixed release cadence. Versions are cut when a
-coherent batch of work is ready and `docs/RESUME.md` reflects a stable
-state. The git tag annotation is the canonical release notes.
+coherent batch of work is ready, all CI workflows are green on `main`,
+and the `CHANGELOG.md` entry is written. The git tag annotation +
+GitHub Release page is the canonical record.

@@ -307,9 +307,8 @@ v0.1.0 conceptually exists as "the TF-IDF summarizer that passed SC-A" but was n
 
 ## Where to look next
 
-- **Spec** — `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`
-- **Plan** — `docs/superpowers/plans/2026-04-21-skimr-v0-2-plan.md`
+- **Spec** — [`docs/v0-2-design.md`](v0-2-design.md)
 - **Gold-labeling protocol** — `docs/extraction-gold-labeling.md`
-- **spaCy integration policy** — `docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md`
+- **spaCy integration policy** — [`docs/skimr-spacy-integration.md`](skimr-spacy-integration.md)
 - **Benchmarks** — `benchmarks/corpus/` (10 source docs) + `fixtures/extract/` (gold labels) + `benchmarks/quality/extraction-*.md` (latest eval)
-- **Resume notes** — `docs/RESUME.md`
+- **Changelog** — [`../CHANGELOG.md`](../CHANGELOG.md)

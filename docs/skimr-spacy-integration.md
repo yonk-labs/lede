@@ -324,6 +324,6 @@ This keeps the contract honest: `backend="regex"` is reproducible everywhere; an
 - You pick A / B / C / D (or a variant).
 - I roll back or keep the T9 commit accordingly.
 - Plan doc gets the T9 scope rewritten to match.
-- RESUME.md reflects the decision.
+- CHANGELOG.md reflects the decision.
 
 No code changes on this file's behalf until you pick.

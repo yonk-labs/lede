@@ -1,79 +1,98 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for AI agents (Claude Code, Cursor, etc.) working in this
+repository. Human contributors: read [`README.md`](README.md) and
+[`CONTRIBUTING.md`](CONTRIBUTING.md) instead — this file is tooling
+config.
 
-## Status & contracts
+## Status
 
-**Shipped:** `v0.2.0` (tag on `github.com:yonk-labs/skimr`). All three CI workflows green on the tagged commit.
+`v0.2.0` shipped 2026-04-26. All four CI workflows (`tests`,
+`zero-deps`, `rust`, `skimr-spacy`) green on `main`.
 
-**Authoritative docs in priority order:**
-- `docs/RESUME.md` — current state, where to pick up next session.
-- `docs/REFERENCE.md` — primitive catalog and public API contract for v0.2.
-- `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md` — v0.2 design spec (SC-A through SC-F).
-- `skill-output/mission-brief/Mission-Brief-skimr.md` — original v0.1.0 mission brief, retained as **historical contract**. Don't take it as the live spec; v0.2 has shipped on top of it.
+## Authoritative docs in priority order
 
-When restarting, re-read `docs/RESUME.md` first, then the v0.2 spec for SC framing. Project name is `skimr`. v1 + v0.2 = Python + Rust; Node + Go defer further. Neural summarization stays out of core.
+1. [`README.md`](README.md) — what skimr is, why, how to use it.
+2. [`docs/REFERENCE.md`](docs/REFERENCE.md) — primitive catalog +
+   public API contract.
+3. [`docs/v0-2-design.md`](docs/v0-2-design.md) — v0.2 design spec
+   with SC-A through SC-F acceptance tests.
+4. [`docs/skimr-spacy-integration.md`](docs/skimr-spacy-integration.md)
+   — companion-package integration policy.
+5. [`docs/integration-memo.md`](docs/integration-memo.md) — chunkshop
+   integration contract (first downstream consumer).
+6. [`SUMMARIZATION.md`](SUMMARIZATION.md) — original v0.1 algorithmic
+   spec (heading filter, cue-phrase boost, digit bonus, and
+   section-position weight are v0.2 tweaks layered on top).
 
-## Project intent
+## Code layout
 
-A multi-language library (`skimr`) for **extractive summarization** and **lightweight text summarization**, targeting byte-identical feature parity across **Python, Rust, Go, and Node**. v1 ships Python + Rust. The goal is a small, deterministic, zero-dep primitive that shrinks text before it's sent to an LLM, stored, or displayed as a preview — with the same bytes from any runtime.
+| Path | Role |
+|---|---|
+| `src/skimr/` | Python core. Public surface: `summarize(attach=…)`, `brief()`, `clean_text`, `strip_think`, `extract_keyword`, plus `skimr.extract.{outline, toc, stats, key_facts, metadata, phrases, correlate_facts}`. Default install is zero-dep; `[ner]`, `[wordforms]`, `[yake]`, `[textrank]` are opt-in extras. |
+| `rust/src/` | Rust mirror. `Mode::{Default, Legacy, Coverage}` selects the scorer. Optional `wordforms` cargo feature binds to the same `text2num` crate as Python's `[wordforms]` extra → byte-identical parity. |
+| `packages/skimr-spacy/` | Python companion package. Provides `extract_entities`, `spacy_metadata`, `spacy_phrases`, `spacy_correlate_facts`. Importing it registers backends as a side effect. |
+| `fixtures/` | Language-agnostic input/output corpus. **Every change to a primitive must keep the parity walker green** (`rust/tests/fixtures.rs`). Two test gates: `every_fixture_byte_identical` (v0.1 surface) and `v0_2_extract_primitives_byte_identical` (v0.2 surface, regenerated via `python benchmarks/gen_parity_fixtures.py`). |
+| `tests/` + `rust/tests/` | Python and Rust test suites. 231 + 17 + 116 + 121 tests. |
+| `benchmarks/` | Quality eval (A1 rubric + A2 ROUGE + A4 LLM-judge), extraction eval (gold-vs-primitive precision/recall), latency matrix. |
+| `examples/` | 7 runnable scripts smoke-tested by CI. |
 
-Extractive is the default because it is deterministic, sub-millisecond, and dependency-free. LLM/neural summarization is out of scope for the core (may become an optional companion package, but never inside `skimr` itself).
+## Reference / seed material (not the live spec)
 
-## Current state
+- [`extractive_functions.sql`](extractive_functions.sql) /
+  [`extractive_functions.md`](extractive_functions.md) — original
+  PL/pgSQL reference for `clean_text`, `extract_relevant`,
+  `strip_think`. Cited by the Python keyword/clean modules as origin
+  context. Drop-in for Postgres users.
+- [`SUMMARIZATION.md`](SUMMARIZATION.md) — original algorithmic spec
+  (see priority list above for current relationship).
 
-v0.2.0 shipped on 2026-04-26. Implementation lives at:
+## Conventions
 
-- `src/skimr/` — Python core. Public surface: `summarize(attach=…)`, `brief()`, `clean_text`, `strip_think`, `extract_keyword`, plus `skimr.extract.{outline,toc,stats,key_facts,metadata,phrases,correlate_facts}`. Default install is zero-dep; `[ner]`, `[wordforms]`, `[yake]`, `[textrank]` are opt-in extras.
-- `rust/src/` — Rust mirror. Public surface mirrors Python's regex backend; `Mode::{Default, Legacy, Coverage}` selects the scorer. Optional `wordforms` cargo feature bridges to the same `text2num` crate as Python's `[wordforms]` extra so output stays byte-identical.
-- `packages/skimr-spacy/` — companion package providing `extract_entities`, `spacy_metadata`, `spacy_phrases`, `spacy_correlate_facts` for callers who install `skimr-spacy` and `en_core_web_sm`.
-- `fixtures/` — language-agnostic input/output corpus that both implementations must reproduce byte-for-byte. `rust/tests/fixtures.rs` walks every fixture on every push (SC-C / SC-002).
-
-Reference / seed material that's still useful but **not the live spec**:
-- `extractive_functions.sql` / `extractive_functions.md` — original PL/pgSQL reference for `clean_text` / `extract_relevant` / `strip_think`.
-- `summarize-output.py` — original standalone Python prototype with the keyword-frequency scoring variant.
-- `SUMMARIZATION.md` — original algorithmic spec for the TF-IDF + position + length pipeline. v0.2 default mode adds C1 scorer tweaks (heading filter, cue-phrase boost, digit bonus, section-position weighting) on top of this; legacy mode preserves the original 60/25/15 bytes.
-- `extractive-performance.md` / `docs/upstream-context-yonk-taskstash.md` — context-only.
-
-For the live API contract see `docs/REFERENCE.md`. For SC-level acceptance tests see `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`.
-
-## Two scoring modes to implement
-
-There are two distinct extractive algorithms across the reference material. Both should be supported; they are not interchangeable:
-
-1. **TF-IDF + position + length (no query)** — the default, from `SUMMARIZATION.md`. Use when the caller just wants "the most important N characters/sentences of this document."
-2. **Keyword-scored (query-driven)** — from `extractive_functions.sql`. Use when the caller has a prompt/keywords and wants sentences relevant to *that*. Adds bonuses for length > 200 chars, presence of numbers, and causal/analytical vocabulary.
-
-Also port `clean_text` (markdown/filler/CRM-boilerplate stripper) and `strip_think` (removes `<think>…</think>` blocks from reasoning-model output) — both are small, deterministic, and useful independent utilities.
-
-## Cross-language parity requirements
-
-The four implementations must produce **byte-identical output** for a shared test corpus. Before any implementation work:
-
-- Agree on a shared sentence-splitter spec (regex + abbreviation/decimal handling per `SUMMARIZATION.md` step 2).
-- Agree on a shared stopword list (the Python script has one; SQL doesn't — pick one and freeze it).
-- Agree on a shared tokenization rule (`\b[a-z]{3,}\b` per the Python reference).
-- Build a language-agnostic test fixture directory (input text + expected output) that each implementation runs against.
-
-Deterministic output is a hard requirement — the SQL functions are marked `IMMUTABLE` and the Python reference produces stable output for the same input. Don't introduce anything that breaks that (no random tie-breaking, no hash-iteration-order dependence, no locale-dependent case folding).
-
-## File input
-
-"Summarize files" means extracting text content from common formats, then running extractive summarization over that text. Decide per-language which formats are in-scope (plain text and markdown are the floor; PDF/DOCX depend on available libs per runtime). File extraction should be a separate layer from the core summarizer so the summarizer stays dependency-free.
+- **No LLM calls in the core library.** Extractive only. LLM /
+  abstractive summarization belongs in callers, not here. May land as
+  a separate `skimr-neural` companion someday; not in `skimr`.
+- **Zero required runtime dependencies** in the default install path.
+  Python: stdlib only. Rust: stdlib + `regex` only. Optional extras
+  are opt-in.
+- **Deterministic over clever.** Same input → same bytes, every call,
+  every runtime. No random tie-breaking, no hash-iteration-order
+  dependence, no locale-dependent case folding.
+- **Byte-identical Python ↔ Rust** on the regex backend. The fixture
+  walker enforces this on every push. Optional Python-only backends
+  (`spacy`, `yake`) make no parity promise.
+- **The SQL is reference, not a dependency.** Don't assume Postgres
+  is present.
 
 ## Commands
 
-No build/test/lint tooling exists yet. The only runnable thing today:
-
 ```bash
-python3 summarize-output.py <file-or-dir> [--top N]   # default N=20
+# Python core
+.venv/bin/python -m pytest -q                                     # 231 tests
+.venv/bin/python -m pytest tests/test_edge_cases.py -q            # 50 edge cases
+
+# skimr-spacy companion
+cd packages/skimr-spacy && ../../.venv/bin/python -m pytest -q    # 17 tests
+
+# Rust core
+cd rust && cargo test                                              # 116 tests, default features
+cd rust && cargo test --features wordforms                         # 121 tests, with wordforms
+cd rust && cargo clippy --all-targets -- -D warnings              # must be clean
+cd rust && cargo fmt --check                                       # must be clean
+
+# Cross-runtime parity (v0.2 differentiator)
+.venv/bin/python benchmarks/gen_parity_fixtures.py                # regenerate fixtures
+cd rust && cargo test --test fixtures                              # walker green = no drift
+
+# Benchmarks
+.venv/bin/python benchmarks/matrix_eval.py                        # SC-B latency matrix
+.venv/bin/python benchmarks/extraction_eval.py                    # SC-D primitive quality
 ```
 
-When adding each language implementation, pick idiomatic tooling (`pytest`/`ruff` for Python, `cargo test`/`cargo clippy` for Rust, `go test`/`golangci-lint` for Go, `vitest`+`tsc` or similar for Node) and document the actual commands here — don't leave this section aspirational.
+## Skill-output discipline
 
-## Conventions specific to this repo
-
-- **No LLM calls in the core library.** Extractive only. LLM/abstractive summarization belongs in callers, not here.
-- **Zero required runtime dependencies** for the core extractive path in each language. Optional deps (e.g., a TextRank upgrade via `networkx` in Python) are fine as feature flags, but the default path must work with stdlib only.
-- **Deterministic over clever.** If a scoring tweak would improve quality but make output non-reproducible across runs or languages, don't add it.
-- **The SQL is reference, not a dependency.** Don't assume Postgres is present; the SQL functions exist to document behavior and as a drop-in for Postgres users.
+`skill-output/` is gitignored. AI agents that produce research,
+audits, or session artifacts should write to that directory and not
+commit the contents to the repo. Past artifacts (research-base,
+mission-brief, AAT, prod-ready, secret-scan reports) lived there
+historically; they were removed from tracking before the public flip.

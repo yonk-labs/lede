@@ -127,6 +127,6 @@ Once those numbers land in chunkshop's own measurement doc, this memo will link 
 
 ## References
 
-- skimr: [`README.md`](../README.md) · [`docs/REFERENCE.md`](REFERENCE.md) (v0.2 primitive catalog) · [`SUMMARIZATION.md`](../SUMMARIZATION.md) · v0.1 brief at [`Mission-Brief-skimr.md`](../skill-output/mission-brief/Mission-Brief-skimr.md) (historical contract); v0.2 spec at [`docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`](superpowers/specs/2026-04-21-skimr-v0-2-design.md).
+- skimr: [`README.md`](../README.md) · [`docs/REFERENCE.md`](REFERENCE.md) (v0.2 primitive catalog) · [`SUMMARIZATION.md`](../SUMMARIZATION.md) (v0.1-era algorithmic spec) · v0.2 design contract at [`docs/v0-2-design.md`](v0-2-design.md).
 - chunkshop: `skill-output/mission-brief/Mission-Brief-summary-embed.md` · `Mission-Brief-metadata-extractors.md` · `Mission-Brief-schema-flexibility.md` · `Mission-Brief-semantic-chunker.md` (in chunkshop repo)
 - Benchmarks: [`benchmarks/quality/matrix-2026-04-26.md`](../benchmarks/quality/matrix-2026-04-26.md) — v0.2 method × corpus latency matrix vs Sumy backends. SC-A quality review at [`benchmarks/quality/review-2026-04-21.md`](../benchmarks/quality/review-2026-04-21.md). SC-D extraction eval at [`benchmarks/quality/extraction-2026-04-26.md`](../benchmarks/quality/extraction-2026-04-26.md).

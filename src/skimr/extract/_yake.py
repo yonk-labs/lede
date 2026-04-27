@@ -5,7 +5,7 @@ Licensed MIT (github.com/LIAAD/yake). Emits ranked multi-word key phrases
 scored by position, frequency, casing, and term relatedness. No ML model.
 
 Backend registered as ('yake', 'phrases'). No cross-language parity promise
-(Python-only). See docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md
+(Python-only). See docs/skimr-spacy-integration.md
 for the backend-selector policy — only the 'regex' backend guarantees
 Py-Rust byte-identical output.
 """

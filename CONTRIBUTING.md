@@ -24,11 +24,11 @@ cd rust && cargo fmt --check                                 # must be clean
 | Bug fix with regression test | Easy — just open the PR. |
 | Doc fix / typo / link rot | Easy — even easier. |
 | Quality improvement to an existing primitive | Comes with a measured delta against `benchmarks/quality/extraction-*.md` and a parity check for the Python ↔ Rust core path. |
-| New extract primitive | Needs a design note in `docs/superpowers/specs/` first. Must come with byte-identical Python ↔ Rust output and a gold-labeled fixture set. |
+| New extract primitive | Needs a design note in `docs/` first. Must come with byte-identical Python ↔ Rust output and a gold-labeled fixture set. |
 | New scoring mode | Same as above — design note + parity tests + benchmark vs current default. |
 | Performance change | Must include a `benchmarks/matrix_eval.py` delta. |
 | Adding Node / Go ports | The v0.1 brief explicitly listed these as v0.2+ deferral. Open an issue first so we can scope the parity-fixture work. |
-| Neural / LLM / abstractive summarization | Out of scope forever for the core. May land as a separate `skimr-neural` companion. See `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md` for the rationale. |
+| Neural / LLM / abstractive summarization | Out of scope forever for the core. May land as a separate `skimr-neural` companion. See [`docs/v0-2-design.md`](docs/v0-2-design.md) for the rationale. |
 
 ## The Python ↔ Rust parity contract
 

@@ -9,7 +9,7 @@ The default backend is 'regex' to preserve skimr's zero-dep identity.
 Users opt in to 'auto' or 'spacy' via `skimr.set_default_backend(name)`
 or per-call `backend=` kwargs.
 
-See docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md.
+See docs/skimr-spacy-integration.md.
 """
 from __future__ import annotations
 from typing import Callable, Any

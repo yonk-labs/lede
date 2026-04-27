@@ -12,7 +12,7 @@ Backend selection:
   - backend='auto': spacy if registered, else regex.
   - backend=None: use the process-wide default (skimr.set_default_backend).
 
-See docs/superpowers/specs/2026-04-21-skimr-spacy-integration.md.
+See docs/skimr-spacy-integration.md.
 """
 import re
 from .._types import Metadata
