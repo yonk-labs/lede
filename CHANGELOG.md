@@ -3,6 +3,50 @@
 skimr's release notes. Tag annotations on each `vX.Y.Z` git tag are the
 canonical record; this file is a human-readable summary in one place.
 
+## [0.2.2] — 2026-04-27
+
+**Docs-only patch.** No code changes; behavior, fixtures, and public
+API unchanged from `v0.2.1`. This release rolls up the documentation
+work that landed between the `v0.2.1` tag and the public-flip click,
+plus the prod-ready audit's day-1 paper cuts.
+
+### Added
+- **`docs/guide.md`** — user-facing tutorial. 9 lessons walking through
+  every feature with actual outputs and "change this knob, see what
+  happens" prompts. Each lesson tags whether the snippet is byte-
+  identical in Rust or Python-only with rationale.
+- **`docs/REFERENCE.md` § Runtime parity** — explicit per-feature
+  Python vs Rust availability matrix. Calls out which Python-only
+  features (`textrank`, `yake`, spaCy NER) are feasible-to-port-but-
+  not-yet vs which are deliberately Python-only by contract.
+- **`packages/skimr-spacy/README.md` rewrite** — user-facing pitch
+  with a real side-by-side example: same input through `backend="regex"`
+  (returns `entities=()`) and `backend="spacy"` (returns 11 entities).
+  Performance numbers measured locally. Decision criteria (when to
+  use, when not to) called out explicitly.
+- `SECURITY.md` § "Known transitive dependency notes" — documents the
+  `rand 0.7.3` `unsound` advisory (RUSTSEC-2026-0097) that surfaces
+  under `cargo audit` when the `wordforms` cargo feature is enabled.
+  Practical exposure on the `wordforms` path is effectively zero
+  (skimr ships no custom logger); documented per public-OSS hygiene.
+
+### Fixed (paper cuts from the v0.2.1 prod-ready audit)
+- `CONTRIBUTING.md` and `CLAUDE.md` cited stale test counts (181 / 116);
+  updated to soft `~230` / `~120` so future test additions don't
+  require an immediate doc edit.
+- `CLAUDE.md` Status block: `v0.2.0 shipped 2026-04-26` →
+  `v0.2.1 shipped 2026-04-27`.
+- `README.md` Apollo-example timing claim (`Time: 0.16 ms`) was
+  ambiguous about which runtime; now reads `~0.15 ms (Python, p50 of
+  50 runs on this paragraph)` with the cross-corpus p50 (Python 0.42
+  ms, Rust 0.13 ms) cited for context. Same treatment on the
+  `attach=` timing.
+- `.github/workflows/test.yml` `pip-audit --ignore-vuln GHSA-rrqc-c2jx-6jgv`
+  flag dropped — the suppression had no comment and the advisory was
+  no longer flagged by `pip-audit --strict` anyway. Replaced with an
+  inline comment explaining the warn-only triage policy and how to
+  add a properly-documented suppression in the future.
+
 ## [0.2.1] — 2026-04-27
 
 **Patch release — public-flip readiness.** No new API surface; this is
