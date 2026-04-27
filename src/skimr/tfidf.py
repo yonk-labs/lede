@@ -1,6 +1,6 @@
 """TF-IDF + position + length extractive summarization pipeline.
 
-Per SUMMARIZATION.md:
+Composite score:
   score = 0.60 * tfidf + 0.25 * position + 0.15 * length
 
 All scores normalized to [0, 1] per dimension. The composite is a weighted
@@ -8,7 +8,8 @@ sum, also in [0, 1].
 
 v0.2.0 adds mode='default' with four scorer tweaks on top of the legacy
 formula: heading filter, cue-phrase boost, digit bonus, and section-position
-weighting. mode='legacy' preserves v0.0.1 behavior byte-identically.
+weighting. mode='legacy' preserves v0.0.1 behavior byte-identically. See
+docs/v0-2-design.md for the design contract.
 """
 import math
 import re
@@ -111,7 +112,7 @@ def position_score(n: int) -> list[float]:
 
 
 def length_score(sentences: list[str]) -> list[float]:
-    """Length score: peaks in 10-30 word range per SUMMARIZATION.md."""
+    """Length score: peaks in the 10-30 word range; penalizes shorter and longer."""
     raw: list[float] = []
     for s in sentences:
         words = len(s.split())
@@ -245,7 +246,7 @@ def _truncate(text: str, max_length: int) -> str:
 def _summarize_legacy(text: str, max_length: int = 500) -> str:
     """Extractive summary — v0.0.1 byte-identical behavior.
 
-    Per SUMMARIZATION.md:
+    Pipeline:
       1. If input fits the budget, return unchanged.
       2. If the budget is too small for sentences, truncate.
       3. Split into sentences; if fewer than 3, truncate.

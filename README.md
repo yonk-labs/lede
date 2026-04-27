@@ -222,7 +222,7 @@ Dependencies: `regex` crate only. No other runtime deps.
 - **Cross-runtime parity.** Shared fixture corpus under `fixtures/` is the contract. Python and Rust produce byte-identical output for every fixture; the `rust/tests/fixtures.rs` walker asserts this on every CI push.
 - **Extractive, not abstractive.** No LLM calls. For abstractive summarization, use a different tool.
 
-Full v0.2 design contract: [`docs/v0-2-design.md`](docs/v0-2-design.md). Original algorithmic spec: [`SUMMARIZATION.md`](SUMMARIZATION.md) (with `extractive_functions.md` for the PL/pgSQL reference). Primitive catalog: [`docs/REFERENCE.md`](docs/REFERENCE.md). Method × corpus benchmark: [`benchmarks/quality/matrix-2026-04-26.md`](benchmarks/quality/matrix-2026-04-26.md). For a worked side-by-side comparison vs Sumy and LLM APIs, see [`docs/comparison.md`](docs/comparison.md).
+Full v0.2 design contract: [`docs/v0-2-design.md`](docs/v0-2-design.md). Primitive catalog: [`docs/REFERENCE.md`](docs/REFERENCE.md). Method × corpus benchmark: [`benchmarks/quality/matrix-2026-04-26.md`](benchmarks/quality/matrix-2026-04-26.md). For a worked side-by-side comparison vs Sumy and LLM APIs, see [`docs/comparison.md`](docs/comparison.md).
 
 ## License
 

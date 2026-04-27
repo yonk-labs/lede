@@ -21,9 +21,8 @@ config.
    — companion-package integration policy.
 5. [`docs/integration-memo.md`](docs/integration-memo.md) — chunkshop
    integration contract (first downstream consumer).
-6. [`SUMMARIZATION.md`](SUMMARIZATION.md) — original v0.1 algorithmic
-   spec (heading filter, cue-phrase boost, digit bonus, and
-   section-position weight are v0.2 tweaks layered on top).
+6. [`docs/comparison.md`](docs/comparison.md) — worked examples
+   comparing skimr against Sumy and LLM APIs with real timings.
 
 ## Code layout
 
@@ -36,16 +35,6 @@ config.
 | `tests/` + `rust/tests/` | Python and Rust test suites. 231 + 17 + 116 + 121 tests. |
 | `benchmarks/` | Quality eval (A1 rubric + A2 ROUGE + A4 LLM-judge), extraction eval (gold-vs-primitive precision/recall), latency matrix. |
 | `examples/` | 7 runnable scripts smoke-tested by CI. |
-
-## Reference / seed material (not the live spec)
-
-- [`extractive_functions.sql`](extractive_functions.sql) /
-  [`extractive_functions.md`](extractive_functions.md) — original
-  PL/pgSQL reference for `clean_text`, `extract_relevant`,
-  `strip_think`. Cited by the Python keyword/clean modules as origin
-  context. Drop-in for Postgres users.
-- [`SUMMARIZATION.md`](SUMMARIZATION.md) — original algorithmic spec
-  (see priority list above for current relationship).
 
 ## Conventions
 

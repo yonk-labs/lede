@@ -323,5 +323,5 @@ None at this point — all design details fixed above. If any ambiguity surfaces
 
 - Prior quality review: [`benchmarks/quality/review-2026-04-21.md`](../benchmarks/quality/review-2026-04-21.md)
 - Integration memo: [`docs/integration-memo.md`](integration-memo.md)
-- Original v0.1 algorithmic spec: [`SUMMARIZATION.md`](../SUMMARIZATION.md)
+- Comparison with Sumy + LLM: [`docs/comparison.md`](comparison.md)
 - chunkshop briefs referenced: Mission-Brief-summary-embed, Mission-Brief-metadata-extractors, Mission-Brief-schema-flexibility (in chunkshop repo)

@@ -31,7 +31,7 @@ def test_position_score_single_sentence():
 
 
 def test_length_score_sweet_spot():
-    # 10-30 words should score highest per SUMMARIZATION.md
+    # 10-30 words is the sweet spot for the length scorer
     short = "one two three"                                              # 3 words
     mid = " ".join(["word"] * 20)                                        # 20 words — sweet spot
     long = " ".join(["word"] * 100)                                      # 100 words
@@ -67,7 +67,7 @@ def test_summarize_short_input_returns_unchanged():
 
 def test_summarize_fallback_truncates_when_max_length_too_small():
     text = "First sentence. Second sentence. Third sentence. Fourth sentence."
-    # max_length < 50 triggers truncation fallback per SUMMARIZATION.md step 1
+    # max_length < 50 triggers the truncation fallback (legacy step 1)
     result = summarize(text, max_length=20, mode="legacy").summary
     assert len(result) <= 23  # 20 + "..." suffix
     assert result.endswith("...")

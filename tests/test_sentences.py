@@ -51,7 +51,7 @@ def test_empty_input_returns_empty_list():
 
 
 def test_single_sentence_no_terminator():
-    # SUMMARIZATION.md doesn't require a final period
+    # Final period is not required
     assert split_sentences("Just one fragment") == ["Just one fragment"]
 
 

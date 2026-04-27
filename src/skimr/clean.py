@@ -9,18 +9,15 @@ _THINK_RE = re.compile(r"<think>.*?</think>\s*", re.DOTALL)
 
 
 def strip_think(text: str) -> str:
-    """Remove <think>...</think> blocks and trim surrounding whitespace.
-
-    Mirrors strip_think(text) from extractive_functions.sql.
-    """
+    """Remove <think>...</think> blocks and trim surrounding whitespace."""
     if text is None:
         return ""
     return _THINK_RE.sub("", text).strip()
 
 
-# --- clean_text: port of extractive_functions.sql/clean_text ---
+# --- clean_text — pipeline ---
 #
-# Order matches the SQL function step by step:
+# Steps in order:
 #   1. Strip markdown (*, _, #, ---, bullets, numbered list prefixes)
 #   2. Remove filler phrases
 #   3. Remove filler words
@@ -63,11 +60,10 @@ _CRM_PATTERNS = [
 
 
 def clean_text(text: str | None) -> str:
-    """Port of extractive_functions.sql/clean_text.
+    """Strip markdown, filler phrases, filler words, and CRM boilerplate;
+    lowercase and normalize whitespace.
 
-    Strips markdown, filler phrases, filler words, CRM boilerplate, then
-    lowercases and normalizes whitespace. Returns empty string for None/empty
-    input (matches SQL NULL-safe STRICT behavior).
+    Returns the empty string for None or empty input.
     """
     if not text:
         return ""

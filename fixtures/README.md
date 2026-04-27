@@ -20,7 +20,7 @@ Modes:
 | `clean_text/` | `clean_text` — markdown + filler + CRM-boilerplate stripper |
 | `strip_think/` | `strip_think` — removes `<think>…</think>` blocks |
 | `tfidf/` | TF-IDF + position + length (default summarizer, 60/25/15 weighting) |
-| `keyword/` | Keyword-scored extractive (per `extractive_functions.sql`) |
+| `keyword/` | Keyword-scored extractive (query-driven sentence selection) |
 
 ## `config.json` schema
 
@@ -44,7 +44,7 @@ Some fixtures intentionally ship without an `expected.txt`. That means: **inputs
 Workflow:
 1. First impl (Python reference) lands with the scoring pipeline.
 2. Run it over every fixture missing an `expected.txt`.
-3. Human reviews each generated output against the spec (`SUMMARIZATION.md` + `extractive_functions.sql`).
+3. Human reviews each generated output against the live spec (`docs/v0-2-design.md` for v0.2, plus the Python reference implementation).
 4. Approved outputs commit as `expected.txt`. Those bytes are now the contract.
 5. Rust impl must match those bytes exactly. Any Rust mismatch is Rust's bug (or a spec bug — never "let's regenerate expected from Rust").
 

@@ -1,10 +1,14 @@
-"""Keyword-scored extractor: port of extract_sentences() from
-extractive_functions.sql.
+"""Keyword-scored extractor — query-driven sentence selection.
 
-Bonuses (additive to keyword-match count):
+Sentence score = number of keyword matches (lowercased word presence)
+plus three bonuses:
   +0.5 if sentence length > 200 chars
   +0.3 if sentence contains a digit
   +1.0 if sentence contains causal/analytical language
+
+Returns top-N sentences newline-joined. Originally ported from a
+deterministic PL/pgSQL reference (now removed); the Python and Rust
+implementations are the live spec.
 """
 import re
 
@@ -20,15 +24,16 @@ _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
 
 
 def _split_sql_style(text: str) -> list[str]:
-    """Match the SQL splitter: replace \\n+ with '. ', then split on [.!?]\\s+."""
+    """Sentence splitter for keyword mode: replace \\n+ with '. ', then split
+    on [.!?]\\s+. Keeps parity with the original PL/pgSQL reference splitter
+    (separate from `skimr.sentences.split_sentences` which the TF-IDF path uses)."""
     normalized = re.sub(r"\n+", ". ", text)
     parts = _SENTENCE_SPLIT_RE.split(normalized)
     return [p.strip() for p in parts if len(p.strip()) > 20]
 
 
 def extract_keyword(text: str, keywords: str, num_sentences: int = 10) -> str:
-    """Port of extract_sentences(input_text, keywords, num_sentences) from
-    extractive_functions.sql.
+    """Query-driven extractor.
 
     Returns top-N sentences newline-joined, ordered by score descending.
 
