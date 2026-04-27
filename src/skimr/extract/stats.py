@@ -9,14 +9,33 @@ from .._types import Stat
 from ..sentences import split_sentences
 
 
+# Numeric quantifiers are bounded ({1,15}) to defend against catastrophic
+# backtracking. Python's `re` engine is backtracking; a long unbroken digit
+# run followed by an almost-matching unit keyword can otherwise hang for
+# minutes. No real-world stat token has more than 15 digits before its unit
+# (15-digit money = $999 trillion, 15-digit count = 999 quadrillion). The
+# Rust `regex` crate is RE2-style and unaffected, but mirrors the bounds for
+# parity.
+# Numeric quantifiers are bounded ({1,15}) to defend against catastrophic
+# backtracking. Python's `re` engine is backtracking; without these
+# guards an N-digit unbroken run followed by an almost-matching unit
+# keyword could retry each (start × length × alternation) combination,
+# turning a 100K-char input into a 14-minute hang. No real-world stat
+# token has more than 15 digits before its unit (15-digit money = $999
+# trillion, 15-digit count = 999 quadrillion). Inputs with a 20+ digit
+# unbroken run on a single sentence are also skipped via _LONG_RUN_RE
+# below — that's the second line of defense and applies in both
+# languages identically. The Rust `regex` crate is RE2-style and
+# unaffected by backtracking, but mirrors both guards for byte-identical
+# parity.
 _MONEY_RE = re.compile(
-    r"(?P<value>\$\d[\d,]*(?:\.\d+)?[KMB]?)"
-    r"|(?P<value2>\d[\d,]*(?:\.\d+)?)\s*(?P<ccy>dollars?|USD|EUR|GBP|JPY|CHF)",
+    r"(?P<value>\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?)"
+    r"|(?P<value2>\d[\d,]{0,18}(?:\.\d{1,4})?)\s*(?P<ccy>dollars?|USD|EUR|GBP|JPY|CHF)",
     re.IGNORECASE,
 )
 
 _PERCENT_RE = re.compile(
-    r"(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>%|percent)",
+    r"(?P<value>\d{1,15}(?:\.\d{1,6})?)\s*(?P<unit>%|percent)",
     re.IGNORECASE,
 )
 
@@ -31,18 +50,26 @@ _DATE_RE = re.compile(
 )
 
 _DURATION_RE = re.compile(
-    r"(?P<value>\d+)[-\s]*(?P<unit>seconds?|minutes?|hours?|days?|weeks?|months?|years?)",
+    r"(?P<value>\d{1,15})[-\s]*(?P<unit>seconds?|minutes?|hours?|days?|weeks?|months?|years?)",
     re.IGNORECASE,
 )
 
 _COUNT_RE = re.compile(
-    r"(?P<value>\d[\d,]*)\s*(?P<unit>events?|users?|customers?|requests?"
+    r"(?P<value>\d{1,15}(?:,\d{3}){0,5})\s*(?P<unit>events?|users?|customers?|requests?"
     r"|per second|per minute|per hour|qps|rps|chunks?"
     r"|terabytes?|basis\s+points?"
     r"|items?|documents?|lines?|entries?|records?|files?|actions?|sections?"
     r"|tons?\s+per\s+(?:year|month|day))",
     re.IGNORECASE,
 )
+
+# Sentences containing an unbroken 20+ digit run are skipped — defends
+# against pathological inputs (encoded data leaks, base64 chunks, OCR
+# artifacts) where the bounded quantifier alone would still retry each
+# starting position. Real-world numeric tokens are well below 20 digits
+# (16-digit cards, 13-digit ISBN, 12-digit phone). Both Python and Rust
+# apply this skip identically for parity.
+_LONG_RUN_RE = re.compile(r"\d{20,}")
 
 
 def _ctx_phrase(sentence: str, start: int, end: int, window: int = 25) -> str:
@@ -330,6 +357,10 @@ def stats(text: str, *, convert_word_names: bool = False) -> tuple[Stat, ...]:
             raise ImportError(_WORDFORMS_IMPORT_ERROR) from e
 
     for sent in split_sentences(text):
+        # ReDoS guard: skip sentences with pathologically long digit runs.
+        # Mirrored in rust/src/extract/stats.rs for byte-identical parity.
+        if _LONG_RUN_RE.search(sent):
+            continue
         if convert_word_names:
             spans = _word_form_spans(sent)
             sent_sub, span_map = _substitute(sent, spans)

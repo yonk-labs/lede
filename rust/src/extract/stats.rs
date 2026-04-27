@@ -32,12 +32,20 @@ pub struct StatsOptions {
     pub convert_word_names: bool,
 }
 
+// Numeric quantifiers are bounded ({1,15}) for byte-identical parity
+// with Python's stats.py. Python's `re` engine is backtracking and
+// would otherwise hang on long unbroken digit runs; Rust's `regex`
+// crate is RE2-style and unaffected, but mirrors the bounds so the
+// same input produces the same matches in both runtimes. Sentences
+// containing a 20+ digit unbroken run are also skipped via
+// `long_run_re()` below — the second line of defense that keeps
+// behavior identical for pathological inputs.
 fn money_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
         Regex::new(concat!(
-            r"(?i)(?P<a>\$\d[\d,]*(?:\.\d+)?[KMB]?)",
-            r"|(?P<b>\d[\d,]*(?:\.\d+)?)\s*(?P<ccy>dollars?|USD|EUR|GBP|JPY|CHF)",
+            r"(?i)(?P<a>\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?)",
+            r"|(?P<b>\d[\d,]{0,18}(?:\.\d{1,4})?)\s*(?P<ccy>dollars?|USD|EUR|GBP|JPY|CHF)",
         ))
         .expect("static regex")
     })
@@ -46,7 +54,7 @@ fn money_re() -> &'static Regex {
 fn percent_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
-        Regex::new(r"(?i)(?P<v>\d+(?:\.\d+)?)\s*(?P<u>%|percent)").expect("static regex")
+        Regex::new(r"(?i)(?P<v>\d{1,15}(?:\.\d{1,6})?)\s*(?P<u>%|percent)").expect("static regex")
     })
 }
 
@@ -70,7 +78,7 @@ fn duration_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
         Regex::new(concat!(
-            r"(?i)(?P<v>\d+)[-\s]*",
+            r"(?i)(?P<v>\d{1,15})[-\s]*",
             r"(?P<u>seconds?|minutes?|hours?|days?|weeks?|months?|years?)",
         ))
         .expect("static regex")
@@ -81,7 +89,7 @@ fn count_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
         Regex::new(concat!(
-            r"(?i)(?P<v>\d[\d,]*)\s*",
+            r"(?i)(?P<v>\d{1,15}(?:,\d{3}){0,5})\s*",
             r"(?P<u>events?|users?|customers?|requests?|per second|per minute|",
             r"per hour|qps|rps|chunks?",
             r"|terabytes?|basis\s+points?",
@@ -92,11 +100,33 @@ fn count_re() -> &'static Regex {
     })
 }
 
+// Sentences containing a 20+ digit unbroken run are skipped by stats().
+// Mirrors Python's `_LONG_RUN_RE` so both runtimes drop the same
+// pathological inputs (encoded blobs, base64 chunks, OCR artifacts).
+fn long_run_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"\d{20,}").expect("static regex"))
+}
+
 fn ctx(sent: &str, start: usize, end: usize) -> String {
     let window = 25;
-    let l = start.saturating_sub(window);
-    let r = (end + window).min(sent.len());
-    sent[l..r].trim().to_string()
+    let raw_lo = start.saturating_sub(window);
+    let raw_hi = (end + window).min(sent.len());
+    // Snap to UTF-8 char boundaries — `sent[lo..hi]` panics on a multi-byte
+    // boundary, and the regex match indices are byte offsets that may land
+    // mid-codepoint when the ±25-char window crosses a non-ASCII glyph.
+    // For the lower bound, walk backwards to the previous boundary; for
+    // the upper bound, walk forwards to the next one. Both fall back to
+    // the natural string edge when no boundary is found in range, which
+    // is impossible in practice but keeps the function total.
+    let lo = (0..=raw_lo)
+        .rev()
+        .find(|&i| sent.is_char_boundary(i))
+        .unwrap_or(0);
+    let hi = (raw_hi..=sent.len())
+        .find(|&i| sent.is_char_boundary(i))
+        .unwrap_or(sent.len());
+    sent[lo..hi].trim().to_string()
 }
 
 /// Byte-oriented regex matching over a sentence. Mirrors the Python
@@ -176,6 +206,13 @@ pub fn stats(text: &str) -> Vec<Stat> {
 pub fn stats_with_options(text: &str, options: StatsOptions) -> Vec<Stat> {
     let mut out = Vec::new();
     for sent in split_sentences(text) {
+        // ReDoS guard mirrored from Python — skip sentences with a 20+
+        // digit unbroken run. Real-world numeric tokens never approach
+        // 20 digits; pathological inputs (encoded blobs, OCR artifacts)
+        // would otherwise hang Python on the bounded `\d{1,15}` retry.
+        if long_run_re().is_match(&sent) {
+            continue;
+        }
         if options.convert_word_names {
             #[cfg(feature = "wordforms")]
             {

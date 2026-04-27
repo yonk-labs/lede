@@ -183,3 +183,34 @@ def test_correlate_facts_propagates_convert_word_names():
     # With flag: should produce at least one pairing.
     pairings = correlate_facts(text, convert_word_names=True)
     assert len(pairings) >= 1
+
+
+def test_stats_long_digit_run_does_not_hang():
+    import time
+    inp = "9" * 50_000 + " tons"
+    t0 = time.perf_counter()
+    out = stats(inp)
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+    assert elapsed_ms < 100, f"ReDoS regression: stats() took {elapsed_ms:.0f}ms"
+    assert out == ()
+
+
+def test_stats_long_run_threshold_keeps_real_inputs():
+    out = stats("Counter shows 1234567890123456 events today.")
+    assert any(s.stat_type == "count" and s.unit == "events" for s in out)
+    out = stats("Counter shows 1234567890123456789 events today.")
+    assert any(s.stat_type == "count" for s in out)
+
+
+def test_stats_bounded_quantifier_matches_everyday_tokens():
+    cases = [
+        ("Revenue grew 23 percent.", "percent", "23"),
+        ("Spend hit $1.5M last quarter.", "money", "$1.5M"),
+        ("1,234,567 users active.", "count", "1,234,567"),
+        ("Plan covers 90 days.", "duration", "90 days"),
+    ]
+    for text, stat_type, value in cases:
+        out = stats(text)
+        assert any(s.stat_type == stat_type and s.value == value for s in out), (
+            f"Missing {stat_type}={value} in {out}"
+        )

@@ -1,12 +1,12 @@
 name: rust
 
+# No `paths:` filter on push — earlier the filter let rustfmt drift
+# accumulate (a docs-only commit wouldn't trigger fmt-check, then a
+# rust-touching commit would surface days of drift in one go). Run the
+# full Rust pipeline on every push to main instead; CI cost is low.
 on:
   push:
     branches: [main]
-    paths:
-      - 'rust/**'
-      - 'fixtures/**'
-      - '.github/workflows/rust.yml'
   pull_request:
     branches: [main]
 

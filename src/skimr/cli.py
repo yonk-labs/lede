@@ -13,8 +13,13 @@ from skimr import summarize, clean_text, strip_think, extract_keyword
 
 
 def _read_input(path: str | None) -> str:
+    # Force UTF-8 — relying on locale gives Windows users mojibake on
+    # non-ASCII content and breaks the byte-identical-runtime claim
+    # (the Rust CLI reads files as bytes and decodes UTF-8 explicitly).
     if path and path != "-":
-        return Path(path).read_text()
+        return Path(path).read_text(encoding="utf-8")
+    if hasattr(sys.stdin, "buffer"):
+        return sys.stdin.buffer.read().decode("utf-8")
     return sys.stdin.read()
 
 

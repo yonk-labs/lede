@@ -55,3 +55,21 @@ def test_cli_unknown_mode_errors():
     rc, out, err = _run(["--mode", "bogus"], stdin="text")
     assert rc != 0
     assert "bogus" in err.lower() or "invalid choice" in err.lower()
+
+
+def test_cli_reads_utf8_file_regardless_of_locale(tmp_path: Path, monkeypatch):
+    f = tmp_path / "utf8.txt"
+    f.write_bytes("Café résumé 1234 tons. Naïve façade.".encode("utf-8"))
+    for var in ("LC_ALL", "LANG", "PYTHONIOENCODING"):
+        monkeypatch.delenv(var, raising=False)
+    rc, out, err = _run([str(f), "--mode", "clean_text"])
+    assert rc == 0, err
+    assert "café" in out and "résumé" in out and "naïve" in out and "façade" in out
+
+
+def test_cli_reads_utf8_stdin_regardless_of_locale(monkeypatch):
+    for var in ("LC_ALL", "LANG", "PYTHONIOENCODING"):
+        monkeypatch.delenv(var, raising=False)
+    rc, out, err = _run(["--mode", "clean_text"], stdin="Café résumé.")
+    assert rc == 0, err
+    assert "café" in out and "résumé" in out

@@ -1,4 +1,35 @@
-use skimr::extract::stats::stats;
+use skimr::extract::stats::{Stat, stats};
+
+#[test]
+fn ctx_does_not_panic_on_multibyte_context() {
+    // Regression: stats() previously panicked when the regex match landed
+    // such that the ±25-byte context window cut a multi-byte UTF-8 char.
+    // Build a sentence with a non-ASCII glyph adjacent to a numeric stat
+    // so the byte slice would otherwise cross a codepoint boundary.
+    let text = "Café served 23 percent of customers — résumé attached.";
+    let facts = stats(text);
+    let pct: Vec<&Stat> = facts.iter().filter(|s| s.stat_type == "percent").collect();
+    assert_eq!(pct.len(), 1);
+    assert!(!pct[0].phrase.is_empty());
+    assert!(!pct[0].phrase.contains('\u{FFFD}'));
+}
+
+#[test]
+fn ctx_emoji_adjacent_to_stat_no_panic() {
+    let text = "🚀 Launched 5 days ago and shipped 1,234 events. 🎉";
+    let _ = stats(text);
+}
+
+#[test]
+fn long_digit_run_skipped_redos_guard() {
+    let mut s = String::new();
+    for _ in 0..50 {
+        s.push('9');
+    }
+    s.push_str(" tons");
+    let facts = stats(&s);
+    assert_eq!(facts.len(), 0, "expected sentence skip on long digit run");
+}
 
 #[test]
 fn stats_finds_money() {
