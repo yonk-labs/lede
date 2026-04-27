@@ -9,11 +9,39 @@
 [![python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![rust](https://img.shields.io/badge/rust-1.85%2B-orange)](rust/Cargo.toml)
 
-**A deterministic, zero-dependency text-shrinker for the layer in front of an LLM.**
+**skimr skims documents and pulls out the key sentences and facts.** Think of it like speed-reading: it ranks every sentence in your text by how informative it is, picks the top few, and gives them back to you in original order. The summary is **direct quotes from the document** — never paraphrased by an LLM, never made up. What you read is what was actually written.
 
-Python + Rust library + CLI. Reads a document, returns a summary in sub-millisecond time plus optional structured facts (numbers, dates, sections, entities, entity↔number correlations) that you'd otherwise extract in a second pass. Same input → same bytes from either runtime, every time.
+It also runs in **under a millisecond** on a typical document. With structured fact extraction (numbers, dates, sections, entities) attached: still under 5 ms. An LLM API call doing the same thing takes 500–5000 ms, costs money, and gives you a different summary every time you call it.
 
-### What problem this solves
+Python and Rust, byte-identical output across both runtimes, zero required dependencies on the default install path.
+
+## Quick example
+
+Here's a paragraph about [Apollo 11](https://en.wikipedia.org/wiki/Apollo_11) (945 chars):
+
+> The Apollo 11 mission landed humans on the Moon for the first time. NASA launched the Saturn V rocket from Kennedy Space Center on July 16, 1969, carrying astronauts Neil Armstrong, Buzz Aldrin, and Michael Collins. Four days later, Armstrong and Aldrin descended to the lunar surface in the Eagle lunar module while Collins remained in lunar orbit aboard the Columbia command module. Armstrong became the first person to walk on the Moon at 02:56 UTC on July 21, 1969, declaring "That's one small step for a man, one giant leap for mankind." Aldrin joined him 19 minutes later. The astronauts spent 21 hours and 36 minutes on the lunar surface, collecting 21.5 kilograms of lunar material before returning to Columbia. The mission splashed down in the Pacific Ocean on July 24, 1969, completing an 8-day journey that fulfilled President Kennedy's 1961 goal of landing a man on the Moon and returning him safely to Earth before the decade ended.
+
+```python
+from skimr import summarize
+r = summarize(text, max_length=400)
+print(r.summary)
+```
+
+> The Apollo 11 mission landed humans on the Moon for the first time. The mission splashed down in the Pacific Ocean on July 24, 1969, completing an 8-day journey that fulfilled President Kennedy's 1961 goal of landing a man on the Moon and returning him safely to Earth before the decade ended.
+
+**Time: 0.16 ms** (median of 50 runs). The summary is the topic sentence plus the closing recap — a real reader's first-and-last skim — and every word came straight out of the source.
+
+Want the facts pulled out too? One call, still under a millisecond:
+
+```python
+r = summarize(text, max_length=400, attach=["stats", "metadata"])
+r.stats             # 8 entries — dates and durations from the text
+r.metadata.dates    # ('1969', '1961')
+```
+
+**Time: 1.09 ms**. For comparison: Sumy LexRank takes ~12 ms for the same kind of summary; an LLM API takes 500–5000 ms and costs money. See [`docs/comparison.md`](docs/comparison.md) for side-by-side worked examples on real corpora.
+
+## Why this matters
 
 Modern AI apps push more text through more LLM calls than is healthy. Every long prompt, every chunk-embed, every tool result that gets re-summarized — that's tokens spent and latency burned. The 2026 enterprise narrative is that preprocessing/compression in front of the model is a 40–94% cost lever ([Maxim](https://www.getmaxim.ai/articles/reduce-llm-cost-and-latency-a-comprehensive-guide-for-2026/), [Morph](https://www.morphllm.com/llm-cost-optimization)) — but the libraries that do that preprocessing are mostly:
 
@@ -22,7 +50,7 @@ Modern AI apps push more text through more LLM calls than is healthy. Every long
 - **Single-runtime** (Sumy is Python-only; Go has `tldr`; Node has fragmentary npm packages) — you ship a different summarizer in each tier of your stack
 - **Just a summary** — when what you actually need for RAG is the summary *plus* the dates / amounts / URLs / entities you'd otherwise grep out yourself
 
-skimr is the small, boring, deterministic primitive for this hot path: **stdlib-only Python and stdlib+regex-only Rust, byte-identical output across both, sub-ms on the core path, sub-5 ms with all five structured-extract enrichments attached.**
+skimr is the small, deterministic primitive for this hot path: stdlib-only Python and stdlib+regex-only Rust, byte-identical output across both, sub-ms on the core path, sub-5 ms with all five structured-extract enrichments attached.
 
 ### Who this is for
 

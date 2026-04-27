@@ -3,6 +3,127 @@
 skimr's release notes. Tag annotations on each `vX.Y.Z` git tag are the
 canonical record; this file is a human-readable summary in one place.
 
+## [0.2.1] — 2026-04-27
+
+**Patch release — public-flip readiness.** No new API surface; this is
+a quality, robustness, and presentation pass on top of v0.2.0.
+External callers of `summarize()` / `brief()` / `skimr.extract.*` see
+the same shapes; existing fixture bytes are preserved. The v0.2 design
+contract is unchanged.
+
+### Fixed (real bugs)
+- **ReDoS in `extract.stats`** — Python `re` engine took **224 s** on a
+  50 K-digit input followed by a near-unit keyword. Numeric quantifiers
+  bounded to `\d{1,15}` and sentences with 20+ digit unbroken runs
+  skipped. Now **1.5 ms** on the same input. Mirrored in Rust for
+  parity. Two new regression tests in each language.
+- **Rust `extract::stats::ctx()` UTF-8 panic and Python ↔ Rust drift** —
+  the ±25-char context window was 25 *bytes* in Rust vs 25 *chars* in
+  Python. Em-dashes / accented Latin / emoji adjacent to a stat token
+  pushed the two outputs 2+ bytes apart and could panic Rust on a
+  multi-byte boundary. Now char-counted on both sides; the new
+  per-fixture parity walker enforces this.
+- **Python CLI mojibake on non-UTF-8 locales** — `Path.read_text()`
+  picked up the OS default encoding (cp1252 on Windows). Forced
+  UTF-8 for both file and stdin reads; restores parity with the
+  Rust CLI.
+- **Rust CLI swallowed stdout write errors** — `let _ =` ate
+  `BrokenPipe` and other I/O errors. Now `BrokenPipe` (user piped
+  into `head`) returns 0; other errors propagate to non-zero exit.
+- **Sentence splitter NUL panic** — Rust used `assert!` on the
+  internal sentinel byte; PDF-extracted text and ETL outputs can
+  contain NULs. Now silently stripped in both languages.
+- **Sentence splitter "no." handling** — the unconditional `"no"`
+  abbreviation merged "He said no. Then he left." into one sentence.
+  Now context-sensitive: `"No. 5"` is protected; bare `"no."` is not.
+- **Coverage paragraph mapping** — substring-based "first containing
+  paragraph wins" biased coverage on docs with template/FAQ-style
+  repeated sentences. Now occurrence-counted: K-th occurrence → K-th
+  matching paragraph.
+- **Coverage join separator** — was `"\n"` while default and legacy
+  modes used `" "`. Now `" "` in all three for byte-stability across
+  modes.
+- **`extract_keyword` empty-keys footgun** — silent `LEFT(text, 2000)`
+  chop is gone; empty/all-filtered keywords now return `""` in both
+  languages.
+- **`metadata.dates` bare-years claim** — `extract.metadata` regex
+  now matches `(?:19|20)\d{2}` years to match the doc and parallel
+  `extract.stats._DATE_RE`.
+- **Four `.expect("no NaN")` panic sites in Rust** — replaced with
+  `.unwrap_or(Ordering::Equal)`. NaN in pipeline scores now degrades
+  to deterministic Equal rather than panicking the worker.
+- **Rust 1.93 `clippy::cast_sign_loss` regression in `brief.rs`** —
+  allow-listed with a justification comment; the cast is provably
+  non-negative.
+
+### Added
+- **Per-fixture v0.2 parity walker** — 70 fixtures (7 primitives × 10
+  corpora) byte-identical between Python and Rust. Enforces SC-C on
+  the v0.2 differentiator surface, not just the v0.1 four-function
+  contract. Caught the `ctx()` char-vs-byte drift above.
+- **Edge-case fixtures** (`fixtures/edge_cases/`) — multibyte UTF-8,
+  CP1252 smart quotes, 50K-digit ReDoS bait, ~1 MB document. 50
+  parametrized tests across 10 primitives × 5 fixtures.
+- **CI matrix expansion** — `tests` workflow installs `[dev,textrank,
+  wordforms,yake]` and verifies each extra path. New `skimr-spacy`
+  workflow runs the 17 companion-package tests + downloads the
+  `en_core_web_sm` model. Both `cargo audit` and `pip-audit` run on
+  every push (warn-only on findings).
+- **`brief()` explicit `convert_word_names` kwarg** — Python and Rust
+  now accept an explicit override (`None` = auto-detect for
+  back-compat; `True` / `False` locks parity across runtimes
+  regardless of which extras are installed).
+- **`docs/comparison.md`** — worked side-by-side examples of skimr
+  vs Sumy LexRank/TextRank/LSA vs LLM API on real corpora, with
+  measured timings from the benchmark suite.
+- **`docs/v0-2-design.md` + `docs/skimr-spacy-integration.md`** —
+  promoted from buried `docs/superpowers/specs/` paths. Same content,
+  cleaner public-facing location.
+- **Status badges in README** — 4 CI workflow badges + release +
+  license + Python 3.10+ + Rust 1.85+.
+- **Plain-language README opening + Apollo 11 quick example** —
+  replaces the academic "deterministic, zero-dependency
+  text-shrinker" framing with a concrete demonstration.
+- **`MAINTAINERS.md`** — single-maintainer disclosure with bus-factor
+  honesty + decision authority + release cadence.
+- **`SECURITY.md`** — private report path + threat model scope.
+- **`CONTRIBUTING.md`** — quick-start + parity contract + style
+  notes + CI overview.
+- **`examples/` directory** — 7 runnable scripts covering quickstart,
+  the `attach=` RAG-prep API, `brief()`, each extract primitive
+  standalone, paragraph-chunked pipeline for long docs, the
+  `skimr-spacy` companion, and the `[wordforms]` extra. CI smoke-runs
+  the no-extras-needed ones on every push.
+- **Heading-pattern shared helper** — heading regexes live in
+  `_headings.{py,rs}` only; previously-duplicated 70-line copies in
+  `extract/outline.{py,rs}` deleted.
+- **Scaling notes in `docs/REFERENCE.md`** — typical-document p50
+  table, large-document warnings, recommended chunking pattern for
+  >100 KB inputs.
+- **GitHub Release object** for `v0.2.0`.
+
+### Changed
+- **`networkx` pin** — `networkx>=3.0,<3.5` because `skimr.textrank`
+  uses `_pagerank_python` (private API; underscore prefix). Drop the
+  upper bound when textrank is rewritten against the public API.
+- **`pyproject.toml` Development Status classifier** —
+  `3 - Alpha` → `4 - Beta`. 427 tests, tagged release, CI green is
+  past alpha.
+
+### Removed (transient or pre-skimr)
+- `docs/RESUME.md` — agent session-state.
+- `skill-output/` — research, audit, and session artifacts; now
+  gitignored.
+- `summarize-output.py` — original Python prototype, predates skimr.
+- `extractive-performance.md` — pre-skimr benchmark notes (superseded
+  by `benchmarks/quality/matrix-2026-04-26.md`).
+- `SUMMARIZATION.md`, `extractive_functions.{sql,md}` — original
+  algorithmic spec and PL/pgSQL reference. Provenance comments in
+  source updated to describe the algorithm directly without name-
+  checking the now-removed files.
+- `docs/upstream-context-yonk-taskstash.md` — wrong project's context.
+- `docs/superpowers/plans/` — executed implementation plans.
+
 ## [0.2.0] — 2026-04-26
 
 **v0.2 is the RAG-prep primitive.** A single `summarize(attach=…)` call

@@ -48,11 +48,9 @@ LLMs win on **rewriting quality**: they fuse ideas across sentences, drop redund
 
 ### skimr/tfidf default — 0.45 ms p50
 
-```
-Ticket #44812 — Ingest job hangs after upgrade to chunkshop 0.2.0
-Reporter: jamie.l@acme.example
-Priority: P2 We upgraded chunkshop from 0.1.6 to 0.2.0 last Friday and since then our nightly ingest job has been hanging indefinitely on the step between chunking and embedding. Resolution: Caused by default embedder precision change in 0.2.0 triggering a HuggingFace model download on a network-restricted batch node. Customer pre-seeding int8 weights on shared cache as a follow-up.
-```
+> Ticket #44812 — Ingest job hangs after upgrade to chunkshop 0.2.0
+> Reporter: jamie.l@acme.example
+> Priority: P2 We upgraded chunkshop from 0.1.6 to 0.2.0 last Friday and since then our nightly ingest job has been hanging indefinitely on the step between chunking and embedding. Resolution: Caused by default embedder precision change in 0.2.0 triggering a HuggingFace model download on a network-restricted batch node. Customer pre-seeding int8 weights on shared cache as a follow-up.
 
 482 chars. Hits the metadata header, the symptom, the root cause, and the resolution. No re-statement of the workaround details.
 
@@ -74,25 +72,19 @@ The structured fields are what you'd otherwise need a second extraction pass to 
 
 ### sumy/LexRank — 12.60 ms p50
 
-```
-If your ingest box has no outbound internet during nightly windows — a common setup for air-gapped batch nodes — the download hangs on the socket. Short term: add EMBEDDING_CACHE_DIR to your YAML pointing at a shared NFS path, run the model once on a box with egress, and the batch node will read from cache. Resolution: Caused by default embedder precision change in 0.2.0 triggering a HuggingFace model download on a network-restricted batch node.
-```
+> If your ingest box has no outbound internet during nightly windows — a common setup for air-gapped batch nodes — the download hangs on the socket. Short term: add EMBEDDING_CACHE_DIR to your YAML pointing at a shared NFS path, run the model once on a box with egress, and the batch node will read from cache. Resolution: Caused by default embedder precision change in 0.2.0 triggering a HuggingFace model download on a network-restricted batch node.
 
 449 chars. LexRank picks denser, higher-signal sentences from the body — but loses the ticket header (no `Ticket #44812`, no reporter, no priority), and includes a workaround sentence that the support engineer wrote, not the reporter.
 
 ### sumy/TextRank — 11.74 ms p50
 
-```
-Short term: add EMBEDDING_CACHE_DIR to your YAML pointing at a shared NFS path, run the model once on a box with egress, and the batch node will read from cache. Long term: set embedder.precision to fp32 in the YAML to pin to the model weights you already have downloaded from 0.1.6, or set embedder.allow_download to false to surface a fast failure instead of a silent hang. Pinned precision to fp32 for now, set allow_download to false, and opened an internal ticket with our SRE team to pre-seed the int8 model onto the shared cache so we can take advantage of the memory savings next week.
-```
+> Short term: add EMBEDDING_CACHE_DIR to your YAML pointing at a shared NFS path, run the model once on a box with egress, and the batch node will read from cache. Long term: set embedder.precision to fp32 in the YAML to pin to the model weights you already have downloaded from 0.1.6, or set embedder.allow_download to false to surface a fast failure instead of a silent hang. Pinned precision to fp32 for now, set allow_download to false, and opened an internal ticket with our SRE team to pre-seed the int8 model onto the shared cache so we can take advantage of the memory savings next week.
 
 593 chars. TextRank also goes deep into the workarounds without the ticket framing. The closing sentence is the customer's resolution, which is good context.
 
 ### sumy/LSA — 11.26 ms p50
 
-```
-Tried reverting to 0.1.6 and the job completes in 22 minutes as usual. Could you confirm whether your batch box has egress to huggingface.co during the nightly window? Short term: add EMBEDDING_CACHE_DIR to your YAML pointing at a shared NFS path, run the model once on a box with egress, and the batch node will read from cache.
-```
+> Tried reverting to 0.1.6 and the job completes in 22 minutes as usual. Could you confirm whether your batch box has egress to huggingface.co during the nightly window? Short term: add EMBEDDING_CACHE_DIR to your YAML pointing at a shared NFS path, run the model once on a box with egress, and the batch node will read from cache.
 
 329 chars. LSA picks fewer but more focused sentences. Loses the ticket header and the resolution.
 
@@ -119,17 +111,13 @@ But:
 
 **skimr/tfidf default — 0.37 ms p50**
 
-```
-The European Central Bank announced on Tuesday that it would hold interest rates steady despite mounting pressure from member states calling for cuts. The euro strengthened against the dollar by 0.4 percent in the hour following the announcement, while European equities gave back early gains to close slightly lower. Bond yields rose across the curve, with the German two-year climbing 8 basis points. Reconciling those views will require more data than the bank currently has.
-```
+> The European Central Bank announced on Tuesday that it would hold interest rates steady despite mounting pressure from member states calling for cuts. The euro strengthened against the dollar by 0.4 percent in the hour following the announcement, while European equities gave back early gains to close slightly lower. Bond yields rose across the curve, with the German two-year climbing 8 basis points. Reconciling those views will require more data than the bank currently has.
 
 478 chars. Lede + market reaction + closing analyst sentence. Misses the analyst-split detail (Goldman vs Morgan Stanley) and the member-state reactions.
 
 **sumy/TextRank — 11.47 ms p50**
 
-```
-The decision reflects the bank's continued concern about inflation in the services sector, which has remained stubbornly above target even as goods inflation has cooled. Hawkish members have pointed to the risk of a renewed inflation surge if services prices do not continue to cool. Doves argue that holding too long will deepen the recession risk and push inflation below target by the end of the year.
-```
+> The decision reflects the bank's continued concern about inflation in the services sector, which has remained stubbornly above target even as goods inflation has cooled. Hawkish members have pointed to the risk of a renewed inflation surge if services prices do not continue to cool. Doves argue that holding too long will deepen the recession risk and push inflation below target by the end of the year.
 
 TextRank skips the lede and goes straight to the analytical context. Better for "why did this happen" but loses the headline fact.
 

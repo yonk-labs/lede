@@ -15,7 +15,7 @@ from skimr.keyword import extract_keyword
 from skimr._types import SummaryResult
 from skimr.extract._backends import set_default_backend
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __all__ = [
     "summarize",
     "brief",
