@@ -39,11 +39,13 @@ def test_extract_keyword_empty_input_returns_empty():
     assert extract_keyword("", "pricing", num_sentences=3) == ""
 
 
-def test_extract_keyword_no_keyword_match_returns_first_2000_chars():
+def test_extract_keyword_empty_keywords_returns_empty():
     text = "A short sentence. Another one."
-    # All keywords filtered (<3 chars) — returns LEFT(input, 2000)
-    result = extract_keyword(text, "x y", num_sentences=3)
-    assert result == text[:2000]
+    # All tokens filtered (<3 chars) → empty string. Diverges from the SQL
+    # reference's LEFT(text, 2000) silent chop, which was a footgun.
+    assert extract_keyword(text, "x y", num_sentences=3) == ""
+    assert extract_keyword(text, "", num_sentences=3) == ""
+    assert extract_keyword(text, "   ", num_sentences=3) == ""
 
 
 def test_extract_keyword_fixture_pricing_notes():

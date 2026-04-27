@@ -262,6 +262,39 @@ Install with `pip install skimr[EXTRA]`:
 - **No LLM calls in the core.** Never. Neural backends live in `skimr-spacy` (companion) or future `skimr-neural` (hypothetical), not in `skimr` itself.
 - **Sub-millisecond to low-ms latency** for all regex-backend primitives on typical documents (≤10 KB). See `benchmarks/quality/extraction-YYYY-MM-DD.md` for per-primitive timing.
 
+## Scaling notes
+
+skimr is designed for the **per-chunk hot path** of a RAG / agent pipeline: typical inputs are sentence- to paragraph-sized (a few hundred to a few thousand chars). The benchmark suite at `benchmarks/quality/matrix-2026-04-26.md` reports across 10 corpora ranging 0.5 KB – 3 KB:
+
+| method (regex backend) | avg p50 | max p50 |
+|---|---|---|
+| `summarize` (Python, default mode) | 0.42 ms | 0.62 ms |
+| `summarize` (Rust, default mode) | 0.13 ms | 0.19 ms |
+| `summarize(attach=…all 5…)` (Python) | 2.40 ms | 3.80 ms |
+| Sumy LexRank/TextRank/LSA (Python) | 11–12 ms | 14–17 ms |
+
+### Larger documents
+
+Input handling is linear in document length on the regex backend, but two non-linear behaviors are worth knowing:
+
+- **`extract.phrases`** counts repeated multi-word n-grams. Total work is `O(n)` in token count, but for a document with a long unbroken non-stop run the candidate-ngram set can grow large. Real English text breaks runs naturally; pathological inputs (URL slugs concatenated, base64-encoded blobs without whitespace) can spike memory.
+- **`extract.stats`** with `convert_word_names=True` runs `text2num` over every sentence; `text2num` does its own scan + parse, adding linear-in-tokens overhead per sentence. The default flag-off path is the regex-only fast path.
+
+### Documents with pathological inputs
+
+ReDoS is bounded structurally:
+
+- All numeric quantifiers in `extract.stats` regexes are bounded `\d{1,15}`.
+- Sentences containing a 20+ digit unbroken run are skipped entirely (mirrored Python ↔ Rust). Real-world numeric tokens are well below this — 16-digit cards, 13-digit ISBN, 12-digit phone.
+- A 100K-digit input that previously hung Python for 14 minutes now completes in ≤ 20 ms.
+
+### Recommended chunking for very long inputs
+
+For documents > 100 KB:
+
+- Split at paragraph boundaries (`\n\n+`), feed each chunk through `summarize`/`brief`, then concatenate. skimr is designed for this — that's exactly the chunkshop integration shape, see [`integration-memo.md`](integration-memo.md).
+- Don't paste a multi-megabyte string and expect a 500-char summary to be useful. Pre-chunk first; skimr is a primitive, not a document loader.
+
 ---
 
 ## Versioning

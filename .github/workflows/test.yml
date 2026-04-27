@@ -49,6 +49,17 @@ jobs:
           assert isinstance(out, tuple)
           print('yake: OK')
           "
+      - name: Smoke-test all examples in examples/
+        run: |
+          # Skip examples that require companion packages we don't install in
+          # this job (06_ needs skimr-spacy; 07_ needs [wordforms]).
+          for f in examples/01_quickstart.py examples/02_rag_prep.py \
+                   examples/03_brief.py examples/04_extract_primitives.py \
+                   examples/05_chunked_pipeline.py examples/07_wordforms_numbers.py; do
+            echo "::group::$f"
+            python "$f"
+            echo "::endgroup::"
+          done
       - name: Dependency vulnerability audit (pip-audit)
         # Ignores findings that block on dev-only deps (pytest, etc.) until
         # they're explicitly upgraded; runtime deps must come up clean.

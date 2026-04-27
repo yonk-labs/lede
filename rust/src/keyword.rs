@@ -86,9 +86,9 @@ pub fn extract_keyword(text: &str, keywords: &str, num_sentences: usize) -> Stri
         .filter(|s| s.chars().count() > 2)
         .collect();
     if kw_set.is_empty() {
-        // Python: text[:2000] — slice by code points, not bytes.
-        let end = text.char_indices().nth(2000).map_or(text.len(), |(i, _)| i);
-        return text[..end].to_string();
+        // Mirrors Python: empty/all-filtered keywords return "" rather than the
+        // SQL reference's silent LEFT(text, 2000) chop, which was a footgun.
+        return String::new();
     }
     let keyword_list: Vec<String> = kw_set.into_iter().collect();
 

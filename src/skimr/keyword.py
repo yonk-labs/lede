@@ -31,6 +31,12 @@ def extract_keyword(text: str, keywords: str, num_sentences: int = 10) -> str:
     extractive_functions.sql.
 
     Returns top-N sentences newline-joined, ordered by score descending.
+
+    When ``keywords`` is empty or contains only tokens of length ≤ 2,
+    returns ``""``. The SQL reference function returned ``LEFT(text, 2000)``
+    in this case; we return an empty string instead because a silent
+    2000-char chop looked like real output and was a real footgun. Use
+    ``summarize()`` if you want a query-less summary.
     """
     if not text:
         return ""
@@ -42,8 +48,7 @@ def extract_keyword(text: str, keywords: str, num_sentences: int = 10) -> str:
         if len(w.strip()) > 2
     })
     if not keyword_list:
-        # SQL: returns LEFT(input_text, 2000) when no valid keywords
-        return text[:2000]
+        return ""
 
     sentences = _split_sql_style(text)
     if not sentences:

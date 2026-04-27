@@ -40,10 +40,12 @@ fn empty_input_returns_empty() {
 }
 
 #[test]
-fn no_valid_keywords_returns_left_2000() {
+fn empty_or_filtered_keywords_returns_empty() {
     let text = "A short sentence. Another one.";
-    let result = extract_keyword(text, "x y", 3);
-    assert_eq!(result, text);
+    // All tokens filtered (<3 chars) → empty (no longer chops to text[..2000]).
+    assert_eq!(extract_keyword(text, "x y", 3), "");
+    assert_eq!(extract_keyword(text, "", 3), "");
+    assert_eq!(extract_keyword(text, "   ", 3), "");
 }
 
 #[test]
