@@ -10,9 +10,9 @@ bus-factor disclosure and review pace.
 git clone git@github.com:yonk-labs/skimr.git
 cd skimr
 pip install -e ".[dev]"
-.venv/bin/python -m pytest -q                                # 181 tests
+.venv/bin/python -m pytest -q                                # ~230 tests
 cd packages/skimr-spacy && ../../.venv/bin/python -m pytest  # 17 spaCy tests
-cd rust && cargo test                                        # 116 tests
+cd rust && cargo test                                        # ~120 tests (default features)
 cd rust && cargo clippy --all-targets -- -D warnings         # must be clean
 cd rust && cargo fmt --check                                 # must be clean
 ```

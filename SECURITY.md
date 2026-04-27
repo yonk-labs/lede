@@ -57,3 +57,19 @@ narrow:
 
 Once a fix lands, the original reporter is credited in the release notes
 unless they prefer to stay anonymous.
+
+## Known transitive dependency notes
+
+- **`rand 0.7.3` `unsound` (RUSTSEC-2026-0097), via `text2num → phf 0.8 →
+  phf_macros → phf_generator → rand`** — only present when the
+  `wordforms` cargo feature is enabled (Rust) or the `[wordforms]`
+  extra is installed (Python's bound `text2num` crate). The advisory's
+  trigger is "custom logger using `rand::rng()`"; skimr does not call
+  `rand` directly and ships no custom logger, so practical exposure on
+  the `wordforms` path is effectively zero. `cargo audit` runs warn-only
+  in CI and surfaces this in the build log. Will resolve when an
+  upstream `text2num` version pulls a `phf 0.11+` chain.
+
+CI runs `cargo audit` (Rust) and `pip-audit --strict` (Python) on every
+push, both warn-only — they'll flag a fresh advisory in a transitive
+dep without blocking the build, and triage happens in the next release.

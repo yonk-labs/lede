@@ -29,7 +29,7 @@ print(r.summary)
 
 > The Apollo 11 mission landed humans on the Moon for the first time. The mission splashed down in the Pacific Ocean on July 24, 1969, completing an 8-day journey that fulfilled President Kennedy's 1961 goal of landing a man on the Moon and returning him safely to Earth before the decade ended.
 
-**Time: 0.16 ms** (median of 50 runs). The summary is the topic sentence plus the closing recap — a real reader's first-and-last skim — and every word came straight out of the source.
+**Time: ~0.15 ms** (Python, p50 of 50 runs on this paragraph). The summary is the topic sentence plus the closing recap — a real reader's first-and-last skim — and every word came straight out of the source. (Python p50 across the [10-corpus benchmark](benchmarks/quality/matrix-2026-04-26.md) is **0.42 ms**; Rust's is **0.13 ms**. This 945-char Apollo paragraph is on the smaller end, hence the sub-0.2 ms reading.)
 
 Want the facts pulled out too? One call, still under a millisecond:
 
@@ -39,7 +39,7 @@ r.stats             # 8 entries — dates and durations from the text
 r.metadata.dates    # ('1969', '1961')
 ```
 
-**Time: 1.09 ms**. For comparison: Sumy LexRank takes ~12 ms for the same kind of summary; an LLM API takes 500–5000 ms and costs money. See [`docs/comparison.md`](docs/comparison.md) for side-by-side worked examples on real corpora.
+**Time: ~0.3 ms** with both attachments (Python). For comparison: Sumy LexRank takes ~12 ms for the same kind of summary; an LLM API takes 500–5000 ms and costs money. See [`docs/comparison.md`](docs/comparison.md) for side-by-side worked examples on real corpora.
 
 ## Why this matters
 

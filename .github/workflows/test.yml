@@ -61,9 +61,12 @@ jobs:
             echo "::endgroup::"
           done
       - name: Dependency vulnerability audit (pip-audit)
-        # Ignores findings that block on dev-only deps (pytest, etc.) until
-        # they're explicitly upgraded; runtime deps must come up clean.
+        # Warn-only on findings — surface them in the log without breaking the
+        # build, so a transitive dep getting a fresh advisory doesn't block
+        # unrelated work. Triage in the next regular release. If you need to
+        # suppress a specific advisory, add `--ignore-vuln <GHSA-id>` here AND
+        # leave a comment explaining what's suppressed and when to revisit.
         run: |
           python -m pip install pip-audit
-          pip-audit --strict --ignore-vuln GHSA-rrqc-c2jx-6jgv 2>&1 || \
+          pip-audit --strict 2>&1 || \
             (echo "::warning::pip-audit reported issues — see job log" && true)

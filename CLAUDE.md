@@ -7,7 +7,7 @@ config.
 
 ## Status
 
-`v0.2.0` shipped 2026-04-26. All four CI workflows (`tests`,
+`v0.2.1` shipped 2026-04-27. All four CI workflows (`tests`,
 `zero-deps`, `rust`, `skimr-spacy`) green on `main`.
 
 ## Authoritative docs in priority order
@@ -32,7 +32,7 @@ config.
 | `rust/src/` | Rust mirror. `Mode::{Default, Legacy, Coverage}` selects the scorer. Optional `wordforms` cargo feature binds to the same `text2num` crate as Python's `[wordforms]` extra → byte-identical parity. |
 | `packages/skimr-spacy/` | Python companion package. Provides `extract_entities`, `spacy_metadata`, `spacy_phrases`, `spacy_correlate_facts`. Importing it registers backends as a side effect. |
 | `fixtures/` | Language-agnostic input/output corpus. **Every change to a primitive must keep the parity walker green** (`rust/tests/fixtures.rs`). Two test gates: `every_fixture_byte_identical` (v0.1 surface) and `v0_2_extract_primitives_byte_identical` (v0.2 surface, regenerated via `python benchmarks/gen_parity_fixtures.py`). |
-| `tests/` + `rust/tests/` | Python and Rust test suites. 231 + 17 + 116 + 121 tests. |
+| `tests/` + `rust/tests/` | Python and Rust test suites. ~230 Python core + 17 skimr-spacy + 117 Rust default + 125 Rust `--features wordforms`. Run any of them locally; CI runs all four on every push. |
 | `benchmarks/` | Quality eval (A1 rubric + A2 ROUGE + A4 LLM-judge), extraction eval (gold-vs-primitive precision/recall), latency matrix. |
 | `examples/` | 7 runnable scripts smoke-tested by CI. |
 
@@ -64,8 +64,8 @@ config.
 cd packages/skimr-spacy && ../../.venv/bin/python -m pytest -q    # 17 tests
 
 # Rust core
-cd rust && cargo test                                              # 116 tests, default features
-cd rust && cargo test --features wordforms                         # 121 tests, with wordforms
+cd rust && cargo test                                              # ~120 tests, default features
+cd rust && cargo test --features wordforms                         # ~125 tests, with wordforms
 cd rust && cargo clippy --all-targets -- -D warnings              # must be clean
 cd rust && cargo fmt --check                                       # must be clean
 
