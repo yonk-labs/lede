@@ -87,34 +87,52 @@ fn strip_dash_metadata_re() -> &'static Regex {
     RE.get_or_init(|| Regex::new(r"\s+[\x{2014}\x{2013}\-]\s+.*$").expect("static regex"))
 }
 
-/// True when `sentence` matches any heading pattern.
+// Markdown depth helper — `## Section` returns 2, etc.
+fn md_depth_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^\s*(#+)\s+").expect("static regex"))
+}
+
+/// True when `sentence` matches a structural heading pattern.
+///
+/// Narrower than [`is_heading`] — drops the "< 4 content tokens"
+/// fallback so short body sentences don't masquerade as headings.
+/// Used by `extract::outline` to discover real document structure
+/// rather than fall back on the heuristic short-token rule.
 #[must_use]
-pub fn is_heading(sentence: &str) -> bool {
-    let trimmed = sentence.trim();
-    if trimmed.is_empty() {
+pub fn is_structural_heading(sentence: &str) -> bool {
+    if sentence.trim().is_empty() {
         return false;
     }
-    if md_heading_re().is_match(sentence) {
+    md_heading_re().is_match(sentence)
+        || allcaps_re().is_match(sentence)
+        || short_label_re().is_match(sentence)
+        || bare_title_re().is_match(sentence)
+        || numbered_section_re().is_match(sentence)
+        || title_with_dash_re().is_match(sentence)
+}
+
+/// Markdown heading depth (`#` = 1, `##` = 2, …). Returns 1 for non-markdown.
+#[must_use]
+pub fn md_depth(heading_line: &str) -> usize {
+    md_depth_re()
+        .captures(heading_line)
+        .and_then(|caps| caps.get(1))
+        .map_or(1, |m| m.as_str().len())
+}
+
+/// True when `sentence` matches any heading pattern (incl. the heuristic
+/// "< 4 content tokens" fallback).
+#[must_use]
+pub fn is_heading(sentence: &str) -> bool {
+    if is_structural_heading(sentence) {
         return true;
     }
-    if allcaps_re().is_match(sentence) {
-        return true;
-    }
-    if short_label_re().is_match(sentence) {
-        return true;
-    }
-    if bare_title_re().is_match(sentence) {
-        return true;
-    }
-    if numbered_section_re().is_match(sentence) {
-        return true;
-    }
-    if title_with_dash_re().is_match(sentence) {
-        return true;
+    if sentence.trim().is_empty() {
+        return false;
     }
     // Fewer than 4 content-word tokens (rough "title-like" filter).
-    let toks = content_word_re().find_iter(sentence).count();
-    toks < 4
+    content_word_re().find_iter(sentence).count() < 4
 }
 
 /// Extract the name portion of a heading, or None if not a heading or empty.

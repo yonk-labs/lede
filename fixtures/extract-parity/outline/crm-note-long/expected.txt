@@ -1,0 +1,9 @@
+2 | Technical Deep-Dive: Johnson Education Co | Detailed walkthrough of our Proxy capabilities with Johnson Education Co's engineering and business teams.
+3 | Call Summary | Main focus was understanding how our Proxy handles data management challenges across their existing fleet.
+3 | Competitive Landscape | Competition includes Cerner as the incumbent and Medidata as another active evaluation.
+3 | Technical Concerns | Their SRE team uses Prometheus and they expect first-class metrics.
+3 | Commercial Concerns | We need to structure a phased rollout or they'll defer the decision.
+3 | Next Steps | - Send technical migration playbook by Friday
+- Schedule follow-up with their SRE team next week
+- Prepare phased pricing proposal with CFO by Monday
+- Confirm Q3 deployment timeline in writing

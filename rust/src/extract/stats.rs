@@ -109,23 +109,29 @@ fn long_run_re() -> &'static Regex {
 }
 
 fn ctx(sent: &str, start: usize, end: usize) -> String {
-    let window = 25;
-    let raw_lo = start.saturating_sub(window);
-    let raw_hi = (end + window).min(sent.len());
-    // Snap to UTF-8 char boundaries — `sent[lo..hi]` panics on a multi-byte
-    // boundary, and the regex match indices are byte offsets that may land
-    // mid-codepoint when the ±25-char window crosses a non-ASCII glyph.
-    // For the lower bound, walk backwards to the previous boundary; for
-    // the upper bound, walk forwards to the next one. Both fall back to
-    // the natural string edge when no boundary is found in range, which
-    // is impossible in practice but keeps the function total.
-    let lo = (0..=raw_lo)
-        .rev()
-        .find(|&i| sent.is_char_boundary(i))
-        .unwrap_or(0);
-    let hi = (raw_hi..=sent.len())
-        .find(|&i| sent.is_char_boundary(i))
-        .unwrap_or(sent.len());
+    // Window is measured in CHARS (Unicode scalar values), not bytes — must
+    // match Python's `sentence[start-25:end+25]` which is also char-indexed.
+    // A naive byte-based window puts Python and Rust 2+ bytes out of phase
+    // whenever the ±25 region crosses a multi-byte glyph (em-dash, accented
+    // letter, emoji), and the parity walker catches that drift.
+    const WINDOW: usize = 25;
+
+    // `start` and `end` are byte offsets into `sent`. Convert each to char
+    // counts, expand by WINDOW chars, then convert back to byte offsets.
+    let prefix_char_count = sent[..start].chars().count();
+    let lo_char_count = prefix_char_count.saturating_sub(WINDOW);
+    let lo = sent.char_indices().nth(lo_char_count).map_or(0, |(i, _)| i);
+
+    // For the upper bound, count chars up to and including `end`, add
+    // WINDOW more chars, clamp to total char count of `sent`.
+    let total_chars = sent.chars().count();
+    let end_char_count = sent[..end].chars().count();
+    let hi_char_count = (end_char_count + WINDOW).min(total_chars);
+    let hi = sent
+        .char_indices()
+        .nth(hi_char_count)
+        .map_or(sent.len(), |(i, _)| i);
+
     sent[lo..hi].trim().to_string()
 }
 

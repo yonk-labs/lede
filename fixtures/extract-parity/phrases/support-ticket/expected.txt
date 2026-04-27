@@ -1,0 +1,15 @@
+ingest job
+day thanks
+support kai day
+default embedder
+fastembed onnx
+int model
+model weights
+ingest box
+batch nodes
+reporter day
+batch node
+set embedder
+embedder precision
+allow download false
+shared cache

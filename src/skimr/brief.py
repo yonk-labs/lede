@@ -44,6 +44,7 @@ def brief(
     overview_max: float = 0.35,
     max_facts: int = 10,
     include_phrases: bool = False,
+    convert_word_names: bool | None = None,
     format: str = "string",
 ) -> str | dict:
     """Produce an at-a-glance brief of a document.
@@ -61,6 +62,14 @@ def brief(
         max_facts: cap on key-facts sentences. Default 10.
         include_phrases: when True, append a key-phrases section (regex
             backend). Default False.
+        convert_word_names: forward to ``key_facts()`` so spelled-out
+            numbers ("five thousand documents") surface in the
+            key-facts section. ``None`` (default) auto-detects whether
+            ``text2num`` is importable. Pass ``True`` / ``False``
+            explicitly to lock the behavior — useful when you need
+            output to match a Rust binary built with or without the
+            ``wordforms`` cargo feature regardless of which Python
+            extras happen to be installed.
         format: output shape. One of:
             - ``"string"`` (default) — plain text with section labels.
             - ``"markdown"`` — ``##`` headers + bullet lists.
@@ -73,13 +82,15 @@ def brief(
     Raises:
         ValueError: when ``format`` is not one of the three supported values.
 
-    Notes:
-        When ``skimr[wordforms]`` is installed, ``brief()`` auto-enables
-        word-form number conversion on its internal ``key_facts()`` call so
-        spelled-out numbers ("five thousand documents", "twelve lines")
-        surface in the key-facts section. No flag needed — detection is
-        at import time. In Rust, use ``--features wordforms`` for the
-        same behavior.
+    Notes on cross-runtime parity:
+        Python's auto-detect (``convert_word_names=None``) is at import
+        time; Rust's equivalent is the compile-time ``wordforms`` cargo
+        feature. The two can disagree silently when (a) the Python
+        process has ``text2num`` installed for an unrelated tool and
+        (b) the Rust binary was built without ``--features wordforms``
+        — same input, different brief bytes. Pass an explicit
+        ``convert_word_names=True`` (or ``False``) on both sides to
+        lock parity.
     """
     # Clamp overview_max to sane fraction bounds.
     overview_max = max(_OVERVIEW_MIN_FRAC, min(_OVERVIEW_MAX_FRAC, overview_max))
@@ -89,10 +100,11 @@ def brief(
     overview_result = summarize(text, max_length=budget)
     overview_text = overview_result.summary.rstrip()
 
+    use_wordforms = _HAS_WORDFORMS if convert_word_names is None else convert_word_names
     facts = key_facts(
         text,
         max_facts=max_facts,
-        convert_word_names=_HAS_WORDFORMS,
+        convert_word_names=use_wordforms,
     )
 
     sections = toc(text)

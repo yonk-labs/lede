@@ -1,0 +1,2 @@
+money | $120K | usd | Original quote was $120K/year but procurement pus | Original quote was $120K/year but procurement pushed back hard.
+duration | 30 days | day | Decision expected within 30 days. | Decision expected within 30 days.

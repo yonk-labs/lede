@@ -74,7 +74,13 @@ fn no_split_on_lowercase_after_period() {
 }
 
 #[test]
-#[should_panic(expected = "reserved sentinel")]
-fn nul_sentinel_in_input_panics() {
-    let _ = split_sentences("before\x00after");
+fn nul_sentinel_in_input_is_silently_stripped() {
+    // Earlier behavior panicked; AAT-019 changed this to silent strip
+    // because NUL bytes can show up in PDF-extracted text and an
+    // aborting splitter is hostile.
+    let out = split_sentences("before\x00after. Second sentence.");
+    assert_eq!(
+        out,
+        vec!["beforeafter.".to_string(), "Second sentence.".to_string()]
+    );
 }

@@ -55,6 +55,9 @@ def test_single_sentence_no_terminator():
     assert split_sentences("Just one fragment") == ["Just one fragment"]
 
 
-def test_nul_in_input_raises():
-    with pytest.raises(ValueError, match="reserved sentinel"):
-        split_sentences("hello\x00world. Next.")
+def test_nul_in_input_is_silently_stripped():
+    # AAT-019: the splitter previously raised ValueError on NUL bytes.
+    # PDF-extracted text and ETL outputs can contain NULs, and crashing
+    # on them was hostile. Now they're silently stripped; Rust mirrors.
+    out = split_sentences("hello\x00world. Next.")
+    assert out == ["helloworld.", "Next."]

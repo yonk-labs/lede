@@ -1,0 +1,9 @@
+nearest neighbor
+ann search
+high dimensional
+exact nearest
+nearest neighbors
+curse dimensionality
+ann methods
+use ann
+embedding indexes

@@ -1,0 +1,6 @@
+1 | Abstract | We investigate the sources of floating-point divergence between CPython 3.12 and Rust stdlib numerical code in the context of deterministic text processing pipelines.
+1 | Introduction | Prior work on cross-language parity has focused on string encoding, regex semantics, and hash ordering, but floating-point accumulation has received less attention.
+1 | Methods | We implemented TF-IDF scoring in both Python (using the 3.12 stdlib sum) and Rust (using Iterator::sum) with identical input tokenization and weighting.
+1 | Results | Total aggregate error across the corpus was bounded by 4.8e-14 in absolute terms.
+1 | Discussion | The implementation is twelve lines of safe Rust and adds no measurable overhead in release builds.
+1 | Conclusion | The fix is trivial and has no performance cost.

@@ -1,0 +1,7 @@
+The current pipeline was built three years ago for a load of 50,000 events per minute and has grown organically to handle nearly 800,000.
+It now accounts for 40 percent of our infrastructure bill and is the top source of on-call pages.
+At current load, the pipeline processes an average of 13,000 events per second with peaks exceeding 25,000.
+The new design targets headroom of 3x current peak, so roughly 75,000 events per second.
+Storage growth is estimated at 2 terabytes per day, with a 90-day retention window.
+Phase two switches 10 percent of real traffic to the new pipeline and monitors for parity.
+Phase three ramps to 50 percent after a minimum of two weeks.

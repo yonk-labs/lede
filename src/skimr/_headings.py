@@ -47,8 +47,18 @@ _NUMBERED_SECTION_RE = re.compile(r"^\s*\d+\.\s+[A-Z][A-Za-z0-9 ]{0,58}$")
 _TITLE_WITH_DASH_RE = re.compile(r"^\s*[A-Z][A-Za-z0-9 ]{0,58}\s+[—–\-]\s+\S[^.!?]*$")
 
 
-def is_heading(sentence: str) -> bool:
-    """True when `sentence` matches any heading pattern."""
+# Markdown heading depth helper — stripped from `## Section` etc.
+_MD_DEPTH_RE = re.compile(r"^\s*(#+)\s+")
+
+
+def is_structural_heading(sentence: str) -> bool:
+    """True when `sentence` matches a structural heading pattern.
+
+    Narrower than [`is_heading`] — drops the "< 4 content tokens"
+    fallback so short body sentences don't masquerade as headings.
+    Use this when you only want explicit document structure (markdown,
+    title-case, all-caps, etc.) and not the heuristic short-token rule.
+    """
     if not sentence.strip():
         return False
     if _MD_HEADING_RE.match(sentence):
@@ -63,11 +73,26 @@ def is_heading(sentence: str) -> bool:
         return True
     if _TITLE_WITH_DASH_RE.match(sentence):
         return True
-    # Fewer than 4 content-word tokens (rough "title-like" filter).
-    toks = [t for t in re.findall(r"[A-Za-z]{3,}", sentence)]
-    if len(toks) < 4:
-        return True
     return False
+
+
+def md_depth(heading_line: str) -> int:
+    """Markdown heading depth (# = 1, ## = 2, ...). 1 for non-markdown headings."""
+    m = _MD_DEPTH_RE.match(heading_line)
+    if m:
+        return len(m.group(1))
+    return 1
+
+
+def is_heading(sentence: str) -> bool:
+    """True when `sentence` matches any heading pattern (incl. heuristic)."""
+    if is_structural_heading(sentence):
+        return True
+    if not sentence.strip():
+        return False
+    # Fewer than 4 content-word tokens (rough "title-like" filter).
+    toks = re.findall(r"[A-Za-z]{3,}", sentence)
+    return len(toks) < 4
 
 
 def heading_name(sentence: str) -> str | None:

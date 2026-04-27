@@ -1,0 +1,2 @@
+percent | 0.4 | percent | ed against the dollar by 0.4 percent in the hour following th | The euro strengthened against the dollar by 0.4 percent in the hour following the announcement, while European equities gave back early gains to close slightly lower.
+count | 8 | basis points | German two-year climbing 8 basis points. | Bond yields rose across the curve, with the German two-year climbing 8 basis points.

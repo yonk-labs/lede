@@ -1,0 +1,7 @@
+2 | Design: Async Event Pipeline v2 | It now accounts for 40 percent of our infrastructure bill and is the top source of on-call pages.
+3 | Goals | First, decouple the ingest path from the processing path so a downstream slowdown cannot block intake.
+3 | Non-goals | We considered introducing a new schema version but the downstream teams have not had the bandwidth to migrate consumers.
+3 | Proposed architecture | Events enter through a single HTTPS endpoint fronted by our standard API gateway.
+3 | Capacity planning | Storage growth is estimated at 2 terabytes per day, with a 90-day retention window.
+3 | Migration plan | Total timeline is estimated at three to four months assuming no major discoveries during shadow traffic analysis.
+3 | Risks | A formal risk review is scheduled for next month.

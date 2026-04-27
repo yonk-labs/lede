@@ -34,15 +34,26 @@ def summarize_coverage(text: str, max_length: int = 500) -> str:
     parts = _composite_score_parts(sentences)
     scores = [0.60 * t + 0.25 * p + 0.15 * l for (t, p, l) in parts]
 
+    # Map each sentence to its source paragraph by occurrence-counting:
+    # the K-th occurrence of a repeated sentence goes to the K-th paragraph
+    # that contains it. The previous "first containing paragraph wins" rule
+    # biased coverage selection on documents with template/FAQ-style
+    # repeated sentences. Mirrors `rust/src/coverage.rs`. Closes AAT-021.
     paragraphs = _split_paragraphs(text)
     sent_to_para: list[int] = []
+    occurrence_seen: dict[str, int] = {}
     for s in sentences:
+        target = occurrence_seen.get(s, 0)
         idx = -1
+        seen = 0
         for i, p in enumerate(paragraphs):
             if s in p:
-                idx = i
-                break
+                if seen == target:
+                    idx = i
+                    break
+                seen += 1
         sent_to_para.append(idx)
+        occurrence_seen[s] = target + 1
 
     # Best non-heading sentence per paragraph.
     best_per_para: dict[int, tuple[float, int]] = {}
@@ -92,4 +103,6 @@ def summarize_coverage(text: str, max_length: int = 500) -> str:
             break
 
     selected.sort()
-    return "\n".join(sentences[i] for i in selected)
+    # Use " " to match default and legacy modes' separator. Earlier coverage
+    # used "\n", which surprised callers diffing across modes. AAT-022.
+    return " ".join(sentences[i] for i in selected)

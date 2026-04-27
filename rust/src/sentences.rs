@@ -19,7 +19,7 @@ const SENTINEL: char = '\x00';
 /// Matches the Python `_ABBREVIATIONS` frozenset byte-for-byte.
 const ABBREVIATIONS: &[&str] = &[
     "mr", "mrs", "ms", "dr", "st", "sr", "jr", "inc", "ltd", "co", "corp", "vs", "etc", "eg", "ie",
-    "cf", "u.s", "u.k", "u.n", "e.u", "fig", "no", "vol",
+    "cf", "u.s", "u.k", "u.n", "e.u", "fig", "vol",
 ];
 
 fn decimal_re() -> &'static Regex {
@@ -32,6 +32,16 @@ fn abbrev_re() -> &'static Regex {
     RE.get_or_init(|| {
         Regex::new(r"\b([A-Za-z]+(?:\.[A-Za-z]+)*)\.").expect("abbrev regex compiles")
     })
+}
+
+// Context-sensitive abbreviation: protect "No." when followed by a number
+// ("No. 5", "No. 17"). Bare "no." at end of sentence is NOT protected and
+// stays a sentence terminator. Rust's regex crate has no lookahead, so we
+// capture the trailing whitespace + digit and emit it back unchanged.
+// Mirrors `_NO_NUMBER_RE` in `src/skimr/sentences.py`.
+fn no_number_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"\b(No)\.(\s*)(\d)").expect("no-number regex compiles"))
 }
 
 fn splitter_re() -> &'static Regex {
@@ -49,21 +59,31 @@ fn is_abbreviation(word: &str) -> bool {
 }
 
 fn mask(text: &str) -> String {
-    assert!(
-        !text.contains(SENTINEL),
-        "Input contains reserved sentinel character U+{:04X}",
-        SENTINEL as u32
-    );
+    // Strip the reserved sentinel (NUL) rather than panicking. NUL bytes
+    // can show up in PDF-extracted text and other ETL outputs; aborting
+    // the splitter on them is hostile. Mirrors src/skimr/sentences.py::_mask
+    // for parity.
+    let cleaned: std::borrow::Cow<str> = if text.contains(SENTINEL) {
+        std::borrow::Cow::Owned(text.replace(SENTINEL, ""))
+    } else {
+        std::borrow::Cow::Borrowed(text)
+    };
 
     // Protect decimals: digit.digit -> digit<SENTINEL>digit
-    let after_decimals = decimal_re().replace_all(text, |caps: &Captures| {
+    let after_decimals = decimal_re().replace_all(&cleaned, |caps: &Captures| {
         format!("{}{}{}", &caps[1], SENTINEL, &caps[2])
+    });
+
+    // Protect "No." when it precedes a number (issue numbers, citations).
+    // Bare "no." stays a terminator.
+    let after_no = no_number_re().replace_all(&after_decimals, |caps: &Captures| {
+        format!("{}{}{}{}", &caps[1], SENTINEL, &caps[2], &caps[3])
     });
 
     // Protect known abbreviations. The candidate regex may over-match (e.g.
     // "Basically." captures "Basically"), but `is_abbreviation` filters non-matches
     // and the closure returns the original match text unchanged.
-    let after_abbrev = abbrev_re().replace_all(&after_decimals, |caps: &Captures| {
+    let after_abbrev = abbrev_re().replace_all(&after_no, |caps: &Captures| {
         let word = &caps[1];
         if is_abbreviation(word) {
             format!("{word}{SENTINEL}")
@@ -81,7 +101,10 @@ fn unmask(text: &str) -> String {
 
 /// Split `text` into sentences. Returns an empty vec for empty input.
 ///
-/// Panics if `text` contains the reserved NUL sentinel.
+/// NUL bytes (`\x00`) in `text` are silently stripped — they're used
+/// internally as a sentinel during decimal/abbreviation masking and
+/// can otherwise show up in PDF-extracted text and ETL output. The
+/// splitter does not panic on user input.
 #[must_use]
 pub fn split_sentences(text: &str) -> Vec<String> {
     if text.is_empty() {

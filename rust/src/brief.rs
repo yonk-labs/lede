@@ -44,6 +44,13 @@ pub struct BriefOptions {
     pub max_facts: usize,
     /// When true, emit a key-phrases section. Default `false`.
     pub include_phrases: bool,
+    /// Forward to `key_facts()` so spelled-out numbers ("five thousand
+    /// documents") surface. `None` means "follow the build-time
+    /// wordforms feature flag" (mirrors Python's auto-detect default
+    /// for back-compat); `Some(true)` / `Some(false)` lock the
+    /// behavior so output matches a Python caller passing the same
+    /// explicit flag, regardless of the build-time feature gate.
+    pub convert_word_names: Option<bool>,
     /// Output shape. Default [`BriefFormat::String`].
     pub format: BriefFormat,
 }
@@ -54,6 +61,7 @@ impl Default for BriefOptions {
             overview_max: 0.35,
             max_facts: 10,
             include_phrases: false,
+            convert_word_names: None,
             format: BriefFormat::String,
         }
     }
@@ -135,11 +143,15 @@ pub fn brief_with_options(text: &str, opts: BriefOptions) -> BriefOutput {
     let overview_result = summarize(text, budget, Mode::Default);
     let overview_text = overview_result.summary.trim_end().to_string();
 
+    // Resolve wordforms: opts.convert_word_names overrides the build-time
+    // gate; None falls back to the feature flag. Mirrors Python's
+    // `convert_word_names is None ? _HAS_WORDFORMS : convert_word_names`.
+    let use_wordforms = opts.convert_word_names.unwrap_or(WORDFORMS_ENABLED);
     let facts = key_facts_with_options(
         text,
         KeyFactsOptions {
             max_facts: opts.max_facts,
-            convert_word_names: WORDFORMS_ENABLED,
+            convert_word_names: use_wordforms,
         },
     );
 

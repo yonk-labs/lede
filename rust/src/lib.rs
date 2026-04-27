@@ -10,6 +10,7 @@ pub mod coverage;
 pub mod extract;
 pub mod headings;
 pub mod keyword;
+pub mod parity;
 pub mod sentences;
 pub mod tfidf;
 pub mod types;

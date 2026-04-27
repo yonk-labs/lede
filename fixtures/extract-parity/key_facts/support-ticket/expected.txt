@@ -1,0 +1,2 @@
+Tried reverting to 0.1.6 and the job completes in 22 minutes as usual.
+Job completed overnight in 19 minutes.

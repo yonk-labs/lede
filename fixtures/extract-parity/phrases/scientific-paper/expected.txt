@@ -1,0 +1,17 @@
+compensated summation
+floating point
+iterator sum
+rust standard library
+idf score
+porting cpython
+byte identical
+identical output
+hard requirement
+identical output across
+floating point accumulation
+five thousand
+five thousand documents
+score differences
+observed divergence
+neumaier summation
+neumaier summation where

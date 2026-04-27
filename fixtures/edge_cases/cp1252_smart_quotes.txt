@@ -1,0 +1,3 @@
+Smart quotes: "curly opens" and "curly closes" — em–dash too. Spent $2.5M in Q3 over 90 days.
+The Q4 plan: ship by 2024-12-15. Revenue grew 23% year-over-year per the latest report.
+Acme Corp reported 1,234 incidents and closed 230 issues over the quarter.

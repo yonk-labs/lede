@@ -1,0 +1,8 @@
+count | 50,000 | events | years ago for a load of 50,000 events per minute and has grown | The current pipeline was built three years ago for a load of 50,000 events per minute and has grown organically to handle nearly 800,000.
+percent | 40 | percent | It now accounts for 40 percent of our infrastructure bi | It now accounts for 40 percent of our infrastructure bill and is the top source of on-call pages.
+count | 13,000 | events | processes an average of 13,000 events per second with peaks ex | At current load, the pipeline processes an average of 13,000 events per second with peaks exceeding 25,000.
+count | 75,000 | events | current peak, so roughly 75,000 events per second. | The new design targets headroom of 3x current peak, so roughly 75,000 events per second.
+duration | 90 day | day | erabytes per day, with a 90-day retention window. | Storage growth is estimated at 2 terabytes per day, with a 90-day retention window.
+count | 2 | terabytes | e growth is estimated at 2 terabytes per day, with a 90-day r | Storage growth is estimated at 2 terabytes per day, with a 90-day retention window.
+percent | 10 | percent | Phase two switches 10 percent of real traffic to the n | Phase two switches 10 percent of real traffic to the new pipeline and monitors for parity.
+percent | 50 | percent | Phase three ramps to 50 percent after a minimum of two w | Phase three ramps to 50 percent after a minimum of two weeks.

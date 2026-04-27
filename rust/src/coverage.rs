@@ -53,10 +53,32 @@ pub fn summarize_coverage(text: &str, max_length: usize) -> String {
         .map(|(t, p, l)| TFIDF_WEIGHT * t + POSITION_WEIGHT * p + LENGTH_WEIGHT * l)
         .collect();
 
+    // Occurrence-counted mapping: the K-th occurrence of a repeated sentence
+    // goes to the K-th paragraph that contains it. Earlier "first containing
+    // paragraph wins" biased coverage on docs with template/FAQ-style
+    // repetitions. Mirrors `src/skimr/coverage.py`. Closes AAT-021.
     let paragraphs = split_paragraphs(text);
+    let mut occurrence_seen: std::collections::HashMap<&str, usize> =
+        std::collections::HashMap::new();
     let sent_to_para: Vec<Option<usize>> = sentences
         .iter()
-        .map(|s| paragraphs.iter().position(|p| p.contains(s.as_str())))
+        .map(|s| {
+            let s_ref: &str = s.as_str();
+            let target = *occurrence_seen.get(s_ref).unwrap_or(&0);
+            let mut seen = 0usize;
+            let mut idx: Option<usize> = None;
+            for (i, p) in paragraphs.iter().enumerate() {
+                if p.contains(s_ref) {
+                    if seen == target {
+                        idx = Some(i);
+                        break;
+                    }
+                    seen += 1;
+                }
+            }
+            occurrence_seen.insert(s_ref, target + 1);
+            idx
+        })
         .collect();
 
     // Best non-heading sentence per paragraph. `BTreeMap` keeps paragraphs in
@@ -131,9 +153,11 @@ pub fn summarize_coverage(text: &str, max_length: usize) -> String {
     }
 
     selected.sort_unstable();
+    // Match default and legacy modes' separator (" "). Earlier coverage used
+    // "\n" which surprised callers diffing across modes — AAT-022.
     selected
         .into_iter()
         .map(|i| sentences[i].clone())
         .collect::<Vec<_>>()
-        .join("\n")
+        .join(" ")
 }

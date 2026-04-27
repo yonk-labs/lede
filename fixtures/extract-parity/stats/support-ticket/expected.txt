@@ -1,0 +1,2 @@
+duration | 22 minutes | minute | and the job completes in 22 minutes as usual. | Tried reverting to 0.1.6 and the job completes in 22 minutes as usual.
+duration | 19 minutes | minute | b completed overnight in 19 minutes. | Job completed overnight in 19 minutes.

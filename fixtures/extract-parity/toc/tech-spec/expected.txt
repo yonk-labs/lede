@@ -1,0 +1,7 @@
+Design: Async Event Pipeline v2
+Goals
+Non-goals
+Proposed architecture
+Capacity planning
+Migration plan
+Risks

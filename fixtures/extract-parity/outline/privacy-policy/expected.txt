@@ -1,0 +1,8 @@
+1 | Privacy Policy | This privacy policy describes how Acme Cloud Platform, Inc. collects, uses, shares, and protects information about the individuals who use our services.
+1 | Information We Collect | This includes your name, email address, billing address, payment method details, and any content you upload to our storage buckets.
+1 | How We Use Information | We may use aggregated and anonymized information for research, analytics, and product development purposes.
+1 | Information Sharing | We share information only with service providers acting on our behalf (for example, payment processors, email delivery providers, and customer support tooling vendors), when required by law or valid legal process, when necessary to protect the rights, property, or safety of our users or the public, and in connection with a merger, acquisition, or sale of assets, subject to confidentiality commitments.
+1 | Data Retention | Usage logs are retained for thirteen months and then deleted.
+1 | Your Rights | Residents of California may exercise these rights under the California Consumer Privacy Act.
+1 | International Transfers | Personal information collected in the EU is stored on EU infrastructure by default and is only transferred outside the EU under Standard Contractual Clauses approved by the European Commission.
+1 | Changes to This Policy | Material changes will be announced by email to the account owner at least thirty days before the change takes effect.
