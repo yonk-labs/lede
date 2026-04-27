@@ -33,7 +33,7 @@ Reference / seed material that's still useful but **not the live spec**:
 - `extractive_functions.sql` / `extractive_functions.md` — original PL/pgSQL reference for `clean_text` / `extract_relevant` / `strip_think`.
 - `summarize-output.py` — original standalone Python prototype with the keyword-frequency scoring variant.
 - `SUMMARIZATION.md` — original algorithmic spec for the TF-IDF + position + length pipeline. v0.2 default mode adds C1 scorer tweaks (heading filter, cue-phrase boost, digit bonus, section-position weighting) on top of this; legacy mode preserves the original 60/25/15 bytes.
-- `extractive-performance.md` / `ARCHITECTURE.md` — context-only.
+- `extractive-performance.md` / `docs/upstream-context-yonk-taskstash.md` — context-only.
 
 For the live API contract see `docs/REFERENCE.md`. For SC-level acceptance tests see `docs/superpowers/specs/2026-04-21-skimr-v0-2-design.md`.
 

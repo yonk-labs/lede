@@ -4,6 +4,15 @@
 
 Python + Rust library + CLI that shrinks text before it hits an LLM, cache, or preview. Same algorithm, reproducible output, sub-millisecond latency, byte-identical across runtimes.
 
+### Why not Sumy / TextRank / LexRank?
+
+Use Sumy if you want the algorithm catalog (LSA, LexRank, TextRank, Luhn, Edmundson, KL-Sum…). Use skimr if you want:
+
+- **Sub-millisecond latency in the default path** — skimr `mode=default` runs at 0.42 ms p50 across the [10-corpus benchmark](benchmarks/quality/matrix-2026-04-26.md); Sumy LexRank/TextRank/LSA all sit at 11–12 ms p50. ~30× headroom on the same hardware.
+- **Byte-identical Python ↔ Rust core path** — same fixture corpus, same output bytes from either runtime, verified on every push by `rust/tests/fixtures.rs`.
+- **Structured RAG-prep in one call** — `summarize(attach=["stats", "outline", "metadata", "phrases", "correlated_facts"])` returns the summary plus pre-extracted facts, sections, dates, amounts, URLs, and entity↔number correlations. No second pass.
+- **Zero dependencies on the default install** — Python stdlib only; Rust stdlib + `regex` only. Optional extras (`[ner]` / `[wordforms]` / `[yake]` / `[textrank]`) are opt-in.
+
 ## What's new in v0.2
 
 skimr v0.2 is the RAG-prep primitive: one call returns a summary plus structured enrichments that ride along.
@@ -163,13 +172,13 @@ Dependencies: `regex` crate only. No other runtime deps.
 
 ## Modes
 
-| Mode | When to use | Deps |
-|---|---|---|
-| `tfidf` (default) | "Give me the most important N chars of this document" | stdlib only |
-| `keyword` | "Give me sentences relevant to these keywords" | stdlib only |
-| `clean_text` | Strip markdown, filler, CRM boilerplate | stdlib only |
-| `strip_think` | Remove `<think>…</think>` from reasoning-model output | stdlib only |
-| `textrank` | Graph-based extractive on long docs | requires `[textrank]` extra |
+| Mode | When to use | Where | Deps |
+|---|---|---|---|
+| `tfidf` (default) | "Give me the most important N chars of this document" | CLI + library | stdlib only |
+| `keyword` | "Give me sentences relevant to these keywords" | CLI + library | stdlib only |
+| `clean_text` | Strip markdown, filler, CRM boilerplate | CLI + library | stdlib only |
+| `strip_think` | Remove `<think>…</think>` from reasoning-model output | CLI + library | stdlib only |
+| `textrank` | Graph-based extractive on long docs | library only (`from skimr.textrank import summarize_textrank`) | requires `[textrank]` extra |
 
 ## Design Notes
 
