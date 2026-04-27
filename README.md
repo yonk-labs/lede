@@ -1,5 +1,14 @@
 # skimr
 
+[![tests](https://github.com/yonk-labs/skimr/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/yonk-labs/skimr/actions/workflows/test.yml)
+[![rust](https://github.com/yonk-labs/skimr/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/yonk-labs/skimr/actions/workflows/rust.yml)
+[![zero-deps](https://github.com/yonk-labs/skimr/actions/workflows/zero-deps.yml/badge.svg?branch=main)](https://github.com/yonk-labs/skimr/actions/workflows/zero-deps.yml)
+[![skimr-spacy](https://github.com/yonk-labs/skimr/actions/workflows/skimr-spacy.yml/badge.svg?branch=main)](https://github.com/yonk-labs/skimr/actions/workflows/skimr-spacy.yml)
+[![release](https://img.shields.io/github/v/release/yonk-labs/skimr?label=release&color=blue)](https://github.com/yonk-labs/skimr/releases/latest)
+[![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
+[![rust](https://img.shields.io/badge/rust-1.85%2B-orange)](rust/Cargo.toml)
+
 **A deterministic, zero-dependency text-shrinker for the layer in front of an LLM.**
 
 Python + Rust library + CLI. Reads a document, returns a summary in sub-millisecond time plus optional structured facts (numbers, dates, sections, entities, entity↔number correlations) that you'd otherwise extract in a second pass. Same input → same bytes from either runtime, every time.
