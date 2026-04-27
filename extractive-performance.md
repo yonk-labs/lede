@@ -2,8 +2,8 @@
 
 Benchmark results comparing raw LLM summarization vs extractive pre-filtered summarization using `extract_relevant()` + `aidb.summarize_text_aggregate()`.
 
-**Model:** NVIDIA Nemotron-3-Nano (NIM, `http://192.168.1.193:8006`)
-**Database:** 192.168.1.206:5432, sales_demo_app
+**Model:** NVIDIA Nemotron-3-Nano (NIM, locally hosted)
+**Database:** Postgres (sales_demo_app, redacted)
 **Date range:** 2025-11-01 to 2026-02-01, lost deals only
 
 ---

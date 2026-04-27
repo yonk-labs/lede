@@ -9,12 +9,15 @@ For each corpus:
   - score 5 pts for 1st, 4 for 2nd, ... 1 for 5th
   - aggregate across all 10 corpora (max 50/summarizer)
 
-Default config uses a LAN-local vLLM server exposing an OpenAI-compatible
-API at http://192.168.1.193:8000/v1 serving Intel/Qwen3-Coder-Next-int4-AutoRound.
-Qwen isn't in the OpenAI or Anthropic model family, so it's a clean
-cross-family judge for Claude-authored reference summaries. Override with
-env vars:
-    SKIMR_JUDGE_BASE_URL      (default http://192.168.1.193:8000/v1)
+Default config targets a local vLLM server exposing an OpenAI-compatible
+API at http://localhost:8000/v1. Set the env vars below to point at any
+other OpenAI-compatible endpoint (e.g. a remote vLLM, llama.cpp server,
+or a hosted provider). Use a non-OpenAI / non-Anthropic model so the
+judge sits in a different family from the Claude-authored reference
+summaries.
+
+Override with env vars:
+    SKIMR_JUDGE_BASE_URL      (default http://localhost:8000/v1)
     SKIMR_JUDGE_MODEL         (default Intel/Qwen3-Coder-Next-int4-AutoRound)
     SKIMR_JUDGE_API_KEY       (default "not-needed" — local servers ignore auth)
 
@@ -45,7 +48,7 @@ CORPUS_DIR = ROOT / "benchmarks" / "corpus"
 OUT_DIR = ROOT / "benchmarks" / "quality"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-BASE_URL = os.environ.get("SKIMR_JUDGE_BASE_URL", "http://192.168.1.193:8000/v1")
+BASE_URL = os.environ.get("SKIMR_JUDGE_BASE_URL", "http://localhost:8000/v1")
 MODEL = os.environ.get("SKIMR_JUDGE_MODEL", "Intel/Qwen3-Coder-Next-int4-AutoRound")
 API_KEY = os.environ.get("SKIMR_JUDGE_API_KEY", "not-needed")
 SEED = 42
