@@ -156,9 +156,12 @@ pub fn outline(text: &str) -> Vec<Section> {
             .body
             .iter()
             .max_by(|a, b| {
+                // NaN-tolerant: degrade to Equal rather than panicking on a
+                // corrupt score. The .then_with tiebreak still runs and
+                // produces a deterministic order.
                 scores[**a]
                     .partial_cmp(&scores[**b])
-                    .expect("no NaN")
+                    .unwrap_or(std::cmp::Ordering::Equal)
                     .then_with(|| b.cmp(a))
             })
             .expect("non-empty");

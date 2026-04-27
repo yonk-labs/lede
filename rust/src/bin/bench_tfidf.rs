@@ -49,7 +49,7 @@ fn main() {
         let ms = t0.elapsed().as_nanos() as f64 / 1e6;
         samples.push(ms);
     }
-    samples.sort_by(|a, b| a.partial_cmp(b).expect("no NaN"));
+    samples.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
     let p50 = samples[samples.len() / 2];
     #[allow(

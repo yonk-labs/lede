@@ -121,10 +121,14 @@ pub fn extract_keyword(text: &str, keywords: &str, num_sentences: usize) -> Stri
         .collect();
 
     // Sort by (-score, original position); stable tiebreak matches Python.
+    // NaN-tolerant: degrade to Equal so a corrupt score never panics; the
+    // position tiebreak still produces deterministic order.
     scored.sort_by(|a, b| {
         let sa = -a.0;
         let sb = -b.0;
-        sa.partial_cmp(&sb).expect("no NaN").then(a.1.cmp(&b.1))
+        sa.partial_cmp(&sb)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then(a.1.cmp(&b.1))
     });
 
     scored

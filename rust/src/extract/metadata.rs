@@ -11,19 +11,24 @@ pub struct Metadata {
     pub entities: Vec<String>, // always empty; Python-only via skimr[ner]
 }
 
+// Date patterns mirror extract::stats: ISO yyyy-mm-dd, US m/d/yyyy, and bare
+// years 1900-2099. Same shape, same bounds — keeps Python ↔ Rust output
+// byte-identical and matches the doc claim in docs/REFERENCE.md.
 fn date_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
-        Regex::new(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}/\d{1,2}/\d{2,4}\b").expect("static regex")
+        Regex::new(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}/\d{1,2}/\d{2,4}\b|\b(?:19|20)\d{2}\b")
+            .expect("static regex")
     })
 }
 
+// Amount quantifiers bounded {0,18} for parity with extract::stats::money_re.
 fn amount_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
         Regex::new(concat!(
-            r"(?i)\$\d[\d,]*(?:\.\d+)?[KMB]?|",
-            r"\d[\d,]*(?:\.\d+)?\s*(?:dollars?|USD|EUR|GBP|JPY|CHF)",
+            r"(?i)\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?|",
+            r"\d[\d,]{0,18}(?:\.\d{1,4})?\s*(?:dollars?|USD|EUR|GBP|JPY|CHF)",
         ))
         .expect("static regex")
     })

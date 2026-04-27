@@ -111,7 +111,10 @@ pub fn summarize_coverage(text: &str, max_length: usize) -> String {
         }
         remaining.push((scores[i], i));
     }
-    remaining.sort_by(|a, b| b.0.partial_cmp(&a.0).expect("no NaN in pipeline scores"));
+    // NaN should not appear in pipeline scores (TF-IDF is rational). Treat any
+    // accidental NaN as Equal rather than panicking — it would have to come from
+    // a corrupt input upstream and is not worth bringing the worker down over.
+    remaining.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
 
     for (_, i) in remaining {
         let cost = sentences[i].chars().count() + 1;

@@ -137,10 +137,25 @@ fn main() -> ExitCode {
         _ => unreachable!("parse_args validates mode"),
     };
 
+    // Honor write errors. BrokenPipe is the common "user piped into `head`"
+    // case — exit 0 there since the user got what they asked for. Any other
+    // I/O error (full disk, closed stream, etc.) propagates as exit 1.
     let mut out = std::io::stdout().lock();
-    let _ = out.write_all(output.as_bytes());
+    if let Err(e) = out.write_all(output.as_bytes()) {
+        if e.kind() == std::io::ErrorKind::BrokenPipe {
+            return ExitCode::SUCCESS;
+        }
+        let _ = writeln!(std::io::stderr(), "error writing output: {e}");
+        return ExitCode::from(1);
+    }
     if !output.ends_with('\n') {
-        let _ = out.write_all(b"\n");
+        if let Err(e) = out.write_all(b"\n") {
+            if e.kind() == std::io::ErrorKind::BrokenPipe {
+                return ExitCode::SUCCESS;
+            }
+            let _ = writeln!(std::io::stderr(), "error writing output: {e}");
+            return ExitCode::from(1);
+        }
     }
     ExitCode::SUCCESS
 }

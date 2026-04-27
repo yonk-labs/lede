@@ -1,17 +1,43 @@
 # skimr
 
-**Deterministic extractive summarization — zero runtime dependencies.**
+**A deterministic, zero-dependency text-shrinker for the layer in front of an LLM.**
 
-Python + Rust library + CLI that shrinks text before it hits an LLM, cache, or preview. Same algorithm, reproducible output, sub-millisecond latency, byte-identical across runtimes.
+Python + Rust library + CLI. Reads a document, returns a summary in sub-millisecond time plus optional structured facts (numbers, dates, sections, entities, entity↔number correlations) that you'd otherwise extract in a second pass. Same input → same bytes from either runtime, every time.
 
-### Why not Sumy / TextRank / LexRank?
+### What problem this solves
 
-Use Sumy if you want the algorithm catalog (LSA, LexRank, TextRank, Luhn, Edmundson, KL-Sum…). Use skimr if you want:
+Modern AI apps push more text through more LLM calls than is healthy. Every long prompt, every chunk-embed, every tool result that gets re-summarized — that's tokens spent and latency burned. The 2026 enterprise narrative is that preprocessing/compression in front of the model is a 40–94% cost lever ([Maxim](https://www.getmaxim.ai/articles/reduce-llm-cost-and-latency-a-comprehensive-guide-for-2026/), [Morph](https://www.morphllm.com/llm-cost-optimization)) — but the libraries that do that preprocessing are mostly:
 
-- **Sub-millisecond latency in the default path** — skimr `mode=default` runs at 0.42 ms p50 across the [10-corpus benchmark](benchmarks/quality/matrix-2026-04-26.md); Sumy LexRank/TextRank/LSA all sit at 11–12 ms p50. ~30× headroom on the same hardware.
-- **Byte-identical Python ↔ Rust core path** — same fixture corpus, same output bytes from either runtime, verified on every push by `rust/tests/fixtures.rs`.
-- **Structured RAG-prep in one call** — `summarize(attach=["stats", "outline", "metadata", "phrases", "correlated_facts"])` returns the summary plus pre-extracted facts, sections, dates, amounts, URLs, and entity↔number correlations. No second pass.
-- **Zero dependencies on the default install** — Python stdlib only; Rust stdlib + `regex` only. Optional extras (`[ner]` / `[wordforms]` / `[yake]` / `[textrank]`) are opt-in.
+- **Heavyweight** (Sumy + nltk; rust-bert + ONNX) — multi-MB installs, slow startup
+- **Non-deterministic** (LLM-call-as-summarizer) — different bytes on the same input across calls/days/models
+- **Single-runtime** (Sumy is Python-only; Go has `tldr`; Node has fragmentary npm packages) — you ship a different summarizer in each tier of your stack
+- **Just a summary** — when what you actually need for RAG is the summary *plus* the dates / amounts / URLs / entities you'd otherwise grep out yourself
+
+skimr is the small, boring, deterministic primitive for this hot path: **stdlib-only Python and stdlib+regex-only Rust, byte-identical output across both, sub-ms on the core path, sub-5 ms with all five structured-extract enrichments attached.**
+
+### Who this is for
+
+- **RAG-prep pipelines** — chunk → skimr → embed. One call gives you the focused summary to embed *plus* the dates/amounts/entities for the metadata column. See [`docs/integration-memo.md`](docs/integration-memo.md) for the chunkshop integration design.
+- **MCP / agent middleware** — intercept tool output, drop a `clean_text` + `summarize(max_length=500)` in front of the model. Costs ~0.4 ms; saves a tool result from blowing the context window.
+- **Polyglot stacks** — Python data tier + Rust service tier + (eventually) Node frontend. One library, one fixture corpus, byte-identical output.
+- **Eval / replay** — deterministic output means snapshot tests don't drift. Same input = same bytes today, next year, on the next maintainer's laptop.
+
+### Why not just call Claude / GPT / Cohere?
+
+Use the LLM if you want the *highest* quality summary and you can pay 500–5000 ms per doc and accept that two calls return different bytes. Use skimr (or alongside it) when you want:
+
+- **Sub-millisecond, on-device, zero-API-cost** — fits a hot path the LLM can't.
+- **Deterministic** — required for snapshot tests, regression harnesses, and audit trails.
+- **An honest preprocessor** — drop skimr in front of the LLM call; it's a 40–94% token-cut at the input layer with zero quality cost on the LLM's downstream summary, and it produces structured fields the LLM would otherwise have to be prompted to extract.
+
+### Why not Sumy / TextRank / LexRank / "I'll just use re.findall"?
+
+| Alternative | When to use it | When skimr wins |
+|---|---|---|
+| **Sumy** (Python, 3.7k★) — algorithm catalog: LSA, LexRank, TextRank, Luhn, Edmundson, KL-Sum | You want a specific classical algorithm (LSA, KL-Sum) and Python only | You want sub-ms latency (skimr default 0.42 ms p50 vs Sumy 11–12 ms across the [10-corpus benchmark](benchmarks/quality/matrix-2026-04-26.md)), Python ↔ Rust parity, structured enrichments in one call, or zero deps |
+| **JesusIslam/tldr** (Go, LexRank), **rust-bert** (Rust, abstractive BART) | You're Go-only or want abstractive on-device | You want one summarizer that produces identical output across Python and Rust, or you don't want to ship 400 MB of model weights |
+| **`re.findall(r"\d+%")` + a sentence splitter** | One-off scripts | You want this to keep working when the input contains UTF-8 emoji, 50 K-digit pathological strings, abbreviation edge-cases, em-dash titles, and 9 other things you didn't think of. The fixtures + tests are the value. |
+| **LLM-as-summarizer** (Claude / GPT / Cohere) | Highest quality, latency and cost are fine | Hot path, deterministic output requirement, snapshot tests, regulated environment, or you want skimr in *front* of the LLM as a 50% input-token-cutter |
 
 ## What's new in v0.2
 

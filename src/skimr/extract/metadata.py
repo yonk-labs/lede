@@ -19,11 +19,14 @@ from .._types import Metadata
 from . import _backends
 
 
+# Date patterns mirror extract.stats._DATE_RE: ISO yyyy-mm-dd, US m/d/yyyy,
+# and bare years 1900-2099. Same shape, same bounds, same parity contract.
 _DATE_RE = re.compile(
-    r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}/\d{1,2}/\d{2,4}\b"
+    r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}/\d{1,2}/\d{2,4}\b|\b(?:19|20)\d{2}\b"
 )
+# Amount quantifiers bounded {0,18} for ReDoS parity with extract.stats._MONEY_RE.
 _AMOUNT_RE = re.compile(
-    r"\$\d[\d,]*(?:\.\d+)?[KMB]?|\d[\d,]*(?:\.\d+)?\s*(?:dollars?|USD|EUR|GBP|JPY|CHF)",
+    r"\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?|\d[\d,]{0,18}(?:\.\d{1,4})?\s*(?:dollars?|USD|EUR|GBP|JPY|CHF)",
     re.IGNORECASE,
 )
 _URL_RE = re.compile(

@@ -32,3 +32,13 @@ jobs:
         run: cargo test --verbose
       - name: Test (release)
         run: cargo test --release --verbose
+      - name: Test (--features wordforms)
+        run: cargo test --features wordforms --verbose
+      - name: Clippy (--features wordforms)
+        run: cargo clippy --all-targets --features wordforms -- -D warnings
+      - name: Dependency vulnerability audit (cargo-audit)
+        # Cached install; non-strict so a new advisory in a transitive doesn't
+        # immediately red-line the build, but warnings surface in the log.
+        run: |
+          cargo install cargo-audit --locked --quiet
+          cargo audit 2>&1 || (echo "::warning::cargo-audit reported issues — see job log" && true)
