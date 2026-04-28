@@ -111,17 +111,27 @@ need it.)
 
 ```bash
 pip install lede-spacy
+python -m spacy download en_core_web_sm
 ```
 
-Pulls `lede`, `spacy>=3.8,<3.9`, and the pinned `en_core_web_sm` 3.8.0
-model in one step. **No separate `python -m spacy download`** is required —
-the model wheel is a hard dep so you get reproducible installs across
-environments.
+The first command pulls `lede` and `spacy>=3.8,<3.9`. The second pulls
+the ~50 MB `en_core_web_sm` 3.8.0 model. PyPI does not allow direct-URL
+dependencies, so the model is a separate install step (the same
+convention spaCy itself uses).
+
+If you want a single reproducible install, pin the model wheel from
+`requirements.txt`:
+
+```
+lede-spacy==0.3.0
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+```
 
 From source (in the lede repo):
 
 ```bash
 pip install -e packages/lede-spacy
+python -m spacy download en_core_web_sm
 ```
 
 ## Use

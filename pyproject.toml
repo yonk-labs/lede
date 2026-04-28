@@ -42,6 +42,18 @@ lede = "lede.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/lede"]
 
+[tool.hatch.build.targets.sdist]
+# Explicit include list — without this, hatchling scans the whole repo
+# (rust/target/, .venv/, skill-output/) which balloons the sdist.
+include = [
+    "src/lede",
+    "tests",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "pyproject.toml",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"

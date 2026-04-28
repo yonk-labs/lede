@@ -1,0 +1,82 @@
+name: publish-pypi
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-lede:
+    name: Build lede (core)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install build
+        run: python -m pip install --upgrade build
+      - name: Build sdist + wheel
+        run: python -m build
+      - name: Show artifacts
+        run: ls -la dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-lede
+          path: dist/
+
+  build-lede-spacy:
+    name: Build lede-spacy (companion)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install build
+        run: python -m pip install --upgrade build
+      - name: Build sdist + wheel
+        working-directory: packages/lede-spacy
+        run: python -m build
+      - name: Show artifacts
+        run: ls -la packages/lede-spacy/dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-lede-spacy
+          path: packages/lede-spacy/dist/
+
+  publish-lede:
+    name: Publish lede to PyPI
+    needs: build-lede
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/lede
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-lede
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-lede-spacy:
+    name: Publish lede-spacy to PyPI
+    needs: build-lede-spacy
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/lede-spacy
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-lede-spacy
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
