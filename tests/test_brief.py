@@ -1,7 +1,7 @@
-"""Tests for skimr.brief() — at-a-glance document brief composition primitive."""
+"""Tests for lede.brief() — at-a-glance document brief composition primitive."""
 import pytest
 
-import skimr
+import lede
 
 
 def test_brief_default_returns_string():
@@ -11,7 +11,7 @@ def test_brief_default_returns_string():
         "Team size reached 50 users.\n\n"
         "# Conclusion\n\nStrong quarter overall.\n"
     )
-    out = skimr.brief(text)
+    out = lede.brief(text)
     assert isinstance(out, str)
     assert "Overview:" in out
     assert "Key facts:" in out
@@ -27,7 +27,7 @@ def test_brief_dict_format():
         "# Intro\n\nA document with stuff.\n\n"
         "# Details\n\nWe processed 1,000 events. 20 percent were retried.\n"
     )
-    out = skimr.brief(text, format="dict")
+    out = lede.brief(text, format="dict")
     assert isinstance(out, dict)
     assert set(out.keys()) == {"overview", "key_facts", "toc", "phrases"}
     assert isinstance(out["overview"], str)
@@ -41,7 +41,7 @@ def test_brief_markdown_format():
         "# Intro\n\nA document.\n\n"
         "# Details\n\nWe processed 1,000 events.\n"
     )
-    out = skimr.brief(text, format="markdown")
+    out = lede.brief(text, format="markdown")
     assert isinstance(out, str)
     assert "## Overview" in out
     assert "## Also in this doc" in out
@@ -58,30 +58,30 @@ def test_brief_include_phrases():
         "Our deployment pipeline processes events. "
         "Customer support team also handles incidents.\n"
     )
-    out = skimr.brief(text, include_phrases=True, format="dict")
+    out = lede.brief(text, include_phrases=True, format="dict")
     assert out["phrases"] is not None
     assert len(out["phrases"]) > 0
 
 
 def test_brief_skips_phrases_by_default():
     text = "Some text with phrases that repeat. Phrases that repeat make noise."
-    out = skimr.brief(text, format="dict")
+    out = lede.brief(text, format="dict")
     assert out["phrases"] is None
 
 
 def test_brief_overview_max_clamped():
     text = "Short doc. Two sentences."
     # overview_max below floor — should still work without error.
-    out = skimr.brief(text, overview_max=0.01)
+    out = lede.brief(text, overview_max=0.01)
     assert isinstance(out, str)
     # overview_max above ceiling — still works.
-    out = skimr.brief(text, overview_max=0.99)
+    out = lede.brief(text, overview_max=0.99)
     assert isinstance(out, str)
 
 
 def test_brief_invalid_format_raises():
     with pytest.raises(ValueError, match="format"):
-        skimr.brief("text", format="html")
+        lede.brief("text", format="html")
 
 
 def test_brief_auto_wordforms_when_available():
@@ -91,14 +91,14 @@ def test_brief_auto_wordforms_when_available():
         "# Abstract\n\nWe tested on five thousand documents. Twelve lines of code.\n\n"
         "# Discussion\n\nResults were positive. Five thousand documents is a large corpus.\n"
     )
-    out = skimr.brief(text, format="dict")
+    out = lede.brief(text, format="dict")
     # key_facts should include at least one sentence with a word-form number.
     combined = " ".join(out["key_facts"])
     assert "five thousand" in combined or "twelve" in combined.lower()
 
 
 def test_brief_handles_empty_text():
-    out = skimr.brief("")
+    out = lede.brief("")
     assert "Overview:" in out
     # key_facts / toc sections should be absent when empty.
     assert "Key facts:" not in out

@@ -1,4 +1,4 @@
-//! Hierarchical outline extractor. Mirrors src/skimr/extract/outline.py.
+//! Hierarchical outline extractor. Mirrors src/lede/extract/outline.py.
 //!
 //! Detects sections via structural heading patterns (markdown, allcaps,
 //! short-colon-label). For each section picks the highest-composite-score

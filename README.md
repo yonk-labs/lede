@@ -1,15 +1,15 @@
-# skimr
+# lede
 
-[![tests](https://github.com/yonk-labs/skimr/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/yonk-labs/skimr/actions/workflows/test.yml)
-[![rust](https://github.com/yonk-labs/skimr/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/yonk-labs/skimr/actions/workflows/rust.yml)
-[![zero-deps](https://github.com/yonk-labs/skimr/actions/workflows/zero-deps.yml/badge.svg?branch=main)](https://github.com/yonk-labs/skimr/actions/workflows/zero-deps.yml)
-[![skimr-spacy](https://github.com/yonk-labs/skimr/actions/workflows/skimr-spacy.yml/badge.svg?branch=main)](https://github.com/yonk-labs/skimr/actions/workflows/skimr-spacy.yml)
-[![release](https://img.shields.io/github/v/release/yonk-labs/skimr?label=release&color=blue)](https://github.com/yonk-labs/skimr/releases/latest)
+[![tests](https://github.com/yonk-labs/lede/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/yonk-labs/lede/actions/workflows/test.yml)
+[![rust](https://github.com/yonk-labs/lede/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/yonk-labs/lede/actions/workflows/rust.yml)
+[![zero-deps](https://github.com/yonk-labs/lede/actions/workflows/zero-deps.yml/badge.svg?branch=main)](https://github.com/yonk-labs/lede/actions/workflows/zero-deps.yml)
+[![lede-spacy](https://github.com/yonk-labs/lede/actions/workflows/lede-spacy.yml/badge.svg?branch=main)](https://github.com/yonk-labs/lede/actions/workflows/lede-spacy.yml)
+[![release](https://img.shields.io/github/v/release/yonk-labs/lede?label=release&color=blue)](https://github.com/yonk-labs/lede/releases/latest)
 [![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![rust](https://img.shields.io/badge/rust-1.85%2B-orange)](rust/Cargo.toml)
 
-**skimr skims documents and pulls out the key sentences and facts.** Think of it like speed-reading: it ranks every sentence in your text by how informative it is, picks the top few, and gives them back to you in original order. The summary is **direct quotes from the document** — never paraphrased by an LLM, never made up. What you read is what was actually written.
+**lede skims documents and pulls out the key sentences and facts.** Think of it like speed-reading: it ranks every sentence in your text by how informative it is, picks the top few, and gives them back to you in original order. The summary is **direct quotes from the document** — never paraphrased by an LLM, never made up. What you read is what was actually written.
 
 It also runs in **under a millisecond** on a typical document. With structured fact extraction (numbers, dates, sections, entities) attached: still under 5 ms. An LLM API call doing the same thing takes 500–5000 ms, costs money, and gives you a different summary every time you call it.
 
@@ -22,7 +22,7 @@ Here's a paragraph about [Apollo 11](https://en.wikipedia.org/wiki/Apollo_11) (9
 > The Apollo 11 mission landed humans on the Moon for the first time. NASA launched the Saturn V rocket from Kennedy Space Center on July 16, 1969, carrying astronauts Neil Armstrong, Buzz Aldrin, and Michael Collins. Four days later, Armstrong and Aldrin descended to the lunar surface in the Eagle lunar module while Collins remained in lunar orbit aboard the Columbia command module. Armstrong became the first person to walk on the Moon at 02:56 UTC on July 21, 1969, declaring "That's one small step for a man, one giant leap for mankind." Aldrin joined him 19 minutes later. The astronauts spent 21 hours and 36 minutes on the lunar surface, collecting 21.5 kilograms of lunar material before returning to Columbia. The mission splashed down in the Pacific Ocean on July 24, 1969, completing an 8-day journey that fulfilled President Kennedy's 1961 goal of landing a man on the Moon and returning him safely to Earth before the decade ended.
 
 ```python
-from skimr import summarize
+from lede import summarize
 r = summarize(text, max_length=400)
 print(r.summary)
 ```
@@ -50,38 +50,38 @@ Modern AI apps push more text through more LLM calls than is healthy. Every long
 - **Single-runtime** (Sumy is Python-only; Go has `tldr`; Node has fragmentary npm packages) — you ship a different summarizer in each tier of your stack
 - **Just a summary** — when what you actually need for RAG is the summary *plus* the dates / amounts / URLs / entities you'd otherwise grep out yourself
 
-skimr is the small, deterministic primitive for this hot path: stdlib-only Python and stdlib+regex-only Rust, byte-identical output across both, sub-ms on the core path, sub-5 ms with all five structured-extract enrichments attached.
+lede is the small, deterministic primitive for this hot path: stdlib-only Python and stdlib+regex-only Rust, byte-identical output across both, sub-ms on the core path, sub-5 ms with all five structured-extract enrichments attached.
 
 ### Who this is for
 
-- **RAG-prep pipelines** — chunk → skimr → embed. One call gives you the focused summary to embed *plus* the dates/amounts/entities for the metadata column. See [`docs/integration-memo.md`](docs/integration-memo.md) for the chunkshop integration design.
+- **RAG-prep pipelines** — chunk → lede → embed. One call gives you the focused summary to embed *plus* the dates/amounts/entities for the metadata column. See [`docs/integration-memo.md`](docs/integration-memo.md) for the chunkshop integration design.
 - **MCP / agent middleware** — intercept tool output, drop a `clean_text` + `summarize(max_length=500)` in front of the model. Costs ~0.4 ms; saves a tool result from blowing the context window.
 - **Polyglot stacks** — Python data tier + Rust service tier + (eventually) Node frontend. One library, one fixture corpus, byte-identical output.
 - **Eval / replay** — deterministic output means snapshot tests don't drift. Same input = same bytes today, next year, on the next maintainer's laptop.
 
 ### Why not just call Claude / GPT / Cohere?
 
-Use the LLM if you want the *highest* quality summary and you can pay 500–5000 ms per doc and accept that two calls return different bytes. Use skimr (or alongside it) when you want:
+Use the LLM if you want the *highest* quality summary and you can pay 500–5000 ms per doc and accept that two calls return different bytes. Use lede (or alongside it) when you want:
 
 - **Sub-millisecond, on-device, zero-API-cost** — fits a hot path the LLM can't.
 - **Deterministic** — required for snapshot tests, regression harnesses, and audit trails.
-- **An honest preprocessor** — drop skimr in front of the LLM call; it's a 40–94% token-cut at the input layer with zero quality cost on the LLM's downstream summary, and it produces structured fields the LLM would otherwise have to be prompted to extract.
+- **An honest preprocessor** — drop lede in front of the LLM call; it's a 40–94% token-cut at the input layer with zero quality cost on the LLM's downstream summary, and it produces structured fields the LLM would otherwise have to be prompted to extract.
 
 ### Why not Sumy / TextRank / LexRank / "I'll just use re.findall"?
 
-| Alternative | When to use it | When skimr wins |
+| Alternative | When to use it | When lede wins |
 |---|---|---|
-| **Sumy** (Python, 3.7k★) — algorithm catalog: LSA, LexRank, TextRank, Luhn, Edmundson, KL-Sum | You want a specific classical algorithm (LSA, KL-Sum) and Python only | You want sub-ms latency (skimr default 0.42 ms p50 vs Sumy 11–12 ms across the [10-corpus benchmark](benchmarks/quality/matrix-2026-04-26.md)), Python ↔ Rust parity, structured enrichments in one call, or zero deps |
+| **Sumy** (Python, 3.7k★) — algorithm catalog: LSA, LexRank, TextRank, Luhn, Edmundson, KL-Sum | You want a specific classical algorithm (LSA, KL-Sum) and Python only | You want sub-ms latency (lede default 0.42 ms p50 vs Sumy 11–12 ms across the [10-corpus benchmark](benchmarks/quality/matrix-2026-04-26.md)), Python ↔ Rust parity, structured enrichments in one call, or zero deps |
 | **JesusIslam/tldr** (Go, LexRank), **rust-bert** (Rust, abstractive BART) | You're Go-only or want abstractive on-device | You want one summarizer that produces identical output across Python and Rust, or you don't want to ship 400 MB of model weights |
 | **`re.findall(r"\d+%")` + a sentence splitter** | One-off scripts | You want this to keep working when the input contains UTF-8 emoji, 50 K-digit pathological strings, abbreviation edge-cases, em-dash titles, and 9 other things you didn't think of. The fixtures + tests are the value. |
-| **LLM-as-summarizer** (Claude / GPT / Cohere) | Highest quality, latency and cost are fine | Hot path, deterministic output requirement, snapshot tests, regulated environment, or you want skimr in *front* of the LLM as a 50% input-token-cutter |
+| **LLM-as-summarizer** (Claude / GPT / Cohere) | Highest quality, latency and cost are fine | Hot path, deterministic output requirement, snapshot tests, regulated environment, or you want lede in *front* of the LLM as a 50% input-token-cutter |
 
 ## What's new in v0.2
 
-skimr v0.2 is the RAG-prep primitive: one call returns a summary plus structured enrichments that ride along.
+lede v0.2 is the RAG-prep primitive: one call returns a summary plus structured enrichments that ride along.
 
 ```python
-from skimr import summarize
+from lede import summarize
 
 r = summarize(
     doc_text,
@@ -101,10 +101,10 @@ r.correlated_facts   # tuple[PhraseFact, ...]— entity ↔ number/polarity pair
 Or call any primitive standalone:
 
 ```python
-from skimr.extract import stats, outline, metadata, phrases, correlate_facts, toc, key_facts
+from lede.extract import stats, outline, metadata, phrases, correlate_facts, toc, key_facts
 ```
 
-There's also `skimr.brief(text)` for a paste-ready at-a-glance brief (overview + key facts + table of contents) in `string`, `markdown`, or `dict` form.
+There's also `lede.brief(text)` for a paste-ready at-a-glance brief (overview + key facts + table of contents) in `string`, `markdown`, or `dict` form.
 
 **Latency:** core path stays sub-millisecond; full enrichment with all five attachments runs in ~2-4 ms p50 per document. See [`benchmarks/quality/matrix-2026-04-26.md`](benchmarks/quality/matrix-2026-04-26.md) for the full method × corpus matrix and the comparison against Sumy LexRank/TextRank/LSA.
 
@@ -128,14 +128,14 @@ pip install -e ".[textrank]"
 
 Enables `summarize_textrank` for graph-based extractive on long docs (Python-only, requires `networkx`).
 
-For spaCy-backed `Metadata.entities` (PERSON / ORG / GPE), install the companion package from `packages/skimr-spacy/` and the spaCy model:
+For spaCy-backed `Metadata.entities` (PERSON / ORG / GPE), install the companion package from `packages/lede-spacy/` and the spaCy model:
 
 ```bash
-pip install -e packages/skimr-spacy
+pip install -e packages/lede-spacy
 python -m spacy download en_core_web_sm
 ```
 
-Importing `skimr_spacy` registers itself as a backend; `extract.metadata(text, backend="spacy")` then populates `entities`. The Rust port does not ship NER by design — `entities` stays empty under the regex backend in either runtime.
+Importing `lede_spacy` registers itself as a backend; `extract.metadata(text, backend="spacy")` then populates `entities`. The Rust port does not ship NER by design — `entities` stays empty under the regex backend in either runtime.
 
 ### Known v0.2 gates
 
@@ -143,16 +143,16 @@ Importing `skimr_spacy` registers itself as a backend; `extract.metadata(text, b
 
 ## Install
 
-skimr is not yet on PyPI — install from source:
+lede is not yet on PyPI — install from source:
 
 ```bash
-git clone git@github.com:yonk-labs/skimr.git
-cd skimr
+git clone git@github.com:yonk-labs/lede.git
+cd lede
 pip install -e .                     # default: zero deps
 pip install -e ".[textrank]"         # adds networkx-based TextRank mode
 pip install -e ".[wordforms]"        # adds spelled-out number recognition
 pip install -e ".[yake]"             # adds YAKE phrases backend
-pip install -e packages/skimr-spacy  # adds spaCy-backed entities (companion)
+pip install -e packages/lede-spacy  # adds spaCy-backed entities (companion)
 ```
 
 PyPI / crates.io publication is tracked for a later release.
@@ -160,7 +160,7 @@ PyPI / crates.io publication is tracked for a later release.
 ## Quick Start
 
 ```python
-from skimr import summarize, clean_text, strip_think, extract_keyword
+from lede import summarize, clean_text, strip_think, extract_keyword
 
 text = open("long_doc.md").read()
 
@@ -183,19 +183,19 @@ visible = strip_think(raw)
 
 ```bash
 # Summarize a file (TF-IDF default, 500-char budget)
-skimr long_doc.md
+lede long_doc.md
 
 # Query-driven extractive
-skimr long_doc.md --mode keyword --keywords "pricing budget" --top 3
+lede long_doc.md --mode keyword --keywords "pricing budget" --top 3
 
 # Pipe stdin
-cat long_doc.md | skimr --mode tfidf --max-chars 1000
+cat long_doc.md | lede --mode tfidf --max-chars 1000
 
 # Strip boilerplate only
-skimr raw_note.txt --mode clean_text
+lede raw_note.txt --mode clean_text
 
 # Strip reasoning blocks
-echo "<think>...</think>Real answer." | skimr --mode strip_think
+echo "<think>...</think>Real answer." | lede --mode strip_think
 ```
 
 ## Rust
@@ -205,16 +205,16 @@ A Rust port lives at [`rust/`](rust/). It produces **byte-identical output** to 
 ### Install from source
 
 ```bash
-git clone https://github.com/yonk-labs/skimr.git
-cd skimr/rust
+git clone https://github.com/yonk-labs/lede.git
+cd lede/rust
 cargo build --release
-# binary at target/release/skimr
+# binary at target/release/lede
 ```
 
 ### Library usage
 
 ```rust
-use skimr::{summarize, clean_text, strip_think, extract_keyword};
+use lede::{summarize, clean_text, strip_think, extract_keyword};
 
 let summary = summarize("long document...", 500);
 let cleaned = clean_text("**bold** and _underlined_");
@@ -227,8 +227,8 @@ let focused = extract_keyword("demo notes...", "pricing budget", 3);
 Same flags as the Python CLI:
 
 ```bash
-./target/release/skimr long_doc.md --mode tfidf --max-chars 500
-./target/release/skimr long_doc.md --mode keyword --keywords "pricing budget" --top 3
+./target/release/lede long_doc.md --mode tfidf --max-chars 500
+./target/release/lede long_doc.md --mode keyword --keywords "pricing budget" --top 3
 ```
 
 Dependencies: `regex` crate only. No other runtime deps.
@@ -241,7 +241,7 @@ Dependencies: `regex` crate only. No other runtime deps.
 | `keyword` | "Give me sentences relevant to these keywords" | CLI + library | stdlib only |
 | `clean_text` | Strip markdown, filler, CRM boilerplate | CLI + library | stdlib only |
 | `strip_think` | Remove `<think>…</think>` from reasoning-model output | CLI + library | stdlib only |
-| `textrank` | Graph-based extractive on long docs | library only (`from skimr.textrank import summarize_textrank`) | requires `[textrank]` extra |
+| `textrank` | Graph-based extractive on long docs | library only (`from lede.textrank import summarize_textrank`) | requires `[textrank]` extra |
 
 ## Design Notes
 

@@ -1,0 +1,49 @@
+name: lede-spacy
+
+# Runs the companion package's tests on every push to main and on PRs.
+# The main `tests` workflow doesn't pick this up because lede-spacy is a
+# separately-installed distribution under `packages/lede-spacy/` with its
+# own pyproject.toml. Without this workflow the spaCy backend can rot
+# silently while the main suite stays green.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lede-spacy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install lede (editable) + lede-spacy + spaCy model
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          # `[dev]` pulls pytest so the test step can find it; the runner
+          # doesn't ship pytest as a system tool.
+          pip install -e "packages/lede-spacy[dev]"
+          # spaCy model the regex/spacy bridge expects.
+          python -m spacy download en_core_web_sm
+      - name: Run lede-spacy tests
+        run: |
+          cd packages/lede-spacy
+          pytest -q
+      - name: Verify backend registration
+        run: |
+          python -c "
+          import lede_spacy  # registers backends as a side effect
+          from lede.extract import metadata
+          m = metadata('Acme Corp launched in 2024 from San Francisco.', backend='spacy')
+          print('spacy entities:', m.entities)
+          assert m.entities, 'expected at least one entity from the spaCy backend'
+          print('lede-spacy backend: OK')
+          "

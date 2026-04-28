@@ -1,6 +1,6 @@
-//! Tests for `skimr::brief` — at-a-glance document brief composition primitive.
+//! Tests for `lede::brief` — at-a-glance document brief composition primitive.
 
-use skimr::{BriefFormat, BriefOptions, BriefOutput, brief, brief_with_options};
+use lede::{BriefFormat, BriefOptions, BriefOutput, brief, brief_with_options};
 
 const MULTI_SECTION: &str = "# Introduction\n\nThis report covers Q1 performance.\n\n\
      # Results\n\nRevenue grew 40 percent. Costs fell 10 percent. \

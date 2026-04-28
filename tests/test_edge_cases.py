@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from skimr import brief, summarize
-from skimr.extract import (
+from lede import brief, summarize
+from lede.extract import (
     correlate_facts,
     key_facts,
     metadata,

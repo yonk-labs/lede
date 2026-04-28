@@ -1,4 +1,4 @@
-//! Coverage-constrained selector. Mirrors `src/skimr/coverage.py`.
+//! Coverage-constrained selector. Mirrors `src/lede/coverage.py`.
 //!
 //! Picks the highest-scoring sentence from each paragraph (paragraphs are
 //! blank-line-delimited; fewer-than-20-char paragraphs are skipped). After a
@@ -56,7 +56,7 @@ pub fn summarize_coverage(text: &str, max_length: usize) -> String {
     // Occurrence-counted mapping: the K-th occurrence of a repeated sentence
     // goes to the K-th paragraph that contains it. Earlier "first containing
     // paragraph wins" biased coverage on docs with template/FAQ-style
-    // repetitions. Mirrors `src/skimr/coverage.py`. Closes AAT-021.
+    // repetitions. Mirrors `src/lede/coverage.py`. Closes AAT-021.
     let paragraphs = split_paragraphs(text);
     let mut occurrence_seen: std::collections::HashMap<&str, usize> =
         std::collections::HashMap::new();

@@ -1,10 +1,10 @@
-"""Optional skimr-spacy companion — adds Metadata.entities.
+"""Optional lede-spacy companion — adds Metadata.entities.
 
 Requires:
-    pip install -e packages/skimr-spacy
+    pip install -e packages/lede-spacy
     python -m spacy download en_core_web_sm
 
-Importing skimr_spacy registers backends as a side effect. After that,
+Importing lede_spacy registers backends as a side effect. After that,
 extract.metadata(text, backend="spacy") populates the entities field.
 Rust port does not ship NER by design — entities stays empty there.
 
@@ -12,19 +12,19 @@ Run: python examples/06_with_spacy_entities.py
 """
 import sys
 
-# Importing skimr_spacy registers the spaCy backends.
+# Importing lede_spacy registers the spaCy backends.
 try:
-    import skimr_spacy  # noqa: F401  — side-effect import
+    import lede_spacy  # noqa: F401  — side-effect import
 except ImportError:
-    print("This example requires the skimr-spacy companion package.", file=sys.stderr)
-    print("    pip install -e packages/skimr-spacy", file=sys.stderr)
+    print("This example requires the lede-spacy companion package.", file=sys.stderr)
+    print("    pip install -e packages/lede-spacy", file=sys.stderr)
     print("    python -m spacy download en_core_web_sm", file=sys.stderr)
     sys.exit(1)
 
-from skimr.extract import metadata
+from lede.extract import metadata
 
 DOC = """
-Acme Corp announced today a partnership with skimr Labs to integrate
+Acme Corp announced today a partnership with lede Labs to integrate
 deterministic summarization into their RAG pipeline. The deal,
 brokered by CEO Lin Wu and signed in San Francisco on 2024-11-15,
 covers $2.4M in annual licensing through 2027.

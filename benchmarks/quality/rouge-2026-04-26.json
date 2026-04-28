@@ -8,7 +8,7 @@
     "r2_f": 0.2406015037593985,
     "out_chars": 497,
     "corpus": "crm-note-long",
-    "summarizer": "skimr/tfidf-v0.2"
+    "summarizer": "lede/tfidf-v0.2"
   },
   {
     "r1_p": 0.6041666666666666,
@@ -19,7 +19,7 @@
     "r2_f": 0.20895522388059704,
     "out_chars": 498,
     "corpus": "crm-note-long",
-    "summarizer": "skimr/tfidf-legacy"
+    "summarizer": "lede/tfidf-legacy"
   },
   {
     "r1_p": 0.7857142857142857,
@@ -30,7 +30,7 @@
     "r2_f": 0.19298245614035087,
     "out_chars": 306,
     "corpus": "crm-note-long",
-    "summarizer": "skimr/textrank"
+    "summarizer": "lede/textrank"
   },
   {
     "r1_p": 0.5652173913043478,
@@ -74,7 +74,7 @@
     "r2_f": 0.7272727272727272,
     "out_chars": 474,
     "corpus": "crm-note-short",
-    "summarizer": "skimr/tfidf-v0.2"
+    "summarizer": "lede/tfidf-v0.2"
   },
   {
     "r1_p": 0.9166666666666666,
@@ -85,7 +85,7 @@
     "r2_f": 0.7272727272727272,
     "out_chars": 475,
     "corpus": "crm-note-short",
-    "summarizer": "skimr/tfidf-legacy"
+    "summarizer": "lede/tfidf-legacy"
   },
   {
     "r1_p": 0.96,
@@ -96,7 +96,7 @@
     "r2_f": 0.5789473684210527,
     "out_chars": 218,
     "corpus": "crm-note-short",
-    "summarizer": "skimr/textrank"
+    "summarizer": "lede/textrank"
   },
   {
     "r1_p": 1.0,
@@ -140,7 +140,7 @@
     "r2_f": 0.3194444444444444,
     "out_chars": 496,
     "corpus": "meeting-minutes",
-    "summarizer": "skimr/tfidf-v0.2"
+    "summarizer": "lede/tfidf-v0.2"
   },
   {
     "r1_p": 0.6521739130434783,
@@ -151,7 +151,7 @@
     "r2_f": 0.29166666666666663,
     "out_chars": 474,
     "corpus": "meeting-minutes",
-    "summarizer": "skimr/tfidf-legacy"
+    "summarizer": "lede/tfidf-legacy"
   },
   {
     "r1_p": 0.7428571428571429,
@@ -162,7 +162,7 @@
     "r2_f": 0.3157894736842105,
     "out_chars": 386,
     "corpus": "meeting-minutes",
-    "summarizer": "skimr/textrank"
+    "summarizer": "lede/textrank"
   },
   {
     "r1_p": 0.7567567567567568,
@@ -206,7 +206,7 @@
     "r2_f": 0.1973684210526316,
     "out_chars": 478,
     "corpus": "news-article",
-    "summarizer": "skimr/tfidf-v0.2"
+    "summarizer": "lede/tfidf-v0.2"
   },
   {
     "r1_p": 0.3877551020408163,
@@ -217,7 +217,7 @@
     "r2_f": 0.09150326797385623,
     "out_chars": 498,
     "corpus": "news-article",
-    "summarizer": "skimr/tfidf-legacy"
+    "summarizer": "lede/tfidf-legacy"
   },
   {
     "r1_p": 0.46153846153846156,
@@ -228,7 +228,7 @@
     "r2_f": 0.09589041095890412,
     "out_chars": 433,
     "corpus": "news-article",
-    "summarizer": "skimr/textrank"
+    "summarizer": "lede/textrank"
   },
   {
     "r1_p": 0.5666666666666667,
@@ -272,7 +272,7 @@
     "r2_f": 0.0958904109589041,
     "out_chars": 492,
     "corpus": "privacy-policy",
-    "summarizer": "skimr/tfidf-v0.2"
+    "summarizer": "lede/tfidf-v0.2"
   },
   {
     "r1_p": 0.4883720930232558,
@@ -283,7 +283,7 @@
     "r2_f": 0.12328767123287673,
     "out_chars": 498,
     "corpus": "privacy-policy",
-    "summarizer": "skimr/tfidf-legacy"
+    "summarizer": "lede/tfidf-legacy"
   },
   {
     "r1_p": 0.21428571428571427,
@@ -294,7 +294,7 @@
     "r2_f": 0.0,
     "out_chars": 173,
     "corpus": "privacy-policy",
-    "summarizer": "skimr/textrank"
+    "summarizer": "lede/textrank"
   },
   {
     "r1_p": 0.39473684210526316,
@@ -338,7 +338,7 @@
     "r2_f": 0.2953020134228188,
     "out_chars": 486,
     "corpus": "scientific-paper",
-    "summarizer": "skimr/tfidf-v0.2"
+    "summarizer": "lede/tfidf-v0.2"
   },
   {
     "r1_p": 0.5121951219512195,
@@ -349,7 +349,7 @@
     "r2_f": 0.22972972972972977,
     "out_chars": 494,
     "corpus": "scientific-paper",
-    "summarizer": "skimr/tfidf-legacy"
+    "summarizer": "lede/tfidf-legacy"
   },
   {
     "r1_p": 0.7608695652173914,
@@ -360,7 +360,7 @@
     "r2_f": 0.36708860759493667,
     "out_chars": 523,
     "corpus": "scientific-paper",
-    "summarizer": "skimr/textrank"
+    "summarizer": "lede/textrank"
   },
   {
     "r1_p": 0.75,
@@ -404,7 +404,7 @@
     "r2_f": 0.22058823529411767,
     "out_chars": 497,
     "corpus": "scotus-opinion",
-    "summarizer": "skimr/tfidf-v0.2"
+    "summarizer": "lede/tfidf-v0.2"
   },
   {
     "r1_p": 0.627906976744186,
@@ -415,7 +415,7 @@
     "r2_f": 0.21052631578947367,
     "out_chars": 499,
     "corpus": "scotus-opinion",
-    "summarizer": "skimr/tfidf-legacy"
+    "summarizer": "lede/tfidf-legacy"
   },
   {
     "r1_p": 0.39344262295081966,
@@ -426,7 +426,7 @@
     "r2_f": 0.14545454545454545,
     "out_chars": 785,
     "corpus": "scotus-opinion",
-    "summarizer": "skimr/textrank"
+    "summarizer": "lede/textrank"
   },
   {
     "r1_p": 0.40384615384615385,
@@ -470,7 +470,7 @@
     "r2_f": 0.17187500000000003,
     "out_chars": 482,
     "corpus": "support-ticket",
-    "summarizer": "skimr/tfidf-v0.2"
+    "summarizer": "lede/tfidf-v0.2"
   },
   {
     "r1_p": 0.5238095238095238,
@@ -481,7 +481,7 @@
     "r2_f": 0.15625,
     "out_chars": 496,
     "corpus": "support-ticket",
-    "summarizer": "skimr/tfidf-legacy"
+    "summarizer": "lede/tfidf-legacy"
   },
   {
     "r1_p": 0.5853658536585366,
@@ -492,7 +492,7 @@
     "r2_f": 0.14285714285714288,
     "out_chars": 464,
     "corpus": "support-ticket",
-    "summarizer": "skimr/textrank"
+    "summarizer": "lede/textrank"
   },
   {
     "r1_p": 0.4146341463414634,
@@ -536,7 +536,7 @@
     "r2_f": 0.08275862068965517,
     "out_chars": 472,
     "corpus": "tech-spec",
-    "summarizer": "skimr/tfidf-v0.2"
+    "summarizer": "lede/tfidf-v0.2"
   },
   {
     "r1_p": 0.4222222222222222,
@@ -547,7 +547,7 @@
     "r2_f": 0.09333333333333334,
     "out_chars": 490,
     "corpus": "tech-spec",
-    "summarizer": "skimr/tfidf-legacy"
+    "summarizer": "lede/tfidf-legacy"
   },
   {
     "r1_p": 0.4090909090909091,
@@ -558,7 +558,7 @@
     "r2_f": 0.046153846153846156,
     "out_chars": 334,
     "corpus": "tech-spec",
-    "summarizer": "skimr/textrank"
+    "summarizer": "lede/textrank"
   },
   {
     "r1_p": 0.4827586206896552,
@@ -602,7 +602,7 @@
     "r2_f": 0.12080536912751677,
     "out_chars": 459,
     "corpus": "wikipedia-article",
-    "summarizer": "skimr/tfidf-v0.2"
+    "summarizer": "lede/tfidf-v0.2"
   },
   {
     "r1_p": 0.5652173913043478,
@@ -613,7 +613,7 @@
     "r2_f": 0.23076923076923078,
     "out_chars": 493,
     "corpus": "wikipedia-article",
-    "summarizer": "skimr/tfidf-legacy"
+    "summarizer": "lede/tfidf-legacy"
   },
   {
     "r1_p": 0.5576923076923077,
@@ -624,7 +624,7 @@
     "r2_f": 0.21301775147928997,
     "out_chars": 644,
     "corpus": "wikipedia-article",
-    "summarizer": "skimr/textrank"
+    "summarizer": "lede/textrank"
   },
   {
     "r1_p": 0.6031746031746031,

@@ -1,8 +1,8 @@
-# Gold-label protocol for skimr.extract.* fixtures
+# Gold-label protocol for lede.extract.* fixtures
 
 ## Why
 
-SC-D (skimr v0.2 plan) requires each `extract.*` primitive to hit ≥0.85 recall / ≥0.80 precision against a hand-labeled gold set. This doc captures the labeling rules so anyone can re-label or extend the corpus without drift.
+SC-D (lede v0.2 plan) requires each `extract.*` primitive to hit ≥0.85 recall / ≥0.80 precision against a hand-labeled gold set. This doc captures the labeling rules so anyone can re-label or extend the corpus without drift.
 
 ## Scope
 
@@ -35,7 +35,7 @@ Each gold file is a JSON object. Missing fields default to empty.
 }
 ```
 
-- `value` — the string the primitive's regex will produce as `Stat.value` for this fact. For digit-form matches the primitive emits just the number (e.g. source `40%` → primitive `value="40"`; source `0.4 percent` → primitive `value="0.4"`). For duration matches the primitive emits just the number without the unit word (source `3 months` → primitive `value="3 months"` per pattern composition — see `src/skimr/extract/stats.py`). When in doubt, run the primitive on the source and use what it emits. Word-form numeric facts (`"eight days"`, `"thirty days"`) are labeled per the human-extraction standard even though the current regex primitive cannot match them — these become known recall gaps T13 uses to decide whether the primitive needs a word-form extension.
+- `value` — the string the primitive's regex will produce as `Stat.value` for this fact. For digit-form matches the primitive emits just the number (e.g. source `40%` → primitive `value="40"`; source `0.4 percent` → primitive `value="0.4"`). For duration matches the primitive emits just the number without the unit word (source `3 months` → primitive `value="3 months"` per pattern composition — see `src/lede/extract/stats.py`). When in doubt, run the primitive on the source and use what it emits. Word-form numeric facts (`"eight days"`, `"thirty days"`) are labeled per the human-extraction standard even though the current regex primitive cannot match them — these become known recall gaps T13 uses to decide whether the primitive needs a word-form extension.
 - `unit` — the unit label the primitive emits. Canonical set: `"usd"` (money), `"percent"` (NOT `"pct"`), `"date"`, `"day"` / `"minute"` / `"month"` / `"week"` / `"year"` (singular — the primitive `rstrip("s")`s), and for `stat_type="count"` the concrete keyword from the source (`"events"`, `"users"`, `"documents"`, etc.).
 - `stat_type` — one of `money`, `percent`, `date`, `duration`, `count`.
 - `context_hint` — a substring that MUST appear somewhere inside the matched `Stat.context_sentence`. Short, unambiguous anchor phrase from the sentence (not the whole sentence).
@@ -72,7 +72,7 @@ Each gold file is a JSON object. Missing fields default to empty.
 - `urls` — full URL strings starting with `http://` or `https://`.
 - `entities` — named people, organizations, and places a human would reasonably extract. Labeled only where a human would confidently extract them.
 
-**Eval backend routing:** the T13 harness MUST call `metadata(text, backend="regex")` to score `dates`, `amounts`, and `urls`, and call `metadata(text, backend="spacy")` (from skimr-spacy) to score `entities`. The regex backend always returns an empty `entities` list by design. A single-backend eval would either score entities against an empty set (false miss on every entity) or score dates/amounts/urls against spaCy's output (false precision drop, since spaCy may emit entity-adjacent strings the regex primitive wouldn't).
+**Eval backend routing:** the T13 harness MUST call `metadata(text, backend="regex")` to score `dates`, `amounts`, and `urls`, and call `metadata(text, backend="spacy")` (from lede-spacy) to score `entities`. The regex backend always returns an empty `entities` list by design. A single-backend eval would either score entities against an empty set (false miss on every entity) or score dates/amounts/urls against spaCy's output (false precision drop, since spaCy may emit entity-adjacent strings the regex primitive wouldn't).
 
 ### phrases
 
@@ -146,7 +146,7 @@ For one corpus:
    .venv/bin/python - <<'PY'
    from pathlib import Path
    from dataclasses import asdict
-   from skimr.extract import stats, outline, metadata, phrases, correlate_facts
+   from lede.extract import stats, outline, metadata, phrases, correlate_facts
 
    corpus = Path("benchmarks/corpus/<corpus>.txt").read_text()
    print("--- stats ---")

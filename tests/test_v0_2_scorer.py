@@ -1,6 +1,6 @@
 """C1 scorer tweak tests for mode='default'."""
 import re
-from skimr import summarize
+from lede import summarize
 
 
 def test_heading_filter_drops_markdown_headings():

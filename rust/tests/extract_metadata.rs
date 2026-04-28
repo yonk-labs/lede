@@ -1,4 +1,4 @@
-use skimr::extract::metadata::metadata;
+use lede::extract::metadata::metadata;
 
 #[test]
 fn collects_iso_dates() {

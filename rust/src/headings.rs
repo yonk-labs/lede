@@ -1,4 +1,4 @@
-//! Shared heading detection — mirrors src/skimr/_headings.py.
+//! Shared heading detection — mirrors src/lede/_headings.py.
 //!
 //! Any sentence matching any of these patterns is considered a heading and is
 //! dropped from candidate selection in `Mode::Default`.

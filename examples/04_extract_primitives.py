@@ -1,4 +1,4 @@
-"""Each `skimr.extract.*` primitive called standalone.
+"""Each `lede.extract.*` primitive called standalone.
 
 Same primitives that `summarize(attach=…)` composes — but for callers
 that want to run just one (e.g. only stats extraction, or only the
@@ -6,7 +6,7 @@ outline for a chunking heuristic).
 
 Run: python examples/04_extract_primitives.py
 """
-from skimr.extract import (
+from lede.extract import (
     correlate_facts,
     key_facts,
     metadata,
@@ -17,7 +17,7 @@ from skimr.extract import (
 )
 
 DOC = """
-Project skimr — 2024 status report
+Project lede — 2024 status report
 
 ## Performance
 
@@ -27,7 +27,7 @@ TextRank for comparison runs at 11.6 ms p50 on the same corpus.
 
 ## Adoption
 
-Three internal teams shipped pipelines on top of skimr in Q3:
+Three internal teams shipped pipelines on top of lede in Q3:
 chunkshop (RAG ingest), notebot (note summarization), and the demo
 preview service. Combined throughput across all three: 1.2 million
 documents per day.

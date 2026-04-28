@@ -1,9 +1,9 @@
 //! v0.2 scorer tests — `Mode::Default` tweaks.
 //!
-//! Mirrors the Python tests in `tests/skimr/test_scorer_v0_2.py`. Exercises
+//! Mirrors the Python tests in `tests/lede/test_scorer_v0_2.py`. Exercises
 //! heading filter, cue-phrase boost, digit bonus, and section-position weight.
 
-use skimr::{Mode, summarize};
+use lede::{Mode, summarize};
 
 #[test]
 fn heading_filter_drops_markdown() {

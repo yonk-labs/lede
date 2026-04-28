@@ -19,7 +19,7 @@ except ImportError:
     print('    pip install -e ".[wordforms]"', file=sys.stderr)
     sys.exit(1)
 
-from skimr.extract import stats
+from lede.extract import stats
 
 DOC = """
 Retention was seven years after account closure. The new regime

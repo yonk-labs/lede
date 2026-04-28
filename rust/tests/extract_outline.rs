@@ -1,4 +1,4 @@
-use skimr::extract::outline::outline;
+use lede::extract::outline::outline;
 
 #[test]
 fn outline_captures_markdown_sections() {

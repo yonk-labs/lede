@@ -1,4 +1,4 @@
-use skimr::clean::clean_text;
+use lede::clean::clean_text;
 
 #[test]
 fn empty_returns_empty() {

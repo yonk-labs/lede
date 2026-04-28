@@ -1,5 +1,5 @@
 from pathlib import Path
-from skimr.keyword import extract_keyword
+from lede.keyword import extract_keyword
 
 
 def test_extract_keyword_picks_sentences_with_matches():

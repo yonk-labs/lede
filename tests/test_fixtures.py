@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from skimr.clean import clean_text, strip_think
-from skimr.tfidf import summarize
-from skimr.keyword import extract_keyword
+from lede.clean import clean_text, strip_think
+from lede.tfidf import summarize
+from lede.keyword import extract_keyword
 
 FIXTURES_ROOT = Path(__file__).resolve().parent.parent / "fixtures"
 

@@ -1,4 +1,4 @@
-use skimr::{Mode, summarize};
+use lede::{Mode, summarize};
 
 #[test]
 fn coverage_picks_one_per_paragraph() {

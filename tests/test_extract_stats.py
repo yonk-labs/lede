@@ -1,7 +1,7 @@
 """extract.stats tests."""
 import pytest
 
-from skimr.extract import correlate_facts, stats
+from lede.extract import correlate_facts, stats
 
 
 def test_stats_finds_money():

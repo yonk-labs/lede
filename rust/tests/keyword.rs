@@ -1,4 +1,4 @@
-use skimr::keyword::extract_keyword;
+use lede::keyword::extract_keyword;
 
 #[test]
 fn picks_sentences_with_matches() {

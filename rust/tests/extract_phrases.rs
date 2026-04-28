@@ -1,4 +1,4 @@
-use skimr::extract::phrases::phrases;
+use lede::extract::phrases::phrases;
 
 #[test]
 fn finds_repeated_multiword_terms() {

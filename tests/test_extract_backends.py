@@ -1,14 +1,14 @@
-"""Tests for skimr.extract._backends — the pluggable backend registry.
+"""Tests for lede.extract._backends — the pluggable backend registry.
 
 Validates registry basics, default behavior, per-call override, and
-auto-fallback. These run against skimr core alone; skimr-spacy is NOT
+auto-fallback. These run against lede core alone; lede-spacy is NOT
 assumed to be importable.
 """
 import pytest
 
-import skimr
-from skimr.extract import metadata
-from skimr.extract import _backends
+import lede
+from lede.extract import metadata
+from lede.extract import _backends
 
 
 @pytest.fixture(autouse=True)
@@ -58,16 +58,16 @@ def test_metadata_regex_backend_regression():
 
 
 def test_metadata_spacy_backend_missing_raises_import_error():
-    """Without skimr-spacy imported, backend='spacy' raises ImportError with guidance."""
+    """Without lede-spacy imported, backend='spacy' raises ImportError with guidance."""
     with pytest.raises(ImportError) as excinfo:
         metadata("anything", backend="spacy")
     msg = str(excinfo.value)
     assert "spacy" in msg
-    assert "skimr-spacy" in msg
+    assert "lede-spacy" in msg
 
 
 def test_metadata_auto_falls_back_to_regex():
-    """backend='auto' picks regex when only regex is registered (no skimr-spacy)."""
+    """backend='auto' picks regex when only regex is registered (no lede-spacy)."""
     m = metadata(
         "Paid $50 on 2026-01-01 via https://pay.example.com.",
         backend="auto",
@@ -78,7 +78,7 @@ def test_metadata_auto_falls_back_to_regex():
 
 def test_set_default_backend_affects_default_but_not_explicit_call():
     """Process-wide default changes default calls; per-call backend= still wins."""
-    skimr.set_default_backend("auto")
+    lede.set_default_backend("auto")
     # Default call now routes through 'auto' — still regex since no spacy.
     m_default = metadata("On 2025-06-14 we shipped.")
     assert "2025-06-14" in m_default.dates
@@ -90,5 +90,5 @@ def test_set_default_backend_affects_default_but_not_explicit_call():
 def test_set_default_backend_rejects_unknown_name():
     """Unknown backend names are rejected with ValueError at set-time."""
     with pytest.raises(ValueError) as excinfo:
-        skimr.set_default_backend("no_such_backend")
+        lede.set_default_backend("no_such_backend")
     assert "no_such_backend" in str(excinfo.value)

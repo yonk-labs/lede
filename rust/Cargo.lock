@@ -41,6 +41,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "lede"
+version = "0.3.0"
+dependencies = [
+ "regex",
+ "text2num",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.186"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -214,14 +222,6 @@ name = "siphasher"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
-
-[[package]]
-name = "skimr"
-version = "0.2.2"
-dependencies = [
- "regex",
- "text2num",
-]
 
 [[package]]
 name = "syn"

@@ -1,5 +1,5 @@
-use skimr::Mode;
-use skimr::tfidf::{composite_score, length_score, position_score, summarize, tfidf_score};
+use lede::Mode;
+use lede::tfidf::{composite_score, length_score, position_score, summarize, tfidf_score};
 
 #[test]
 fn tfidf_returns_normalized_list() {

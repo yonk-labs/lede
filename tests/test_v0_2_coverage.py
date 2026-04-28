@@ -1,5 +1,5 @@
 """C2 coverage mode tests."""
-from skimr import summarize
+from lede import summarize
 
 
 def test_coverage_picks_one_per_paragraph():

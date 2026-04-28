@@ -1,6 +1,6 @@
 //! Sentence splitter.
 //!
-//! Port of `src/skimr/sentences.py::split_sentences`. Splits on sentence-terminal
+//! Port of `src/lede/sentences.py::split_sentences`. Splits on sentence-terminal
 //! punctuation (`.!?`) followed by whitespace and an uppercase letter, plus
 //! paragraph breaks. Protects known abbreviations and decimal numbers from being
 //! treated as sentence boundaries.
@@ -38,7 +38,7 @@ fn abbrev_re() -> &'static Regex {
 // ("No. 5", "No. 17"). Bare "no." at end of sentence is NOT protected and
 // stays a sentence terminator. Rust's regex crate has no lookahead, so we
 // capture the trailing whitespace + digit and emit it back unchanged.
-// Mirrors `_NO_NUMBER_RE` in `src/skimr/sentences.py`.
+// Mirrors `_NO_NUMBER_RE` in `src/lede/sentences.py`.
 fn no_number_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(r"\b(No)\.(\s*)(\d)").expect("no-number regex compiles"))
@@ -61,7 +61,7 @@ fn is_abbreviation(word: &str) -> bool {
 fn mask(text: &str) -> String {
     // Strip the reserved sentinel (NUL) rather than panicking. NUL bytes
     // can show up in PDF-extracted text and other ETL outputs; aborting
-    // the splitter on them is hostile. Mirrors src/skimr/sentences.py::_mask
+    // the splitter on them is hostile. Mirrors src/lede/sentences.py::_mask
     // for parity.
     let cleaned: std::borrow::Cow<str> = if text.contains(SENTINEL) {
         std::borrow::Cow::Owned(text.replace(SENTINEL, ""))

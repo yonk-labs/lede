@@ -5,7 +5,7 @@ from pathlib import Path
 
 def _run(args: list[str], stdin: str | None = None) -> tuple[int, str, str]:
     result = subprocess.run(
-        [sys.executable, "-m", "skimr.cli", *args],
+        [sys.executable, "-m", "lede.cli", *args],
         input=stdin,
         capture_output=True,
         text=True,

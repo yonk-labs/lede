@@ -1,7 +1,7 @@
 """extract.phrases tests."""
 import pytest
 
-from skimr.extract import phrases
+from lede.extract import phrases
 
 
 def test_phrases_finds_repeated_multiword_terms():

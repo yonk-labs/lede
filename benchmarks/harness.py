@@ -1,11 +1,11 @@
-"""Benchmark harness for skimr vs Sumy. Covers Python skimr, Rust skimr, and Sumy.
+"""Benchmark harness for lede vs Sumy. Covers Python lede, Rust lede, and Sumy.
 
 Usage:
     python benchmarks/harness.py                      # run default corpus, 100 iterations
     python benchmarks/harness.py --iterations 200     # more repeats
     python benchmarks/harness.py --output path.md     # write results elsewhere
 
-Rust skimr/tfidf shells out to rust/target/release/bench_tfidf which does
+Rust lede/tfidf shells out to rust/target/release/bench_tfidf which does
 the inner iteration loop in-process — that way the Python harness doesn't
 count process-spawn time per iteration. Build with:
 
@@ -38,13 +38,13 @@ TARGET_CHARS = 500
 
 # --- Summarizer adapters ---
 
-def _skimr_tfidf(text: str) -> str:
-    from skimr import summarize
+def _lede_tfidf(text: str) -> str:
+    from lede import summarize
     return summarize(text, max_length=TARGET_CHARS)
 
 
-def _skimr_textrank(text: str) -> str:
-    from skimr.textrank import summarize_textrank
+def _lede_textrank(text: str) -> str:
+    from lede.textrank import summarize_textrank
     return summarize_textrank(text, num_sentences=TARGET_SENTENCES)
 
 
@@ -67,8 +67,8 @@ def _sumy_backend(cls_name: str) -> Callable[[str], str]:
 
 
 SUMMARIZERS: dict[str, Callable[[str], str]] = {
-    "skimr/tfidf": _skimr_tfidf,
-    "skimr/textrank": _skimr_textrank,
+    "lede/tfidf": _lede_tfidf,
+    "lede/textrank": _lede_textrank,
     "sumy/LexRank": _sumy_backend("LexRank"),
     "sumy/TextRank": _sumy_backend("TextRank"),
     "sumy/LSA": _sumy_backend("LSA"),
@@ -96,11 +96,11 @@ def _rust_tfidf_measure(text: str, iterations: int) -> tuple[float, float, int]:
 # Rust measurers do their own timing (returns the full measurement tuple),
 # distinct from SUMMARIZERS which hand back a summary string per call.
 RUST_MEASURERS: dict[str, Callable[[str, int], tuple[float, float, int]]] = {
-    "rust-skimr/tfidf": _rust_tfidf_measure,
+    "rust-lede/tfidf": _rust_tfidf_measure,
 }
 
 # Still-placeholder columns (no Plan-2 Rust implementation).
-RUST_PLACEHOLDERS = ["rust-skimr/textrank"]
+RUST_PLACEHOLDERS = ["rust-lede/textrank"]
 
 
 # --- Measurement ---
@@ -154,8 +154,8 @@ def _env_fingerprint() -> dict[str, str]:
         pass
     # Versions of the compared libraries
     try:
-        import skimr
-        info["skimr_version"] = getattr(skimr, "__version__", "unknown")
+        import lede
+        info["lede_version"] = getattr(lede, "__version__", "unknown")
     except Exception:
         pass
     try:
@@ -176,7 +176,7 @@ def _render_markdown(measurements: list[Measurement], env: dict[str, str], itera
     lines.append(f"# Benchmark Results — {time.strftime('%Y-%m-%d')}")
     lines.append("")
     lines.append(f"**Iterations per cell:** {iterations}")
-    lines.append(f"**Target budget:** {TARGET_SENTENCES} sentences (Sumy / textrank) or {TARGET_CHARS} chars (skimr/tfidf)")
+    lines.append(f"**Target budget:** {TARGET_SENTENCES} sentences (Sumy / textrank) or {TARGET_CHARS} chars (lede/tfidf)")
     lines.append("")
     lines.append("## System")
     lines.append("")
@@ -230,11 +230,11 @@ def _render_markdown(measurements: list[Measurement], env: dict[str, str], itera
         lines.append("| " + " | ".join(row) + " |")
     lines.append("")
 
-    # Key comparison: skimr vs fastest Sumy backend at the median
+    # Key comparison: lede vs fastest Sumy backend at the median
     lines.append("## Headline comparison")
     lines.append("")
     for corpus in corpus_names:
-        s_tfidf = by_corpus[corpus].get("skimr/tfidf")
+        s_tfidf = by_corpus[corpus].get("lede/tfidf")
         sumy_fastest = min(
             (m for summ, m in by_corpus[corpus].items() if summ.startswith("sumy/")),
             key=lambda m: m.p50_ms,
@@ -243,7 +243,7 @@ def _render_markdown(measurements: list[Measurement], env: dict[str, str], itera
         if s_tfidf and sumy_fastest:
             ratio = sumy_fastest.p50_ms / s_tfidf.p50_ms
             lines.append(
-                f"- **{corpus}:** skimr/tfidf is **{ratio:.0f}×** faster than "
+                f"- **{corpus}:** lede/tfidf is **{ratio:.0f}×** faster than "
                 f"the fastest Sumy backend ({sumy_fastest.summarizer}) at the median."
             )
     lines.append("")
@@ -251,9 +251,9 @@ def _render_markdown(measurements: list[Measurement], env: dict[str, str], itera
     lines.append("## Notes")
     lines.append("")
     lines.append("- Cross-machine numbers are invalid (DC-004). Re-run on the target machine.")
-    lines.append("- `rust-skimr/tfidf` is measured via `rust/target/release/bench_tfidf` (inner loop runs in-process; no per-iteration spawn tax).")
-    lines.append("- `rust-skimr/textrank` stays a placeholder — TextRank is out of scope for Plan 2.")
-    lines.append("- Output length differences are expected — skimr/tfidf uses a char budget; others use a sentence count.")
+    lines.append("- `rust-lede/tfidf` is measured via `rust/target/release/bench_tfidf` (inner loop runs in-process; no per-iteration spawn tax).")
+    lines.append("- `rust-lede/textrank` stays a placeholder — TextRank is out of scope for Plan 2.")
+    lines.append("- Output length differences are expected — lede/tfidf uses a char budget; others use a sentence count.")
     lines.append("- P95 over 100 iterations is coarse; bump `--iterations` for tighter tails.")
     return "\n".join(lines) + "\n"
 
@@ -261,7 +261,7 @@ def _render_markdown(measurements: list[Measurement], env: dict[str, str], itera
 # --- Main ---
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="skimr vs Sumy wall-clock benchmark")
+    ap = argparse.ArgumentParser(description="lede vs Sumy wall-clock benchmark")
     ap.add_argument("--iterations", type=int, default=100)
     ap.add_argument("--output", type=Path, default=None, help="Markdown output path (default: benchmarks/results/results-YYYY-MM-DD.md)")
     ap.add_argument("--json", type=Path, default=None, help="Also write raw measurements as JSON")

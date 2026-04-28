@@ -22,8 +22,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from skimr import summarize  # noqa: E402
-from skimr.textrank import summarize_textrank  # noqa: E402
+from lede import summarize  # noqa: E402
+from lede.textrank import summarize_textrank  # noqa: E402
 from sumy.parsers.plaintext import PlaintextParser  # noqa: E402
 from sumy.nlp.tokenizers import Tokenizer  # noqa: E402
 from sumy.summarizers.lex_rank import LexRankSummarizer  # noqa: E402
@@ -38,7 +38,7 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 TARGET_SENTENCES = 3
 TARGET_CHARS = 500
 
-# Stopword list matched to the skimr tokenization intent — drop function words
+# Stopword list matched to the lede tokenization intent — drop function words
 # and common connective tokens so overlap measures content-level similarity.
 STOP = set(
     "the a an and or but if then with by of to in on at for from as is are was "
@@ -86,7 +86,7 @@ def main() -> int:
     outputs_doc.append(f"# Summarizer outputs — {date}\n")
     outputs_doc.append("Every corpus is run through every summarizer at shared budgets "
                        f"({TARGET_SENTENCES} sentences for Sumy/textrank, "
-                       f"{TARGET_CHARS} chars for skimr/tfidf).\n\n")
+                       f"{TARGET_CHARS} chars for lede/tfidf).\n\n")
 
     rouge_rows: list[dict] = []
 
@@ -101,9 +101,9 @@ def main() -> int:
         parser = PlaintextParser.from_string(text, Tokenizer("english"))
 
         outs = {
-            "skimr/tfidf-v0.2":    summarize(text, max_length=TARGET_CHARS, mode="default").summary,
-            "skimr/tfidf-legacy":  summarize(text, max_length=TARGET_CHARS, mode="legacy").summary,
-            "skimr/textrank":      summarize_textrank(text, num_sentences=TARGET_SENTENCES),
+            "lede/tfidf-v0.2":    summarize(text, max_length=TARGET_CHARS, mode="default").summary,
+            "lede/tfidf-legacy":  summarize(text, max_length=TARGET_CHARS, mode="legacy").summary,
+            "lede/textrank":      summarize_textrank(text, num_sentences=TARGET_SENTENCES),
             "sumy/LexRank":        run_sumy(LexRankSummarizer, parser),
             "sumy/TextRank":       run_sumy(TextRankSummarizer, parser),
             "sumy/LSA":            run_sumy(LsaSummarizer, parser),
@@ -130,7 +130,7 @@ def main() -> int:
     )
 
     corpora_names = sorted({r["corpus"] for r in rouge_rows})
-    summ_names = ["skimr/tfidf-v0.2", "skimr/tfidf-legacy", "skimr/textrank",
+    summ_names = ["lede/tfidf-v0.2", "lede/tfidf-legacy", "lede/textrank",
                   "sumy/LexRank", "sumy/TextRank", "sumy/LSA"]
 
     # Headline table — R1-F and R2-F side-by-side per corpus

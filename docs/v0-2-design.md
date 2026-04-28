@@ -1,18 +1,18 @@
 ---
-spec: skimr v0.2.0 — RAG-prep primitive (summary + structured enrichments)
+spec: lede v0.2.0 — RAG-prep primitive (summary + structured enrichments)
 created: 2026-04-21
 status: draft — pending user review
 ---
 
 ## TL;DR
 
-Evolve skimr from a deterministic summarizer into a **RAG-prep primitive**: one call produces a summary PLUS a suite of structured enrichments (stats, outline, metadata, phrases, correlated facts) that ride along in a single pass. Optimized for pipelines where ingested text is summarized, embedded, and stored as a retrieval point — end-to-end budget under 250 ms per document. Shipped as a single big-bang v0.2.0 release with a new `skimr.extract.*` namespace and an optional `skimr[ner]` extra for named-entity recognition.
+Evolve lede from a deterministic summarizer into a **RAG-prep primitive**: one call produces a summary PLUS a suite of structured enrichments (stats, outline, metadata, phrases, correlated facts) that ride along in a single pass. Optimized for pipelines where ingested text is summarized, embedded, and stored as a retrieval point — end-to-end budget under 250 ms per document. Shipped as a single big-bang v0.2.0 release with a new `lede.extract.*` namespace and an optional `lede[ner]` extra for named-entity recognition.
 
 ## Mission
 
 Primary use case: **application ingests text → fast summary → summary embedded → stored as retrieval point**. The retrieval quality hinges on (1) how factually accurate the summary is, (2) how much structured enrichment rides alongside (stats, entities, outline) for hybrid filtering, and (3) how fast the whole pipeline runs so it can live on a hot path.
 
-skimr v0.2.0 is that primitive.
+lede v0.2.0 is that primitive.
 
 **Not** competing with sumy on prose elegance. Competing on:
 - **Speed** (sub-ms core, sub-250 ms full enrichment pass).
@@ -35,8 +35,8 @@ Target end-to-end latency for summarize-with-all-enrichments: **< 250 ms (cold),
 ## API surface — v0.2.0
 
 ```python
-from skimr import summarize, clean_text, strip_think, extract_keyword
-from skimr.extract import (
+from lede import summarize, clean_text, strip_think, extract_keyword
+from lede.extract import (
     stats,           # list[Stat]
     outline,         # list[Section]
     metadata,        # Metadata (dict-like)
@@ -57,11 +57,11 @@ result = summarize(
 # result.metadata, result.phrases, result.correlated_facts: same pattern
 
 # --- Each primitive is also standalone ---
-s = skimr.extract.stats(text)
-o = skimr.extract.outline(text)
-m = skimr.extract.metadata(text)
-p = skimr.extract.phrases(text)
-c = skimr.extract.correlate_facts(text)
+s = lede.extract.stats(text)
+o = lede.extract.outline(text)
+m = lede.extract.metadata(text)
+p = lede.extract.phrases(text)
+c = lede.extract.correlate_facts(text)
 ```
 
 ### Return types
@@ -99,7 +99,7 @@ class Metadata:
     dates: list[str]
     amounts: list[str]
     urls: list[str]
-    entities: list[str]     # populated only when skimr[ner] is installed
+    entities: list[str]     # populated only when lede[ner] is installed
 
 @dataclass(frozen=True)
 class PhraseFact:
@@ -136,7 +136,7 @@ Four additive tweaks to the composite scorer in `tfidf.py` / `tfidf.rs`. All fou
 4. **Section-position weighting** — multiply TF-IDF component of composite score by `1.3` for sentences that fall under a section heading matching:
    `^(discussion|conclusion|held|resolution|key findings|summary|decision)$` (case-insensitive, after stripping `#+` prefix). "Under" = between that heading and the next heading.
 
-**Expected lift** (from A1/A4 analysis): skimr/tfidf from 186/250 → 215-225/250, passing sumy/TextRank (206/250). Per-corpus: +4 to +7 on heading-heavy docs (privacy-policy, tech-spec, sci-paper, wiki). 0 regression on front-loaded docs.
+**Expected lift** (from A1/A4 analysis): lede/tfidf from 186/250 → 215-225/250, passing sumy/TextRank (206/250). Per-corpus: +4 to +7 on heading-heavy docs (privacy-policy, tech-spec, sci-paper, wiki). 0 regression on front-loaded docs.
 
 ## C2 — Coverage-constrained selection
 
@@ -149,7 +149,7 @@ New selector (not scorer). Activated via `mode="coverage"`. Instead of pure scor
 
 Guarantees coverage breadth on split-ends docs. Default takes every paragraph; override with `coverage_stride=N` (default `1`) to sample every Nth paragraph when the document is very long.
 
-## C3 — Extract primitives (new namespace `skimr.extract`)
+## C3 — Extract primitives (new namespace `lede.extract`)
 
 All five primitives share the same input-preparation pipeline (clean text, sentence split, paragraph parse) done **once per call**. When invoked via `summarize(attach=[...])`, that preparation is shared with the summary step — no redundant re-parsing.
 
@@ -175,7 +175,7 @@ Two layers:
 
 **Core (stdlib)** — dates, amounts, URLs via regex. Always available. Rust port produces byte-identical output.
 
-**Extra (`skimr[ner]`)** — named entities (persons, organizations, locations, products) via spaCy's `en_core_web_sm` model. Populates `Metadata.entities`. Python-only; Rust port leaves `entities=[]`. Clearly documented.
+**Extra (`lede[ner]`)** — named entities (persons, organizations, locations, products) via spaCy's `en_core_web_sm` model. Populates `Metadata.entities`. Python-only; Rust port leaves `entities=[]`. Clearly documented.
 
 **Cross-language parity contract:** stdlib path is byte-identical Python ↔ Rust. NER extra is a Python-only enhancement; Rust ≡ Python-stdlib. Fixtures split into `fixtures/metadata-core/` (parity-tested) and `fixtures/metadata-ner/` (Python-only).
 
@@ -205,15 +205,15 @@ After implementation, produce `benchmarks/quality/matrix-{date}.md` with the fol
 
 | Method | Summary chars | Time p50 (ms) | Extra data attached | A1 rubric | A4 Qwen |
 |---|---|---|---|---|---|
-| `skimr/tfidf mode=legacy` | … | … | — | … | … |
-| `skimr/tfidf mode=default` | … | … | — | … | … |
-| `skimr/tfidf mode=default +stats` | … | … | N stats | … | … |
-| `skimr/tfidf mode=default +outline` | … | … | N sections | … | … |
-| `skimr/tfidf mode=default +all` | … | … | stats+outline+meta+phrases | … | … |
-| `skimr/tfidf mode=coverage` | … | … | — | … | … |
-| `skimr/tfidf mode=coverage +all` | … | … | stats+outline+meta+phrases | … | … |
-| `rust-skimr/tfidf mode=default` | … | … | — | (same as Python) | (same) |
-| `rust-skimr/tfidf mode=default +stats +outline` | … | … | (N stats, N sections) | (same) | (same) |
+| `lede/tfidf mode=legacy` | … | … | — | … | … |
+| `lede/tfidf mode=default` | … | … | — | … | … |
+| `lede/tfidf mode=default +stats` | … | … | N stats | … | … |
+| `lede/tfidf mode=default +outline` | … | … | N sections | … | … |
+| `lede/tfidf mode=default +all` | … | … | stats+outline+meta+phrases | … | … |
+| `lede/tfidf mode=coverage` | … | … | — | … | … |
+| `lede/tfidf mode=coverage +all` | … | … | stats+outline+meta+phrases | … | … |
+| `rust-lede/tfidf mode=default` | … | … | — | (same as Python) | (same) |
+| `rust-lede/tfidf mode=default +stats +outline` | … | … | (N stats, N sections) | (same) | (same) |
 | `sumy/LexRank` | … | … | — | … | … |
 | `sumy/TextRank` | … | … | — | … | … |
 | `sumy/LSA` | … | … | — | … | … |
@@ -224,7 +224,7 @@ Averaged across all 10 corpora. Each row's timing is p50 of 100 iterations. Enri
 
 **Pass criteria for v0.2.0 release:**
 
-1. `skimr/tfidf mode=default` rubric > sumy/TextRank rubric on 10-corpus aggregate.
+1. `lede/tfidf mode=default` rubric > sumy/TextRank rubric on 10-corpus aggregate.
 2. End-to-end `mode=default +all` under 250 ms p50 on every corpus (warm spaCy). Under 10 ms p50 on core path with no NER.
 3. Byte-identity maintained Python ↔ Rust across core (non-NER) fixtures.
 4. All 10 corpora pass the new fixture walker.
@@ -259,24 +259,24 @@ Feature-by-feature:
 | extract.stats | ✓ | ✓ (regex port) | Yes |
 | extract.outline | ✓ | ✓ (port heading detect) | Yes |
 | extract.metadata core | ✓ | ✓ (regex port) | Yes |
-| extract.metadata NER | ✓ (skimr[ner]) | — | Python-only by design |
+| extract.metadata NER | ✓ (lede[ner]) | — | Python-only by design |
 | extract.phrases | ✓ | ✓ (port heuristic) | Yes |
 | extract.correlate_facts | ✓ | ✓ (compose ported primitives) | Yes |
 
 ## Non-goals
 
-- **No neural summarization in core.** `skimr-neural` is a separate companion.
-- **No document format extraction** (PDF, DOCX, HTML). `skimr-files` companion.
+- **No neural summarization in core.** `lede-neural` is a separate companion.
+- **No document format extraction** (PDF, DOCX, HTML). `lede-files` companion.
 - **No language other than English.** Stopwords and regex patterns are English-specific.
 - **No streaming summarization.** Input arrives as a single string.
-- **NER in Rust.** Deferred to `skimr-neural` (ONNX-based); Python-only in skimr core.
+- **NER in Rust.** Deferred to `lede-neural` (ONNX-based); Python-only in lede core.
 - **ROUGE as a quality metric.** Demoted to a footnote; A1 + A4 are the signals.
 - **PyPI / crates.io publication.** v0.2.0 ships to the GitHub repo only; registry publication is a separate decision.
 
 ## Risks and mitigations
 
 **Risk: spaCy first-call latency blows the 250 ms budget.**
-Mitigation: warm-load at process start (`skimr.extract.metadata.warmup()`), document the pattern in README, benchmark cold vs warm separately.
+Mitigation: warm-load at process start (`lede.extract.metadata.warmup()`), document the pattern in README, benchmark cold vs warm separately.
 
 **Risk: C1 scorer changes break downstream consumers on byte-identity assumptions.**
 Mitigation: `mode="legacy"` preserves v0.0.1 behavior byte-identical. Fixtures for legacy mode remain in `fixtures/tfidf/`; new fixtures for default mode in `fixtures/tfidf-v0.2/`.
@@ -291,7 +291,7 @@ Mitigation: gold files are public and reviewable. Alternative labels accepted vi
 
 Big-bang release, single tag. Internal milestones in priority order (each commits incrementally to main):
 
-1. **M1 — C1 scorer in Python** (~3 days). Heading filter + cue-phrase boost + digit bonus + section-position weight. Fixtures regenerated for new behavior. Re-run A1+A2+A4 on the 10-corpus set. Ship when skimr/tfidf beats sumy/TextRank rubric.
+1. **M1 — C1 scorer in Python** (~3 days). Heading filter + cue-phrase boost + digit bonus + section-position weight. Fixtures regenerated for new behavior. Re-run A1+A2+A4 on the 10-corpus set. Ship when lede/tfidf beats sumy/TextRank rubric.
 2. **M2 — C1 Rust port** (~2 days). Byte-identity maintained.
 3. **M3 — `summarize(mode="coverage")` Python + Rust** (~2 days). C2 coverage mode.
 4. **M4 — `SummaryResult` + `attach=` plumbing** (~1 day). Shared pipeline state; pre-parse once.
@@ -312,12 +312,12 @@ None at this point — all design details fixed above. If any ambiguity surfaces
 
 ## Success criteria
 
-1. **SC-A**: `skimr/tfidf mode=default` rubric (A1) aggregate > sumy/TextRank rubric on 10-corpus set.
+1. **SC-A**: `lede/tfidf mode=default` rubric (A1) aggregate > sumy/TextRank rubric on 10-corpus set.
 2. **SC-B**: `summarize(attach=["stats","outline","metadata","phrases","correlated_facts"])` end-to-end p50 < 250 ms (warm spaCy) on every corpus.
 3. **SC-C**: Core (non-NER) path byte-identical Python ↔ Rust on every fixture.
 4. **SC-D**: Every extract.* primitive scores ≥ 0.85 recall / ≥ 0.80 precision against gold fixtures.
 5. **SC-E**: Comparison matrix doc at `benchmarks/quality/matrix-{date}.md` shows concrete numbers for every row.
-6. **SC-F**: chunkshop's `summary_embed` and metadata-extractors briefs can consume these primitives as documented in `docs/integration-memo.md` without skimr needing chunkshop-specific code.
+6. **SC-F**: chunkshop's `summary_embed` and metadata-extractors briefs can consume these primitives as documented in `docs/integration-memo.md` without lede needing chunkshop-specific code.
 
 ## References
 

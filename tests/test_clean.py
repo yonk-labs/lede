@@ -1,5 +1,5 @@
 from pathlib import Path
-from skimr.clean import clean_text, strip_think
+from lede.clean import clean_text, strip_think
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "strip_think"
 CLEAN_FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "clean_text"

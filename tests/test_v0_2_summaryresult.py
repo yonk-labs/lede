@@ -1,7 +1,7 @@
 """SummaryResult + attach=... plumbing tests."""
 import pytest
-from skimr import summarize, SummaryResult
-from skimr.extract import Stat, Section, Metadata, PhraseFact
+from lede import summarize, SummaryResult
+from lede.extract import Stat, Section, Metadata, PhraseFact
 
 
 def test_summaryresult_str_returns_summary():
@@ -87,7 +87,7 @@ def test_dataclasses_are_frozen():
 
 def test_stubs_return_empty_for_now():
     """Stub primitives return empty collections. Real impls land in T6-T11."""
-    from skimr.extract import stats, outline, phrases, correlate_facts
+    from lede.extract import stats, outline, phrases, correlate_facts
     assert stats("Any text") == ()
     assert outline("Any text") == ()
     assert phrases("Any text") == ()

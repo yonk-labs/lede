@@ -1,6 +1,6 @@
 # Maintainers
 
-skimr is maintained by **The Yonk** (`<matt@theyonk.com>`).
+lede is maintained by **The Yonk** (`<matt@theyonk.com>`).
 
 This is a **single-maintainer project**. Adopters should weigh the bus-factor
 risk that goes with that:
@@ -9,10 +9,10 @@ risk that goes with that:
 - Security reports go to `<matt@theyonk.com>` — please do not file public
   issues for security findings (see [`SECURITY.md`](SECURITY.md)).
 - Major design decisions get written down in `docs/` (e.g. `v0-2-design.md`,
-  `skimr-spacy-integration.md`) so the project's intent is recoverable from
+  `lede-spacy-integration.md`) so the project's intent is recoverable from
   the repo even without me.
 
-If you'd like to help maintain skimr or take over a piece of it long-term,
+If you'd like to help maintain lede or take over a piece of it long-term,
 open an issue tagged `maintainers` or email me directly. The license
 (Apache-2.0) explicitly allows forking; the non-trivial pieces of the
 project — the byte-identical Python ↔ Rust contract, the structured-extract
@@ -25,7 +25,7 @@ a determined fork can keep going without me.
   default-mode changes): require a written design note in `docs/` before
   implementation.
 - **Bug fixes and quality improvements**: PRs welcome; CI must stay green
-  on Python + Rust + skimr-spacy + clippy + fmt.
+  on Python + Rust + lede-spacy + clippy + fmt.
 - **Performance changes**: must include a benchmark delta from
   `benchmarks/matrix_eval.py`.
 - **New scoring modes / extract primitives**: must come with byte-identical
@@ -34,7 +34,7 @@ a determined fork can keep going without me.
 
 ## Release cadence
 
-skimr does not have a fixed release cadence. Versions are cut when a
+lede does not have a fixed release cadence. Versions are cut when a
 coherent batch of work is ready, all CI workflows are green on `main`,
 and the `CHANGELOG.md` entry is written. The git tag annotation +
 GitHub Release page is the canonical record.

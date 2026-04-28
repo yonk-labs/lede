@@ -1,4 +1,4 @@
-use skimr::clean::strip_think;
+use lede::clean::strip_think;
 
 #[test]
 fn empty_returns_empty() {

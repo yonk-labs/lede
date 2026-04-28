@@ -1,6 +1,6 @@
 //! TF-IDF + position + length extractive pipeline.
 //!
-//! Port of src/skimr/tfidf.py. Output is byte-identical to Python for every
+//! Port of src/lede/tfidf.py. Output is byte-identical to Python for every
 //! fixture. Insertion-order iteration of per-sentence token counters is
 //! preserved exactly so floating-point sums line up.
 //!
@@ -20,7 +20,7 @@ const POSITION_WEIGHT: f64 = 0.25;
 const LENGTH_WEIGHT: f64 = 0.15;
 
 /// Stopword list. Must stay byte-identical to Python's `_STOPWORDS` frozenset.
-/// See src/skimr/tfidf.py.
+/// See src/lede/tfidf.py.
 static STOPWORDS_LIST: &[&str] = &[
     "the", "and", "that", "this", "with", "for", "are", "was", "were", "been", "have", "has",
     "had", "not", "but", "what", "all", "when", "who", "will", "can", "from", "they", "each",
@@ -269,7 +269,7 @@ pub fn composite_score(sentences: &[String]) -> Vec<f64> {
 /// Ensure heading-looking lines are separated from their following line by a
 /// blank line, so the sentence splitter treats them as standalone sentences.
 ///
-/// Mirrors `src/skimr/tfidf.py::_separate_heading_lines`. Only touches lines
+/// Mirrors `src/lede/tfidf.py::_separate_heading_lines`. Only touches lines
 /// the heading detector would classify as headings in isolation. Idempotent.
 pub(crate) fn separate_heading_lines(text: &str) -> String {
     if text.is_empty() {
@@ -343,7 +343,7 @@ fn composite_score_default(sentences: &[String], section_map: &[String]) -> Vec<
     scores
 }
 
-// --- summarize pipeline (port of the 7-step flow from src/skimr/tfidf.py) ---
+// --- summarize pipeline (port of the 7-step flow from src/lede/tfidf.py) ---
 
 const MIN_SENTENCES: usize = 3;
 const MIN_BUDGET_FOR_SENTENCES: usize = 50;

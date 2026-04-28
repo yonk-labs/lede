@@ -2,12 +2,12 @@
 
 ## Reporting a vulnerability
 
-If you find a security issue in skimr, please report it privately by
-emailing **`matt@theyonk.com`** with the subject line `skimr security`.
+If you find a security issue in lede, please report it privately by
+emailing **`matt@theyonk.com`** with the subject line `lede security`.
 **Do not open a public GitHub issue** for security findings.
 
 You can encrypt your report with the maintainer's GitHub-published GPG
-key if you prefer, but plain email is fine — skimr's threat surface is
+key if you prefer, but plain email is fine — lede's threat surface is
 small enough that most reports can be triaged without strict
 confidentiality.
 
@@ -17,7 +17,7 @@ I (the single maintainer) aim to acknowledge security reports within
 
 ## Scope
 
-skimr is a deterministic text-processing library. Its threat model is
+lede is a deterministic text-processing library. Its threat model is
 narrow:
 
 **In scope:**
@@ -42,8 +42,8 @@ narrow:
 - The optional `[ner]`/`[wordforms]`/`[yake]`/`[textrank]` extras — each
   pulls in third-party deps with their own threat models. Report
   upstream where appropriate.
-- Any caller-misuse pattern — e.g. running skimr on attacker-controlled
-  input as part of a pipeline that trusts skimr's output. skimr only
+- Any caller-misuse pattern — e.g. running lede on attacker-controlled
+  input as part of a pipeline that trusts lede's output. lede only
   promises deterministic, bounded-time output.
 
 ## Supported versions
@@ -64,7 +64,7 @@ unless they prefer to stay anonymous.
   phf_macros → phf_generator → rand`** — only present when the
   `wordforms` cargo feature is enabled (Rust) or the `[wordforms]`
   extra is installed (Python's bound `text2num` crate). The advisory's
-  trigger is "custom logger using `rand::rng()`"; skimr does not call
+  trigger is "custom logger using `rand::rng()`"; lede does not call
   `rand` directly and ships no custom logger, so practical exposure on
   the `wordforms` path is effectively zero. `cargo audit` runs warn-only
   in CI and surfaces this in the build log. Will resolve when an

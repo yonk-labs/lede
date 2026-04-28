@@ -1,4 +1,4 @@
-use skimr::extract::outline::{outline, toc};
+use lede::extract::outline::{outline, toc};
 
 #[test]
 fn toc_returns_section_names_in_order() {

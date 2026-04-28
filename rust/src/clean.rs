@@ -1,4 +1,4 @@
-//! Text cleaners ported from src/skimr/clean.py.
+//! Text cleaners ported from src/lede/clean.py.
 
 use regex::Regex;
 use std::sync::OnceLock;
@@ -15,7 +15,7 @@ pub fn strip_think(text: &str) -> String {
     think_re().replace_all(text, "").trim().to_string()
 }
 
-// --- clean_text: port of src/skimr/clean.py::clean_text ---
+// --- clean_text: port of src/lede/clean.py::clean_text ---
 //
 // Order matches the Python reference step by step:
 //   1. Strip markdown (*, _, #, ---, bullets, numbered list prefixes)
@@ -150,7 +150,7 @@ fn ws_empty_lines_re() -> &'static Regex {
     RE.get_or_init(|| Regex::new(r"(?m)^\s*$\n?").expect("static regex"))
 }
 
-/// Port of `src/skimr/clean.py::clean_text`.
+/// Port of `src/lede/clean.py::clean_text`.
 ///
 /// Strips markdown, filler phrases, filler words, and CRM boilerplate, then
 /// lowercases and normalizes whitespace. Returns an empty string for empty

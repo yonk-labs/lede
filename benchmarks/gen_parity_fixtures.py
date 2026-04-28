@@ -1,12 +1,12 @@
 """Generate v0.2 extract-primitive parity fixtures.
 
 For each (corpus, primitive) pair, runs the Python primitive and writes
-the canonical text representation (`skimr._parity.format_*`) to
+the canonical text representation (`lede._parity.format_*`) to
 `fixtures/extract-parity/<primitive>/<corpus>/{input,expected}.txt`.
 
 The Rust parity walker (`rust/tests/fixtures.rs`) loads each fixture,
 runs the Rust primitive on the same input, formats with
-`skimr::parity::format_*`, and byte-compares.
+`lede::parity::format_*`, and byte-compares.
 
 Run: ``python benchmarks/gen_parity_fixtures.py``
 
@@ -22,8 +22,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from skimr import _parity  # noqa: E402
-from skimr.extract import (  # noqa: E402
+from lede import _parity  # noqa: E402
+from lede.extract import (  # noqa: E402
     correlate_facts,
     key_facts,
     metadata,

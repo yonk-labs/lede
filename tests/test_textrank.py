@@ -1,9 +1,9 @@
 """TextRank mode — only runs when the [textrank] extra is installed."""
 import pytest
 
-networkx = pytest.importorskip("networkx", reason="networkx not installed; run `pip install skimr[textrank]`")
+networkx = pytest.importorskip("networkx", reason="networkx not installed; run `pip install lede[textrank]`")
 
-from skimr.textrank import summarize_textrank
+from lede.textrank import summarize_textrank
 
 
 def test_textrank_returns_nonempty_for_multi_sentence_input():

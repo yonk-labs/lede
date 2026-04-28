@@ -7,32 +7,32 @@ config.
 
 ## Status
 
-`v0.2.1` shipped 2026-04-27. All four CI workflows (`tests`,
-`zero-deps`, `rust`, `skimr-spacy`) green on `main`.
+`v0.3.0` (renamed from skimr; see CHANGELOG). All four CI workflows
+(`tests`, `zero-deps`, `rust`, `lede-spacy`) green on `main`.
 
 ## Authoritative docs in priority order
 
-1. [`README.md`](README.md) — what skimr is, why, how to use it.
+1. [`README.md`](README.md) — what lede is, why, how to use it.
 2. [`docs/REFERENCE.md`](docs/REFERENCE.md) — primitive catalog +
    public API contract.
 3. [`docs/v0-2-design.md`](docs/v0-2-design.md) — v0.2 design spec
    with SC-A through SC-F acceptance tests.
-4. [`docs/skimr-spacy-integration.md`](docs/skimr-spacy-integration.md)
+4. [`docs/lede-spacy-integration.md`](docs/lede-spacy-integration.md)
    — companion-package integration policy.
 5. [`docs/integration-memo.md`](docs/integration-memo.md) — chunkshop
    integration contract (first downstream consumer).
 6. [`docs/comparison.md`](docs/comparison.md) — worked examples
-   comparing skimr against Sumy and LLM APIs with real timings.
+   comparing lede against Sumy and LLM APIs with real timings.
 
 ## Code layout
 
 | Path | Role |
 |---|---|
-| `src/skimr/` | Python core. Public surface: `summarize(attach=…)`, `brief()`, `clean_text`, `strip_think`, `extract_keyword`, plus `skimr.extract.{outline, toc, stats, key_facts, metadata, phrases, correlate_facts}`. Default install is zero-dep; `[ner]`, `[wordforms]`, `[yake]`, `[textrank]` are opt-in extras. |
+| `src/lede/` | Python core. Public surface: `summarize(attach=…)`, `brief()`, `clean_text`, `strip_think`, `extract_keyword`, plus `lede.extract.{outline, toc, stats, key_facts, metadata, phrases, correlate_facts}`. Default install is zero-dep; `[ner]`, `[wordforms]`, `[yake]`, `[textrank]` are opt-in extras. |
 | `rust/src/` | Rust mirror. `Mode::{Default, Legacy, Coverage}` selects the scorer. Optional `wordforms` cargo feature binds to the same `text2num` crate as Python's `[wordforms]` extra → byte-identical parity. |
-| `packages/skimr-spacy/` | Python companion package. Provides `extract_entities`, `spacy_metadata`, `spacy_phrases`, `spacy_correlate_facts`. Importing it registers backends as a side effect. |
+| `packages/lede-spacy/` | Python companion package. Provides `extract_entities`, `spacy_metadata`, `spacy_phrases`, `spacy_correlate_facts`. Importing it registers backends as a side effect. |
 | `fixtures/` | Language-agnostic input/output corpus. **Every change to a primitive must keep the parity walker green** (`rust/tests/fixtures.rs`). Two test gates: `every_fixture_byte_identical` (v0.1 surface) and `v0_2_extract_primitives_byte_identical` (v0.2 surface, regenerated via `python benchmarks/gen_parity_fixtures.py`). |
-| `tests/` + `rust/tests/` | Python and Rust test suites. ~230 Python core + 17 skimr-spacy + 117 Rust default + 125 Rust `--features wordforms`. Run any of them locally; CI runs all four on every push. |
+| `tests/` + `rust/tests/` | Python and Rust test suites. ~230 Python core + 17 lede-spacy + 117 Rust default + 125 Rust `--features wordforms`. Run any of them locally; CI runs all four on every push. |
 | `benchmarks/` | Quality eval (A1 rubric + A2 ROUGE + A4 LLM-judge), extraction eval (gold-vs-primitive precision/recall), latency matrix. |
 | `examples/` | 7 runnable scripts smoke-tested by CI. |
 
@@ -40,7 +40,7 @@ config.
 
 - **No LLM calls in the core library.** Extractive only. LLM /
   abstractive summarization belongs in callers, not here. May land as
-  a separate `skimr-neural` companion someday; not in `skimr`.
+  a separate `lede-neural` companion someday; not in `lede`.
 - **Zero required runtime dependencies** in the default install path.
   Python: stdlib only. Rust: stdlib + `regex` only. Optional extras
   are opt-in.
@@ -60,8 +60,8 @@ config.
 .venv/bin/python -m pytest -q                                     # 231 tests
 .venv/bin/python -m pytest tests/test_edge_cases.py -q            # 50 edge cases
 
-# skimr-spacy companion
-cd packages/skimr-spacy && ../../.venv/bin/python -m pytest -q    # 17 tests
+# lede-spacy companion
+cd packages/lede-spacy && ../../.venv/bin/python -m pytest -q    # 17 tests
 
 # Rust core
 cd rust && cargo test                                              # ~120 tests, default features

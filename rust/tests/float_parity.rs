@@ -8,9 +8,9 @@
 //! will trip long before the T9 fixture walker gate.
 //!
 //! Oracle bits captured 2026-04-20 from `.venv` Python 3.13 running
-//! `src/skimr/tfidf.py::tfidf_score` on the same `sentences` vec below.
+//! `src/lede/tfidf.py::tfidf_score` on the same `sentences` vec below.
 
-use skimr::tfidf::tfidf_score;
+use lede::tfidf::tfidf_score;
 
 #[test]
 fn tfidf_score_bit_identical_to_python_on_rich_input() {

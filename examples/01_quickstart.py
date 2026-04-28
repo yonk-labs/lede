@@ -1,11 +1,11 @@
-"""skimr — 30-second tour of the v0.1 utility surface.
+"""lede — 30-second tour of the v0.1 utility surface.
 
 Shows the four functions that have been stable since v0.0.1:
   summarize, clean_text, strip_think, extract_keyword.
 
 Run: python examples/01_quickstart.py
 """
-from skimr import summarize, clean_text, strip_think, extract_keyword
+from lede import summarize, clean_text, strip_think, extract_keyword
 
 DOC = """
 **Q3 RECAP**

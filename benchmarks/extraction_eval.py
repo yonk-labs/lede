@@ -1,4 +1,4 @@
-"""Precision/recall eval for skimr.extract primitives vs hand-labeled gold.
+"""Precision/recall eval for lede.extract primitives vs hand-labeled gold.
 
 Run:
     .venv/bin/python benchmarks/extraction_eval.py
@@ -19,7 +19,7 @@ hyphen/underscore/whitespace normalization.
 Per-primitive rules:
 - stats: (stat_type matches) AND (gold.context_hint ⊆ pred.context_sentence
   after norm) AND (gold.value ⊆ pred.value OR pred.value ⊆ gold.value
-  after norm). Uses `convert_word_names=True` (skimr[wordforms] optional
+  after norm). Uses `convert_word_names=True` (lede[wordforms] optional
   extra) when text2num is installed; falls back otherwise.
 - outline: exact name equality (lowercase). Names have no format variance
   after T13d's em-dash stripping.
@@ -52,7 +52,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from skimr.extract import stats, outline, metadata, phrases, correlate_facts  # noqa: E402
+from lede.extract import stats, outline, metadata, phrases, correlate_facts  # noqa: E402
 
 CORPUS_DIR = ROOT / "benchmarks" / "corpus"
 GOLD_DIR = ROOT / "fixtures" / "extract"
@@ -241,7 +241,7 @@ def main() -> int:
     md.append(
         "Backend under test: **regex** (default, zero-dep). For stats, "
         f"`convert_word_names={_STATS_WORDFORMS}` (text2num "
-        f"{'installed' if _STATS_WORDFORMS else 'not installed — install skimr[wordforms]'})"
+        f"{'installed' if _STATS_WORDFORMS else 'not installed — install lede[wordforms]'})"
         ".\n\n"
         "Match rule: format-tolerant. Bidirectional substring on value after "
         "hyphen/underscore/whitespace normalization for stats; sub/super-ngram "

@@ -1,17 +1,17 @@
-# Contributing to skimr
+# Contributing to lede
 
-Thanks for considering a contribution. skimr is a single-maintainer
+Thanks for considering a contribution. lede is a single-maintainer
 Apache-2.0 project — see [`MAINTAINERS.md`](MAINTAINERS.md) for the
 bus-factor disclosure and review pace.
 
 ## Quick start
 
 ```bash
-git clone git@github.com:yonk-labs/skimr.git
-cd skimr
+git clone git@github.com:yonk-labs/lede.git
+cd lede
 pip install -e ".[dev]"
 .venv/bin/python -m pytest -q                                # ~230 tests
-cd packages/skimr-spacy && ../../.venv/bin/python -m pytest  # 17 spaCy tests
+cd packages/lede-spacy && ../../.venv/bin/python -m pytest  # 17 spaCy tests
 cd rust && cargo test                                        # ~120 tests (default features)
 cd rust && cargo clippy --all-targets -- -D warnings         # must be clean
 cd rust && cargo fmt --check                                 # must be clean
@@ -28,7 +28,7 @@ cd rust && cargo fmt --check                                 # must be clean
 | New scoring mode | Same as above — design note + parity tests + benchmark vs current default. |
 | Performance change | Must include a `benchmarks/matrix_eval.py` delta. |
 | Adding Node / Go ports | The v0.1 brief explicitly listed these as v0.2+ deferral. Open an issue first so we can scope the parity-fixture work. |
-| Neural / LLM / abstractive summarization | Out of scope forever for the core. May land as a separate `skimr-neural` companion. See [`docs/v0-2-design.md`](docs/v0-2-design.md) for the rationale. |
+| Neural / LLM / abstractive summarization | Out of scope forever for the core. May land as a separate `lede-neural` companion. See [`docs/v0-2-design.md`](docs/v0-2-design.md) for the rationale. |
 
 ## The Python ↔ Rust parity contract
 
@@ -42,7 +42,7 @@ in both runtimes** for the regex backend. The contract is enforced by:
   fixture on every push.
 - `tests/test_fixtures.py` — Python equivalent.
 
-If your change touches `src/skimr/extract/*.py` or `rust/src/extract/*.rs`,
+If your change touches `src/lede/extract/*.py` or `rust/src/extract/*.rs`,
 expect to update both languages together and add a fixture proving they
 match.
 
@@ -64,8 +64,8 @@ exempt — Rust does not ship NER or YAKE.
 
 Every push to `main` runs three workflows:
 
-- `tests` — Python core + skimr-spacy tests.
-- `zero-deps` — verifies `pip install skimr` brings in zero non-stdlib
+- `tests` — Python core + lede-spacy tests.
+- `zero-deps` — verifies `pip install lede` brings in zero non-stdlib
   runtime deps (the SC-007 contract).
 - `rust` — `cargo fmt --check`, `cargo clippy`, `cargo test`,
   `cargo test --release`.

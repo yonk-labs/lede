@@ -1,6 +1,6 @@
 //! Canonical text formatters for v0.2 extract primitives.
 //!
-//! Mirrors `src/skimr/_parity.py`. The Python and Rust functions must
+//! Mirrors `src/lede/_parity.py`. The Python and Rust functions must
 //! produce byte-identical strings for the parity walker
 //! (`rust/tests/fixtures.rs`) to compare them.
 //!

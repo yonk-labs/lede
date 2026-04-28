@@ -1,4 +1,4 @@
-"""skimr v0.2 — RAG-prep primitive in one call.
+"""lede v0.2 — RAG-prep primitive in one call.
 
 Shows the v0.2 differentiator: `summarize(attach=…)` returns a summary
 plus structured stats / outline / metadata / phrases / correlated
@@ -8,7 +8,7 @@ extractor) can now do it all in one call.
 
 Run: python examples/02_rag_prep.py
 """
-from skimr import summarize
+from lede import summarize
 
 CHUNK = """
 Cohort retention dropped from 78% to 71% between the Q2 and Q3 cohorts,
@@ -19,7 +19,7 @@ free tier and added a 14-day trial gate. Revenue per active user grew
 from $14 to $18 over the same period — net positive — but board
 expressed concern about top-of-funnel collapse. Mitigation plan
 includes a $5 starter tier launching in November and a partnership
-with Acme Corp to bundle skimr access with their existing 250,000 user
+with Acme Corp to bundle lede access with their existing 250,000 user
 base.
 """
 
@@ -60,7 +60,7 @@ def main() -> None:
     print(f"  dates:    {md.dates}")
     print(f"  amounts:  {md.amounts}")
     print(f"  urls:     {md.urls}")
-    print(f"  entities: {md.entities}  # empty without skimr-spacy")
+    print(f"  entities: {md.entities}  # empty without lede-spacy")
     print()
 
     print("=" * 60)

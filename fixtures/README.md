@@ -1,6 +1,6 @@
 # Fixture Corpus
 
-Language-agnostic test fixtures for `skimr`. Every implementation (Python, Rust, and later Node + Go) must produce **byte-identical output** for every fixture here.
+Language-agnostic test fixtures for `lede`. Every implementation (Python, Rust, and later Node + Go) must produce **byte-identical output** for every fixture here.
 
 ## Layout
 

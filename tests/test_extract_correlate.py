@@ -1,5 +1,5 @@
 """extract.correlate_facts tests."""
-from skimr.extract import correlate_facts
+from lede.extract import correlate_facts
 
 
 def test_correlates_entity_with_multiple_numbers():

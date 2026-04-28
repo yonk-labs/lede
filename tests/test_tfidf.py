@@ -1,5 +1,5 @@
 import math
-from skimr.tfidf import tfidf_score, position_score, length_score, composite_score
+from lede.tfidf import tfidf_score, position_score, length_score, composite_score
 
 
 def test_tfidf_score_returns_normalized_list():
@@ -55,7 +55,7 @@ def test_composite_score_weighting():
     assert all(0.0 <= s <= 1.0 for s in composite)
 
 
-from skimr.tfidf import summarize
+from lede.tfidf import summarize
 
 
 def test_summarize_short_input_returns_unchanged():

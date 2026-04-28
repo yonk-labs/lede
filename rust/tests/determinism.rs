@@ -33,20 +33,20 @@ fn json_usize(cfg: &str, key: &str) -> Option<usize> {
 
 fn dispatch(mode: &str, input: &str, cfg: &str) -> Option<String> {
     match mode {
-        "clean_text" => Some(skimr::clean_text(input)),
-        "strip_think" => Some(skimr::strip_think(input)),
+        "clean_text" => Some(lede::clean_text(input)),
+        "strip_think" => Some(lede::strip_think(input)),
         "tfidf" => Some(
-            skimr::summarize(
+            lede::summarize(
                 input,
                 json_usize(cfg, "max_length").unwrap_or(500),
-                skimr::Mode::Legacy,
+                lede::Mode::Legacy,
             )
             .summary,
         ),
         "keyword" => {
             let kw = json_str(cfg, "keywords")?;
             let n = json_usize(cfg, "num_sentences").unwrap_or(10);
-            Some(skimr::extract_keyword(input, &kw, n))
+            Some(lede::extract_keyword(input, &kw, n))
         }
         "textrank" => None,
         _ => panic!("unknown mode: {mode}"),

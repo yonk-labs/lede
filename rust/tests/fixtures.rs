@@ -38,22 +38,22 @@ fn json_usize(cfg: &str, key: &str) -> Option<usize> {
 
 fn dispatch(mode: &str, input: &str, cfg: &str) -> Option<String> {
     match mode {
-        "clean_text" => Some(skimr::clean_text(input)),
-        "strip_think" => Some(skimr::strip_think(input)),
+        "clean_text" => Some(lede::clean_text(input)),
+        "strip_think" => Some(lede::strip_think(input)),
         "tfidf" => {
             let max_length = json_usize(cfg, "max_length").unwrap_or(500);
             let scorer_mode = json_str(cfg, "scorer_mode").unwrap_or_else(|| "legacy".to_string());
             let m = match scorer_mode.as_str() {
-                "default" => skimr::Mode::Default,
-                "coverage" => skimr::Mode::Coverage,
-                _ => skimr::Mode::Legacy,
+                "default" => lede::Mode::Default,
+                "coverage" => lede::Mode::Coverage,
+                _ => lede::Mode::Legacy,
             };
-            Some(skimr::summarize(input, max_length, m).summary)
+            Some(lede::summarize(input, max_length, m).summary)
         }
         "keyword" => {
             let keywords = json_str(cfg, "keywords")?;
             let num = json_usize(cfg, "num_sentences").unwrap_or(10);
-            Some(skimr::extract_keyword(input, &keywords, num))
+            Some(lede::extract_keyword(input, &keywords, num))
         }
         "textrank" => None,
         _ => panic!("unknown fixture mode: {mode}"),
@@ -112,9 +112,9 @@ fn every_fixture_byte_identical() {
 // v0.2 extract-primitive parity walker (P2.1 / AAT-017)
 //
 // Layout: fixtures/extract-parity/<primitive>/<corpus>/{input,expected}.txt
-// Expected.txt is the canonical text format produced by skimr._parity in
+// Expected.txt is the canonical text format produced by lede._parity in
 // Python. The Rust walker runs the matching primitive on input.txt, formats
-// with skimr::parity::*, and byte-compares. Any drift between Python and
+// with lede::parity::*, and byte-compares. Any drift between Python and
 // Rust on the v0.2 differentiator surface (the AAT-flagged gap) shows up
 // here.
 //
@@ -122,27 +122,27 @@ fn every_fixture_byte_identical() {
 
 fn dispatch_extract(primitive: &str, input: &str) -> Option<String> {
     match primitive {
-        "stats" => Some(skimr::parity::format_stats(&skimr::extract::stats::stats(
+        "stats" => Some(lede::parity::format_stats(&lede::extract::stats::stats(
             input,
         ))),
-        "outline" => Some(skimr::parity::format_outline(
-            &skimr::extract::outline::outline(input),
+        "outline" => Some(lede::parity::format_outline(
+            &lede::extract::outline::outline(input),
         )),
-        "toc" => Some(skimr::parity::format_toc(&skimr::extract::outline::toc(
+        "toc" => Some(lede::parity::format_toc(&lede::extract::outline::toc(
             input,
         ))),
-        "metadata" => Some(skimr::parity::format_metadata(
-            &skimr::extract::metadata::metadata(input),
+        "metadata" => Some(lede::parity::format_metadata(
+            &lede::extract::metadata::metadata(input),
         )),
-        "phrases" => Some(skimr::parity::format_phrases(
-            &skimr::extract::phrases::phrases(input, None),
+        "phrases" => Some(lede::parity::format_phrases(
+            &lede::extract::phrases::phrases(input, None),
         )),
-        "key_facts" => Some(skimr::parity::format_key_facts(
+        "key_facts" => Some(lede::parity::format_key_facts(
             // Default max_facts=10 mirrors Python's keyword default.
-            &skimr::extract::key_facts::key_facts(input, 10),
+            &lede::extract::key_facts::key_facts(input, 10),
         )),
-        "correlate_facts" => Some(skimr::parity::format_correlate_facts(
-            &skimr::extract::correlate::correlate_facts(input),
+        "correlate_facts" => Some(lede::parity::format_correlate_facts(
+            &lede::extract::correlate::correlate_facts(input),
         )),
         _ => None, // unknown primitive — caller will report the mismatch
     }

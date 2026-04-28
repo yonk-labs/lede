@@ -1,5 +1,5 @@
 """extract.metadata core tests (stdlib path)."""
-from skimr.extract import metadata
+from lede.extract import metadata
 
 
 def test_metadata_collects_iso_dates():
@@ -24,7 +24,7 @@ def test_metadata_collects_urls():
 
 
 def test_metadata_no_entities_in_core():
-    """Core path leaves entities empty; entities is reserved for skimr-spacy companion."""
+    """Core path leaves entities empty; entities is reserved for lede-spacy companion."""
     m = metadata("Sarah Jones visited Johnson Education Co in Chicago.")
     # Core path never populates entities.
     assert m.entities == ()

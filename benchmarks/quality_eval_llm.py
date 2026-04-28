@@ -17,9 +17,9 @@ judge sits in a different family from the Claude-authored reference
 summaries.
 
 Override with env vars:
-    SKIMR_JUDGE_BASE_URL      (default http://localhost:8000/v1)
-    SKIMR_JUDGE_MODEL         (default Intel/Qwen3-Coder-Next-int4-AutoRound)
-    SKIMR_JUDGE_API_KEY       (default "not-needed" — local servers ignore auth)
+    LEDE_JUDGE_BASE_URL      (default http://localhost:8000/v1)
+    LEDE_JUDGE_MODEL         (default Intel/Qwen3-Coder-Next-int4-AutoRound)
+    LEDE_JUDGE_API_KEY       (default "not-needed" — local servers ignore auth)
 
 Usage:
     .venv/bin/python benchmarks/quality_eval_llm.py
@@ -36,8 +36,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from openai import OpenAI  # noqa: E402
-from skimr import summarize  # noqa: E402
-from skimr.textrank import summarize_textrank  # noqa: E402
+from lede import summarize  # noqa: E402
+from lede.textrank import summarize_textrank  # noqa: E402
 from sumy.parsers.plaintext import PlaintextParser  # noqa: E402
 from sumy.nlp.tokenizers import Tokenizer  # noqa: E402
 from sumy.summarizers.lex_rank import LexRankSummarizer  # noqa: E402
@@ -48,13 +48,13 @@ CORPUS_DIR = ROOT / "benchmarks" / "corpus"
 OUT_DIR = ROOT / "benchmarks" / "quality"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-BASE_URL = os.environ.get("SKIMR_JUDGE_BASE_URL", "http://localhost:8000/v1")
-MODEL = os.environ.get("SKIMR_JUDGE_MODEL", "Intel/Qwen3-Coder-Next-int4-AutoRound")
-API_KEY = os.environ.get("SKIMR_JUDGE_API_KEY", "not-needed")
+BASE_URL = os.environ.get("LEDE_JUDGE_BASE_URL", "http://localhost:8000/v1")
+MODEL = os.environ.get("LEDE_JUDGE_MODEL", "Intel/Qwen3-Coder-Next-int4-AutoRound")
+API_KEY = os.environ.get("LEDE_JUDGE_API_KEY", "not-needed")
 SEED = 42
 TARGET_SENTENCES = 3
 TARGET_CHARS = 500
-SUMMARIZER_NAMES = ["skimr/tfidf-v0.2", "skimr/tfidf-legacy", "skimr/textrank",
+SUMMARIZER_NAMES = ["lede/tfidf-v0.2", "lede/tfidf-legacy", "lede/textrank",
                     "sumy/LexRank", "sumy/TextRank", "sumy/LSA"]
 
 random.seed(SEED)
@@ -68,9 +68,9 @@ def run_all(text: str) -> dict[str, str]:
         return " ".join(str(s) for s in cls()(parser.document, TARGET_SENTENCES))
 
     return {
-        "skimr/tfidf-v0.2": summarize(text, max_length=TARGET_CHARS, mode="default").summary,
-        "skimr/tfidf-legacy": summarize(text, max_length=TARGET_CHARS, mode="legacy").summary,
-        "skimr/textrank": summarize_textrank(text, num_sentences=TARGET_SENTENCES),
+        "lede/tfidf-v0.2": summarize(text, max_length=TARGET_CHARS, mode="default").summary,
+        "lede/tfidf-legacy": summarize(text, max_length=TARGET_CHARS, mode="legacy").summary,
+        "lede/textrank": summarize_textrank(text, num_sentences=TARGET_SENTENCES),
         "sumy/LexRank": sumy_run(LexRankSummarizer),
         "sumy/TextRank": sumy_run(TextRankSummarizer),
         "sumy/LSA": sumy_run(LsaSummarizer),

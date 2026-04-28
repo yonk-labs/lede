@@ -1,4 +1,4 @@
-//! Keyword-scored extractor. Port of `src/skimr/keyword.py`.
+//! Keyword-scored extractor. Port of `src/lede/keyword.py`.
 //!
 //! Matches the SQL reference `extract_sentences(input_text, keywords, num_sentences)`:
 //! normalize `\n+` to `". "`, split after terminal punctuation, keep segments

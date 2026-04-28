@@ -1,6 +1,6 @@
 import pytest
 
-from skimr.sentences import split_sentences
+from lede.sentences import split_sentences
 
 
 def test_simple_periods():

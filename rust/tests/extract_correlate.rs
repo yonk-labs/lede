@@ -1,4 +1,4 @@
-use skimr::extract::correlate::correlate_facts;
+use lede::extract::correlate::correlate_facts;
 
 #[test]
 fn correlates_entity_with_multiple_numbers() {
@@ -62,8 +62,8 @@ fn correlate_facts_excludes_stopword_entities() {
 #[test]
 fn correlate_facts_with_options_propagates_convert_word_names() {
     // T13e: correlate_facts_with_options forwards the flag to stats().
-    use skimr::extract::correlate::correlate_facts_with_options;
-    use skimr::extract::stats::StatsOptions;
+    use lede::extract::correlate::correlate_facts_with_options;
+    use lede::extract::stats::StatsOptions;
 
     let text = concat!(
         "Retention was seven years after account closure. ",

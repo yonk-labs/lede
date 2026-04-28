@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "skimr"
-version = "0.2.2"
+name = "lede"
+version = "0.3.0"
 description = "Deterministic extractive summarization — zero runtime dependencies"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -37,10 +37,10 @@ dev = ["pytest>=7", "pytest-subtests>=0.10"]
 bench = ["sumy>=0.11", "numpy>=1.24"]
 
 [project.scripts]
-skimr = "skimr.cli:main"
+lede = "lede.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/skimr"]
+packages = ["src/lede"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

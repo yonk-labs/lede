@@ -1,4 +1,4 @@
-use skimr::extract::stats::{Stat, stats};
+use lede::extract::stats::{Stat, stats};
 
 #[test]
 fn ctx_does_not_panic_on_multibyte_context() {
@@ -150,7 +150,7 @@ fn stats_extracts_tons_per_year() {
 
 #[cfg(feature = "wordforms")]
 mod wordforms {
-    use skimr::extract::stats::{StatsOptions, stats, stats_with_options};
+    use lede::extract::stats::{StatsOptions, stats, stats_with_options};
 
     #[test]
     fn extracts_word_form_durations() {

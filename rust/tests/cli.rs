@@ -3,12 +3,12 @@
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-fn skimr_bin() -> &'static str {
-    env!("CARGO_BIN_EXE_skimr")
+fn lede_bin() -> &'static str {
+    env!("CARGO_BIN_EXE_lede")
 }
 
 fn run(args: &[&str], stdin: Option<&str>) -> (i32, String, String) {
-    let mut cmd = Command::new(skimr_bin());
+    let mut cmd = Command::new(lede_bin());
     cmd.args(args);
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
     if stdin.is_some() {
@@ -35,7 +35,7 @@ fn run(args: &[&str], stdin: Option<&str>) -> (i32, String, String) {
 }
 
 fn tempdir_for(label: &str) -> std::path::PathBuf {
-    let base = std::env::temp_dir().join(format!("skimr-cli-test-{}-{label}", std::process::id()));
+    let base = std::env::temp_dir().join(format!("lede-cli-test-{}-{label}", std::process::id()));
     std::fs::create_dir_all(&base).unwrap();
     base
 }

@@ -1,6 +1,6 @@
 //! At-a-glance document brief — composes `summarize` + `key_facts` + `toc`.
 //!
-//! Mirrors `src/skimr/brief.py`. Keep the three output formats
+//! Mirrors `src/lede/brief.py`. Keep the three output formats
 //! (string, markdown, dict) byte-identical with Python for the regex
 //! backend on every corpus in `benchmarks/corpus/`.
 //!

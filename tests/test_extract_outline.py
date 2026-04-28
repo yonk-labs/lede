@@ -1,5 +1,5 @@
 """extract.outline tests."""
-from skimr.extract import outline, Section
+from lede.extract import outline, Section
 
 
 def test_outline_captures_markdown_sections():

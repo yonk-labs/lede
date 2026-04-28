@@ -1,4 +1,4 @@
-# skimr vs Sumy vs LLM-as-summarizer — concrete worked examples
+# lede vs Sumy vs LLM-as-summarizer — concrete worked examples
 
 Real outputs and real timings on the same input, using the project's
 benchmark suite. **Nothing fabricated** — every number cited here came
@@ -13,17 +13,17 @@ output dumps.
 
 | Method | Time per doc (p50) | Determinism | Cost | What you get |
 |---|---|---|---|---|
-| **skimr/tfidf** (Rust default) | **0.13 ms** | byte-identical | $0 | summary text |
-| **skimr/tfidf** (Python default) | **0.42 ms** | byte-identical | $0 | summary text |
-| **skimr +stats** | 0.67 ms | byte-identical | $0 | summary + numeric facts |
-| **skimr +outline** | 0.72 ms | byte-identical | $0 | summary + section headings |
-| **skimr +all** (RAG-prep) | **2.55 ms** (max 3.80) | byte-identical | $0 | summary + 5 structured fields |
+| **lede/tfidf** (Rust default) | **0.13 ms** | byte-identical | $0 | summary text |
+| **lede/tfidf** (Python default) | **0.42 ms** | byte-identical | $0 | summary text |
+| **lede +stats** | 0.67 ms | byte-identical | $0 | summary + numeric facts |
+| **lede +outline** | 0.72 ms | byte-identical | $0 | summary + section headings |
+| **lede +all** (RAG-prep) | **2.55 ms** (max 3.80) | byte-identical | $0 | summary + 5 structured fields |
 | sumy/LexRank | 13.35 ms | deterministic | $0 | summary text |
 | sumy/TextRank | 12.55 ms | deterministic | $0 | summary text |
 | sumy/LSA | 16.82 ms (max 60.88) | deterministic | $0 | summary text |
 | **LLM API** (Claude / GPT / Cohere) | **500–5000 ms** [^1] | non-deterministic | ~$0.001–0.05/doc [^2] | summary text + reasoning + restatement |
 
-skimr default is **~30× faster than Sumy and ~1000–10,000× faster than an LLM API**, deterministic, costs nothing, and — uniquely — gives you the structured facts you'd otherwise extract in a second pass.
+lede default is **~30× faster than Sumy and ~1000–10,000× faster than an LLM API**, deterministic, costs nothing, and — uniquely — gives you the structured facts you'd otherwise extract in a second pass.
 
 LLMs win on **rewriting quality**: they fuse ideas across sentences, drop redundancy, and can reason about what's important rather than just rank by score. They lose on **everything else**.
 
@@ -31,9 +31,9 @@ LLMs win on **rewriting quality**: they fuse ideas across sentences, drop redund
 
 - 10 source corpora in `benchmarks/corpus/` ranging 0.5 KB – 3 KB. Real-world shapes: CRM notes, meeting minutes, news articles, scientific paper, support ticket, SCOTUS opinion, technical spec, privacy policy, Wikipedia article.
 - 50 iterations per (method, corpus) cell with one unrecorded warmup. p50 reported.
-- Sumy targets 3 sentences; skimr targets 500 chars (closest comparable budget).
+- Sumy targets 3 sentences; lede targets 500 chars (closest comparable budget).
 - Hardware: laptop class, single core hot.
-- Versions at time of measurement: skimr 0.2.0; Sumy 0.12.0; Rust 1.85; Python 3.13.
+- Versions at time of measurement: lede 0.2.0; Sumy 0.12.0; Rust 1.85; Python 3.13.
 
 ## Example A — support ticket
 
@@ -46,7 +46,7 @@ LLMs win on **rewriting quality**: they fuse ideas across sentences, drop redund
 
 > Ticket #44812 from jamie.l@acme.example (P2): chunkshop nightly ingest job hung after upgrading from 0.1.6 to 0.2.0, with no error output — job stuck between chunking and embedding; reverting to 0.1.6 restored the 22-minute run. Kai T. (support) diagnosed that 0.2.0 changed the default embedder to fastembed-onnx-int8, which tries to download model weights from HuggingFace on first run, hanging indefinitely on air-gapped batch nodes. Workarounds: set EMBEDDING_CACHE_DIR to a pre-populated NFS path, pin embedder.precision=fp32 to use already-downloaded 0.1.6 weights, or set embedder.allow_download=false to fail fast instead of hanging. Reporter pinned fp32 and disabled downloads, opened an internal ticket to pre-seed int8 weights on the shared cache for future use, and confirmed the job completed in 19 minutes. Ticket closed.
 
-### skimr/tfidf default — 0.45 ms p50
+### lede/tfidf default — 0.45 ms p50
 
 > Ticket #44812 — Ingest job hangs after upgrade to chunkshop 0.2.0
 > Reporter: jamie.l@acme.example
@@ -54,7 +54,7 @@ LLMs win on **rewriting quality**: they fuse ideas across sentences, drop redund
 
 482 chars. Hits the metadata header, the symptom, the root cause, and the resolution. No re-statement of the workaround details.
 
-### skimr +all (RAG-prep) — 2.69 ms p50
+### lede +all (RAG-prep) — 2.69 ms p50
 
 Same `summary` plus structured fields (illustrative values):
 
@@ -68,7 +68,7 @@ r.phrases         # ('embedder precision', 'shared cache', 'model download', ...
 r.correlated_facts # (PhraseFact(entity='ingest job', number='22 minutes', ...),)
 ```
 
-The structured fields are what you'd otherwise need a second extraction pass to produce. With skimr, the cost is the **2.27 ms delta** over the bare summary.
+The structured fields are what you'd otherwise need a second extraction pass to produce. With lede, the cost is the **2.27 ms delta** over the bare summary.
 
 ### sumy/LexRank — 12.60 ms p50
 
@@ -103,13 +103,13 @@ But:
 - ~1500 ms latency at minimum on Claude 3.5 Sonnet [^1].
 - ~$0.005–0.02 per document depending on model and prompt length [^2].
 - Rerun the same input next month with a model update; the bytes will differ. Snapshot tests break.
-- Network call + auth + retry path. None on the skimr path.
+- Network call + auth + retry path. None on the lede path.
 
 ## Example B — news article
 
 **Input** (2237 chars, ECB rate-decision article):
 
-**skimr/tfidf default — 0.37 ms p50**
+**lede/tfidf default — 0.37 ms p50**
 
 > The European Central Bank announced on Tuesday that it would hold interest rates steady despite mounting pressure from member states calling for cuts. The euro strengthened against the dollar by 0.4 percent in the hour following the announcement, while European equities gave back early gains to close slightly lower. Bond yields rose across the curve, with the German two-year climbing 8 basis points. Reconciling those views will require more data than the bank currently has.
 
@@ -133,34 +133,34 @@ p50 ms, sorted ascending. From `benchmarks/quality/matrix-2026-04-26.md`:
 
 | Method | avg p50 | max p50 |
 |---|---|---|
-| `rust-skimr/tfidf mode=default` | **0.13** | 0.20 |
-| `skimr/tfidf mode=legacy` | 0.23 | 0.34 |
-| `skimr/tfidf mode=coverage` | 0.36 | 0.54 |
-| `skimr/tfidf mode=default` | 0.42 | 0.62 |
-| `skimr/tfidf mode=default +stats` | 0.67 | 0.96 |
-| `skimr/tfidf mode=default +outline` | 0.72 | 1.02 |
-| `skimr/tfidf mode=coverage +all` | 2.51 | 3.77 |
-| `skimr/tfidf mode=default +all` | **2.55** | **3.80** |
+| `rust-lede/tfidf mode=default` | **0.13** | 0.20 |
+| `lede/tfidf mode=legacy` | 0.23 | 0.34 |
+| `lede/tfidf mode=coverage` | 0.36 | 0.54 |
+| `lede/tfidf mode=default` | 0.42 | 0.62 |
+| `lede/tfidf mode=default +stats` | 0.67 | 0.96 |
+| `lede/tfidf mode=default +outline` | 0.72 | 1.02 |
+| `lede/tfidf mode=coverage +all` | 2.51 | 3.77 |
+| `lede/tfidf mode=default +all` | **2.55** | **3.80** |
 | `sumy/TextRank` | 12.55 | 14.95 |
 | `sumy/LexRank` | 13.35 | 16.72 |
 | `sumy/LSA` | 16.82 | 60.88 |
 | LLM API (Claude / GPT / Cohere) | ~500–5000 [^1] | n/a |
 
-skimr is **~30× faster than Sumy on the bare summary** and **~5× faster than Sumy with all five RAG-prep enrichments attached**. The fact that skimr can ATTACH structured facts and still be faster is the v0.2 differentiator.
+lede is **~30× faster than Sumy on the bare summary** and **~5× faster than Sumy with all five RAG-prep enrichments attached**. The fact that lede can ATTACH structured facts and still be faster is the v0.2 differentiator.
 
 ## When each tool wins
 
 | You want | Pick | Why |
 |---|---|---|
-| Sub-millisecond summary on a per-chunk hot path | **skimr** (default) | 0.42 ms / 0.13 ms (Rust). Sumy is 30× slower. |
-| Summary + structured facts in one call (RAG prep) | **skimr +all** | 2.55 ms p50. Nothing else returns a `SummaryResult` like this. |
-| Byte-identical output across Python and Rust | **skimr** | Per-fixture parity walker enforces this on every push. |
-| Snapshot-test stability / regulated environment | **skimr** | Deterministic. Sumy is too. LLMs are not. |
+| Sub-millisecond summary on a per-chunk hot path | **lede** (default) | 0.42 ms / 0.13 ms (Rust). Sumy is 30× slower. |
+| Summary + structured facts in one call (RAG prep) | **lede +all** | 2.55 ms p50. Nothing else returns a `SummaryResult` like this. |
+| Byte-identical output across Python and Rust | **lede** | Per-fixture parity walker enforces this on every push. |
+| Snapshot-test stability / regulated environment | **lede** | Deterministic. Sumy is too. LLMs are not. |
 | Highest output quality on a single document | **LLM API** | Reasoning, fusion, restatement. Pay 1000–10,000× the latency for it. |
-| Algorithm catalog (LSA / KL-Sum / Edmundson) | **Sumy** | 8+ algorithms, mature. skimr ships TF-IDF + position + length only. |
+| Algorithm catalog (LSA / KL-Sum / Edmundson) | **Sumy** | 8+ algorithms, mature. lede ships TF-IDF + position + length only. |
 | Multi-document fusion / cross-document reasoning | **LLM API** | Out of scope for any extractive summarizer. |
-| Air-gapped / on-device / no-API-budget | **skimr** | Stdlib + regex. No network, no model weights, no auth. |
-| Want both — cheap pre-filter then expensive LLM | **skimr in front of LLM** | The 2026 cost-optimization narrative ([Maxim], [Morph]). 40–94% input-token-cut at the input layer with no quality cost on the LLM's downstream summary. |
+| Air-gapped / on-device / no-API-budget | **lede** | Stdlib + regex. No network, no model weights, no auth. |
+| Want both — cheap pre-filter then expensive LLM | **lede in front of LLM** | The 2026 cost-optimization narrative ([Maxim], [Morph]). 40–94% input-token-cut at the input layer with no quality cost on the LLM's downstream summary. |
 
 [Maxim]: https://www.getmaxim.ai/articles/reduce-llm-cost-and-latency-a-comprehensive-guide-for-2026/
 [Morph]: https://www.morphllm.com/llm-cost-optimization
@@ -179,10 +179,10 @@ skimr is **~30× faster than Sumy on the bare summary** and **~5× faster than S
 
 ## Caveats
 
-- **Latency comparisons are on the same single-core hot path.** Sumy initializes parsers / tokenizers per call; skimr lazy-initializes once. A long-running daemon would see Sumy improve relative to these numbers but skimr is still faster.
+- **Latency comparisons are on the same single-core hot path.** Sumy initializes parsers / tokenizers per call; lede lazy-initializes once. A long-running daemon would see Sumy improve relative to these numbers but lede is still faster.
 - **The 500–5000 ms LLM band is from cited public benchmarks** ([anthropic-claude-3 vs gpt-4 summarization comparison][the-decoder]; [Picovoice 2026 summarization-API guide][picovoice]). Real numbers vary widely with model, prompt, output length, and provider load.
 - **Sumy LSA's worst case (60.88 ms) is on `tech-spec`** — a 3 KB doc with heavy headings. The other Sumy backends are much steadier; LSA's SVD step is the outlier.
-- **skimr's "byte-identical" claim covers the regex backend.** Optional Python-only backends (`spacy`, `yake`) make no parity promise — see [`docs/v0-2-design.md`](v0-2-design.md) for the contract scope.
+- **lede's "byte-identical" claim covers the regex backend.** Optional Python-only backends (`spacy`, `yake`) make no parity promise — see [`docs/v0-2-design.md`](v0-2-design.md) for the contract scope.
 
 [^1]: LLM API latency 500–5000 ms is the typical band for frontier-model summarization endpoints. Source: [Anthropic Claude 3 vs GPT-4 summarization benchmark][the-decoder]; [Picovoice 2026 summarization-API guide][picovoice].
 [^2]: Per-document cost depends on model and prompt length. Cohere Command R7B is reported at "3–27× cheaper than competitors for budget models" ([MetaCTO][metacto]). Frontier-model APIs sit higher.

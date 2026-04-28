@@ -1,6 +1,6 @@
 //! Key-facts extractor — top-N fact-bearing sentences as complete strings.
 //!
-//! Mirrors `src/skimr/extract/key_facts.py`. Ranked by composite tfidf + stat
+//! Mirrors `src/lede/extract/key_facts.py`. Ranked by composite tfidf + stat
 //! density, deduped by normalized (`stat_type`, value), returned in document
 //! order. Composition primitive: reuses `stats()` and `composite_score_parts`
 //! — no new regex patterns.
@@ -16,7 +16,7 @@ use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
-// Shared with Python's skimr/extract/key_facts.py::_STAT_DENSITY_WEIGHT.
+// Shared with Python's lede/extract/key_facts.py::_STAT_DENSITY_WEIGHT.
 const STAT_DENSITY_WEIGHT: f64 = 0.15;
 const TFIDF_WEIGHT: f64 = 0.60;
 const POSITION_WEIGHT: f64 = 0.25;
@@ -37,7 +37,7 @@ fn ws_re() -> &'static Regex {
 
 /// Normalize a value string for dedup. Matches
 /// `benchmarks/extraction_eval.py::_norm` and Python
-/// `skimr/extract/key_facts.py::_norm_value`.
+/// `lede/extract/key_facts.py::_norm_value`.
 fn norm_value(s: &str) -> String {
     let lowered = s.to_lowercase();
     let dashed = hyphen_re().replace_all(&lowered, " ");

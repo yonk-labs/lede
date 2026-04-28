@@ -1,4 +1,4 @@
-# skimr — Primitive Reference
+# lede — Primitive Reference
 
 Deterministic, zero-dependency extractive primitives for text. Every primitive is pure, side-effect-free, and produces identical output from the Python and Rust implementations (regex backend only).
 
@@ -7,14 +7,14 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 - [Extraction primitives](#extraction-primitives) — `outline`, `toc`, `stats`, `key_facts`, `metadata`, `phrases`, `correlate_facts`
 - [Utilities](#utilities) — `clean_text`, `strip_think`, `extract_keyword`
 - [Backend selector](#backend-selector) — regex / spacy / auto
-- [Optional extras](#optional-extras) — wordforms, yake, textrank, skimr-spacy
+- [Optional extras](#optional-extras) — wordforms, yake, textrank, lede-spacy
 - [Choosing the right primitive](#choosing-the-right-primitive)
 
 ---
 
 ## Top-level APIs
 
-### `skimr.summarize(text, max_length=500, *, mode="default", attach=None) -> SummaryResult`
+### `lede.summarize(text, max_length=500, *, mode="default", attach=None) -> SummaryResult`
 
 **Purpose:** compress a document to a character budget while preserving the most informative sentences. Think "minify" — the output is a shorter version of the source, suitable for LLM pre-processing, previews, or dense archival.
 
@@ -31,7 +31,7 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 
 ---
 
-### `skimr.brief(text, *, overview_max=0.35, max_facts=10, include_phrases=False, format="string") -> str | dict`
+### `lede.brief(text, *, overview_max=0.35, max_facts=10, include_phrases=False, format="string") -> str | dict`
 
 **Purpose:** produce a quick at-a-glance brief of what a document is about, what interesting facts it contains, and what else is in it. Think "reader brief" — a new reader should be able to decide in seconds whether the doc is worth reading in full.
 
@@ -56,9 +56,9 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 
 ## Extraction primitives
 
-All extraction primitives live under `skimr.extract.*`. They're individually usable — `brief()` just composes them.
+All extraction primitives live under `lede.extract.*`. They're individually usable — `brief()` just composes them.
 
-### `skimr.extract.outline(text) -> tuple[Section, ...]`
+### `lede.extract.outline(text) -> tuple[Section, ...]`
 
 **Purpose:** detect structural sections and return each with its most representative non-heading sentence.
 
@@ -81,7 +81,7 @@ All extraction primitives live under `skimr.extract.*`. They're individually usa
 
 ---
 
-### `skimr.extract.toc(text) -> tuple[str, ...]` ⟵ **new in T16**
+### `lede.extract.toc(text) -> tuple[str, ...]` ⟵ **new in T16**
 
 **Purpose:** lightweight table-of-contents — just the section names in document order.
 
@@ -91,7 +91,7 @@ All extraction primitives live under `skimr.extract.*`. They're individually usa
 
 ---
 
-### `skimr.extract.stats(text, *, convert_word_names=False) -> tuple[Stat, ...]`
+### `lede.extract.stats(text, *, convert_word_names=False) -> tuple[Stat, ...]`
 
 **Purpose:** extract numeric facts — money, percent, date, duration, count.
 
@@ -106,13 +106,13 @@ All extraction primitives live under `skimr.extract.*`. They're individually usa
 | `duration` | `N seconds?/minutes?/…/years?` with hyphen or space separator | `30 days`, `90-day`, `two weeks` (with `convert_word_names=True`) |
 | `count` | `N` + keyword from a known list (events, users, items, documents, tons per year, terabytes, basis points, …) | `50,000 events`, `2 terabytes per day`, `8 basis points`, `18 tons per year` |
 
-**`convert_word_names=True`** (requires `skimr[wordforms]` extra): pre-processes text with `text2num` to convert spelled-out numbers ("eight days" → "8 days") before regex scanning. Emitted `value` preserves the original word-form when possible.
+**`convert_word_names=True`** (requires `lede[wordforms]` extra): pre-processes text with `text2num` to convert spelled-out numbers ("eight days" → "8 days") before regex scanning. Emitted `value` preserves the original word-form when possible.
 
 **When to use:** you want structured numeric data points. Downstream: facts table, chart, fact-check scaffolding.
 
 ---
 
-### `skimr.extract.key_facts(text, *, max_facts=10, convert_word_names=False) -> tuple[str, ...]` ⟵ **new in T16**
+### `lede.extract.key_facts(text, *, max_facts=10, convert_word_names=False) -> tuple[str, ...]` ⟵ **new in T16**
 
 **Purpose:** return the N most interesting **sentences** containing numeric or named facts, as complete grammatical sentences (not tuples).
 
@@ -126,7 +126,7 @@ All extraction primitives live under `skimr.extract.*`. They're individually usa
 
 ---
 
-### `skimr.extract.metadata(text, *, backend=None) -> Metadata`
+### `lede.extract.metadata(text, *, backend=None) -> Metadata`
 
 **Purpose:** structured document metadata — dates, monetary amounts, URLs, and entities.
 
@@ -136,13 +136,13 @@ All extraction primitives live under `skimr.extract.*`. They're individually usa
 - `dates` — ISO + US-slashed forms (regex backend) and bare years (v0.2 broadening).
 - `amounts` — same regex as `stats.money`.
 - `urls` — `https?://[^\s<>"')]+`.
-- `entities` — **empty on regex backend by architectural promise**. Populated only when `backend="spacy"` via skimr-spacy (NER: PERSON / ORG / GPE / LOC / PRODUCT).
+- `entities` — **empty on regex backend by architectural promise**. Populated only when `backend="spacy"` via lede-spacy (NER: PERSON / ORG / GPE / LOC / PRODUCT).
 
 **When to use:** you want first-class access to dates / amounts / URLs without filtering `stats()`. Or entities (with spaCy backend).
 
 ---
 
-### `skimr.extract.phrases(text, keywords=None, *, backend=None) -> tuple[str, ...]`
+### `lede.extract.phrases(text, keywords=None, *, backend=None) -> tuple[str, ...]`
 
 **Purpose:** extract multi-word phrases (2–5 tokens).
 
@@ -159,7 +159,7 @@ All extraction primitives live under `skimr.extract.*`. They're individually usa
 
 ---
 
-### `skimr.extract.correlate_facts(text, *, backend=None, convert_word_names=False) -> tuple[PhraseFact, ...]`
+### `lede.extract.correlate_facts(text, *, backend=None, convert_word_names=False) -> tuple[PhraseFact, ...]`
 
 **Purpose:** pair repeated entities with their numeric facts, with an inferred polarity.
 
@@ -171,7 +171,7 @@ All extraction primitives live under `skimr.extract.*`. They're individually usa
 3. Infer polarity from cue words in the sentence: `grew`/`rose`/`increased` → `growth`; `fell`/`declined`/`dropped` → `decline`; else `absolute`.
 4. Filter: keep only pairings whose entity appears in ≥ 2 distinct numeric facts.
 
-**spaCy backend algorithm** (skimr-spacy): same pairing shape, but uses NER + noun-chunks + dependency relations to identify entities. Higher recall on proper nouns, lower precision (over-pairs). No ≥2-facts filter.
+**spaCy backend algorithm** (lede-spacy): same pairing shape, but uses NER + noun-chunks + dependency relations to identify entities. Higher recall on proper nouns, lower precision (over-pairs). No ≥2-facts filter.
 
 **Known gold/primitive mismatch:** hand-labeled gold in `fixtures/extract/correlate/` often expects polarities inferred from verbs attached to single-mention entities (e.g. `risk register` mentioned once, labeled with both `growth` and `decline` polarities from a single sentence). Neither backend produces this without coreference + salience ranking. See `docs/extraction-gold-labeling.md:105` (Rule 5) and v0.3+ roadmap.
 
@@ -181,15 +181,15 @@ All extraction primitives live under `skimr.extract.*`. They're individually usa
 
 ## Utilities
 
-### `skimr.clean_text(text) -> str`
+### `lede.clean_text(text) -> str`
 
 Markdown / filler / CRM-boilerplate stripper. Removes markdown syntax, signature footers, common boilerplate. Idempotent. Useful as a pre-processing step before `summarize()` or any extraction primitive when the source has heavy formatting noise.
 
-### `skimr.strip_think(text) -> str`
+### `lede.strip_think(text) -> str`
 
 Removes `<think>…</think>` blocks from reasoning-model output. Useful when processing LLM traces that include hidden reasoning channels.
 
-### `skimr.extract_keyword(text, keywords) -> str`
+### `lede.extract_keyword(text, keywords) -> str`
 
 Query-driven keyword-scored extraction. When the caller has a topic / query, returns the sentences most relevant to it (uses the v0.0.1 keyword-scoring algorithm). Different contract from `summarize()`, which has no query concept.
 
@@ -197,12 +197,12 @@ Query-driven keyword-scored extraction. When the caller has a topic / query, ret
 
 ## Backend selector
 
-Primitives that support multiple backends (`metadata`, `phrases`, `correlate_facts`) accept a `backend=` keyword and also respect a global default set via `skimr.set_default_backend()`.
+Primitives that support multiple backends (`metadata`, `phrases`, `correlate_facts`) accept a `backend=` keyword and also respect a global default set via `lede.set_default_backend()`.
 
 **Backend names:**
 - `"regex"` — the zero-dependency default. **Only** backend that promises byte-identical Python ↔ Rust output.
-- `"spacy"` — available when `skimr-spacy` is imported. Python-only.
-- `"yake"` — available for `phrases` when `skimr[yake]` is installed. Python-only.
+- `"spacy"` — available when `lede-spacy` is imported. Python-only.
+- `"yake"` — available for `phrases` when `lede[yake]` is installed. Python-only.
 - `"auto"` — uses `"spacy"` if registered, else `"regex"`. Check `resolve(backend, primitive)` for dispatch details.
 
 **`backend=None`** means "use the global default" (which is `"regex"` unless changed).
@@ -213,7 +213,7 @@ Primitives that support multiple backends (`metadata`, `phrases`, `correlate_fac
 
 ## Optional extras
 
-Install with `pip install skimr[EXTRA]`:
+Install with `pip install lede[EXTRA]`:
 
 | Extra | Pulls in | Enables |
 |---|---|---|
@@ -223,7 +223,7 @@ Install with `pip install skimr[EXTRA]`:
 | `dev` | `pytest`, `pytest-subtests` | Running the test suite. |
 | `bench` | `sumy`, `numpy` | Running the benchmark comparisons. |
 
-**Companion package:** `skimr-spacy` (separate PyPI distribution) registers the `"spacy"` backend for `metadata`, `phrases`, and `correlate_facts` when imported. Pulls `spacy>=3.8` + `en_core_web_sm-3.8.0`.
+**Companion package:** `lede-spacy` (separate PyPI distribution) registers the `"spacy"` backend for `metadata`, `phrases`, and `correlate_facts` when imported. Pulls `spacy>=3.8` + `en_core_web_sm-3.8.0`.
 
 ## Runtime parity
 
@@ -239,15 +239,15 @@ v0.1 surface). Optional extras are intentionally asymmetric:
 | **`wordforms`** — spelled-out numbers ("eight days") | `[wordforms]` extra (text2num) | `--features wordforms` (same `text2num` crate) | Both bind the same Rust crate. Byte-identical parity. |
 | **`textrank`** — graph-based PageRank summarizer | `[textrank]` extra (networkx) | ❌ not available | Feasible to add — `petgraph` ships PageRank, or a pure power-iteration impl is ~80 lines. Skipped in v0.2 because the regex backend is the parity contract and graph algos pull transitive deps. **Open an issue if you'd use a Rust `textrank` cargo feature.** |
 | **`yake`** — statistical key-phrase extractor | `[yake]` extra | ❌ not available | No maintained Rust port of YAKE today. The algorithm is statistical (not ML), so a port is feasible but non-trivial. Open an issue if you'd consume one. |
-| **spaCy NER** — entity extraction | `skimr-spacy` companion package | ❌ not available, by design | Pure-Rust transformer NER requires shipping model weights and a heavy ML runtime (`rust-bert`/`tch-rs` are ONNX/torch-backed). That contradicts skimr's "stdlib + regex only" Rust contract. Rust returns `Metadata.entities` as an empty `Vec` under the regex backend; callers needing NER from a Rust service should call out to a separate NER endpoint (Python skimr-spacy or a hosted service). |
+| **spaCy NER** — entity extraction | `lede-spacy` companion package | ❌ not available, by design | Pure-Rust transformer NER requires shipping model weights and a heavy ML runtime (`rust-bert`/`tch-rs` are ONNX/torch-backed). That contradicts lede's "stdlib + regex only" Rust contract. Rust returns `Metadata.entities` as an empty `Vec` under the regex backend; callers needing NER from a Rust service should call out to a separate NER endpoint (Python lede-spacy or a hosted service). |
 | Backend registry / `set_default_backend()` | ✅ | ❌ | Rust ships only the regex backend — no plug-in dispatch. |
-| CLI binary | ✅ `skimr` | ✅ `skimr` | Same flags. UTF-8 reads on both. BrokenPipe handled. |
+| CLI binary | ✅ `lede` | ✅ `lede` | Same flags. UTF-8 reads on both. BrokenPipe handled. |
 
 Bottom line: if your callers use only the regex backend, the two ports
 are equivalent. Feature requests for Rust ports of textrank or yake
 are welcome on GitHub Issues with the `rust-feature-parity` label.
-spaCy NER on the Rust side will not be added inside `skimr` (heavy
-deps); a future `skimr-rust-ner` companion crate could ship if there's
+spaCy NER on the Rust side will not be added inside `lede` (heavy
+deps); a future `lede-rust-ner` companion crate could ship if there's
 demand.
 
 ---
@@ -280,12 +280,12 @@ demand.
 - **Deterministic:** same input → same output, every call, every runtime. No RNG, no ordering drift, no hash-iteration dependencies.
 - **Zero required runtime deps** (regex backend): core primitives use only Python stdlib / Rust stdlib + `regex` crate.
 - **Byte-identical Python ↔ Rust** for the regex backend across the fixture test suite. Optional backends make no parity promise.
-- **No LLM calls in the core.** Never. Neural backends live in `skimr-spacy` (companion) or future `skimr-neural` (hypothetical), not in `skimr` itself.
+- **No LLM calls in the core.** Never. Neural backends live in `lede-spacy` (companion) or future `lede-neural` (hypothetical), not in `lede` itself.
 - **Sub-millisecond to low-ms latency** for all regex-backend primitives on typical documents (≤10 KB). See `benchmarks/quality/extraction-YYYY-MM-DD.md` for per-primitive timing.
 
 ## Scaling notes
 
-skimr is designed for the **per-chunk hot path** of a RAG / agent pipeline: typical inputs are sentence- to paragraph-sized (a few hundred to a few thousand chars). The benchmark suite at `benchmarks/quality/matrix-2026-04-26.md` reports across 10 corpora ranging 0.5 KB – 3 KB:
+lede is designed for the **per-chunk hot path** of a RAG / agent pipeline: typical inputs are sentence- to paragraph-sized (a few hundred to a few thousand chars). The benchmark suite at `benchmarks/quality/matrix-2026-04-26.md` reports across 10 corpora ranging 0.5 KB – 3 KB:
 
 | method (regex backend) | avg p50 | max p50 |
 |---|---|---|
@@ -313,14 +313,14 @@ ReDoS is bounded structurally:
 
 For documents > 100 KB:
 
-- Split at paragraph boundaries (`\n\n+`), feed each chunk through `summarize`/`brief`, then concatenate. skimr is designed for this — that's exactly the chunkshop integration shape, see [`integration-memo.md`](integration-memo.md).
-- Don't paste a multi-megabyte string and expect a 500-char summary to be useful. Pre-chunk first; skimr is a primitive, not a document loader.
+- Split at paragraph boundaries (`\n\n+`), feed each chunk through `summarize`/`brief`, then concatenate. lede is designed for this — that's exactly the chunkshop integration shape, see [`integration-memo.md`](integration-memo.md).
+- Don't paste a multi-megabyte string and expect a 500-char summary to be useful. Pre-chunk first; lede is a primitive, not a document loader.
 
 ---
 
 ## Versioning
 
-Current: `0.2.0.dev0` (Python) / `0.2.0-dev.0` (Rust SemVer). v0.2 adds extraction primitives, backend selector, skimr-spacy companion, and optional `wordforms` / `yake` extras. v0.2.0 tags when T14 comparison matrix + T15 release sign-off land.
+Current: `0.2.0.dev0` (Python) / `0.2.0-dev.0` (Rust SemVer). v0.2 adds extraction primitives, backend selector, lede-spacy companion, and optional `wordforms` / `yake` extras. v0.2.0 tags when T14 comparison matrix + T15 release sign-off land.
 
 v0.1.0 conceptually exists as "the TF-IDF summarizer that passed SC-A" but was never tagged — the project pivoted into v0.2 before releasing it.
 
@@ -330,6 +330,6 @@ v0.1.0 conceptually exists as "the TF-IDF summarizer that passed SC-A" but was n
 
 - **Spec** — [`docs/v0-2-design.md`](v0-2-design.md)
 - **Gold-labeling protocol** — `docs/extraction-gold-labeling.md`
-- **spaCy integration policy** — [`docs/skimr-spacy-integration.md`](skimr-spacy-integration.md)
+- **spaCy integration policy** — [`docs/lede-spacy-integration.md`](lede-spacy-integration.md)
 - **Benchmarks** — `benchmarks/corpus/` (10 source docs) + `fixtures/extract/` (gold labels) + `benchmarks/quality/extraction-*.md` (latest eval)
 - **Changelog** — [`../CHANGELOG.md`](../CHANGELOG.md)

@@ -1,4 +1,4 @@
-use skimr::extract::key_facts::{KeyFactsOptions, key_facts, key_facts_with_options};
+use lede::extract::key_facts::{KeyFactsOptions, key_facts, key_facts_with_options};
 
 #[test]
 fn key_facts_returns_sentences_containing_stats() {

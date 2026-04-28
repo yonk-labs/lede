@@ -1,4 +1,4 @@
-from skimr.extract import toc, outline
+from lede.extract import toc, outline
 
 
 def test_toc_returns_section_names_in_order():

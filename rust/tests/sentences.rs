@@ -1,4 +1,4 @@
-use skimr::sentences::split_sentences;
+use lede::sentences::split_sentences;
 
 #[test]
 fn empty_input_returns_empty_vec() {

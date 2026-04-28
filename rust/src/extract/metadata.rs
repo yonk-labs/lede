@@ -8,7 +8,7 @@ pub struct Metadata {
     pub dates: Vec<String>,
     pub amounts: Vec<String>,
     pub urls: Vec<String>,
-    pub entities: Vec<String>, // always empty; Python-only via skimr[ner]
+    pub entities: Vec<String>, // always empty; Python-only via lede[ner]
 }
 
 // Date patterns mirror extract::stats: ISO yyyy-mm-dd, US m/d/yyyy, and bare

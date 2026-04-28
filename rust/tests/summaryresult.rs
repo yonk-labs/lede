@@ -1,4 +1,4 @@
-use skimr::{AttachOpts, Mode, SummaryResult, summarize, summarize_with_attach};
+use lede::{AttachOpts, Mode, SummaryResult, summarize, summarize_with_attach};
 
 #[test]
 fn display_returns_summary() {

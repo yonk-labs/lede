@@ -241,7 +241,7 @@ pub fn stats_with_options(text: &str, options: StatsOptions) -> Vec<Stat> {
 #[cfg(feature = "wordforms")]
 #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
 // Char offsets come from a single sentence; they fit in isize on every
-// target skimr supports. The arithmetic below never approaches the
+// target lede supports. The arithmetic below never approaches the
 // wrapping boundary in practice, so the pedantic lints just add noise.
 mod wordforms_impl {
     //! text2num-backed span-preserving scan. Mirrors the Python

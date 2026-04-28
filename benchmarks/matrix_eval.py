@@ -1,7 +1,7 @@
-"""Comparison matrix for skimr v0.2 vs sumy.
+"""Comparison matrix for lede v0.2 vs sumy.
 
 Axes:
-  - method  (skimr mode+attach, sumy backend, rust)
+  - method  (lede mode+attach, sumy backend, rust)
   - chars   (output length per corpus)
   - time    (p50 ms over N iterations, warm)
   - extras  (enrichment counts: stats / outline / metadata / phrases / correlated_facts)
@@ -27,7 +27,7 @@ from typing import Callable
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from skimr import SummaryResult, summarize  # noqa: E402
+from lede import SummaryResult, summarize  # noqa: E402
 from sumy.nlp.tokenizers import Tokenizer  # noqa: E402
 from sumy.parsers.plaintext import PlaintextParser  # noqa: E402
 from sumy.summarizers.lex_rank import LexRankSummarizer  # noqa: E402
@@ -56,13 +56,13 @@ def _timed(fn: Callable[[str], object], text: str) -> tuple[float, object]:
     return statistics.median(samples), last
 
 
-def _skimr_bare(mode: str) -> Callable[[str], SummaryResult]:
+def _lede_bare(mode: str) -> Callable[[str], SummaryResult]:
     def run(text: str) -> SummaryResult:
         return summarize(text, max_length=TARGET_CHARS, mode=mode)
     return run
 
 
-def _skimr_rich(mode: str, attach: list[str]) -> Callable[[str], SummaryResult]:
+def _lede_rich(mode: str, attach: list[str]) -> Callable[[str], SummaryResult]:
     def run(text: str) -> SummaryResult:
         return summarize(text, max_length=TARGET_CHARS, mode=mode, attach=attach)
     return run
@@ -78,13 +78,13 @@ def _sumy(cls):
 ALL_ENRICHMENTS = ["stats", "outline", "metadata", "phrases", "correlated_facts"]
 
 METHODS: dict[str, Callable[[str], object]] = {
-    "skimr/tfidf mode=legacy": _skimr_bare("legacy"),
-    "skimr/tfidf mode=default": _skimr_bare("default"),
-    "skimr/tfidf mode=default +stats": _skimr_rich("default", ["stats"]),
-    "skimr/tfidf mode=default +outline": _skimr_rich("default", ["outline"]),
-    "skimr/tfidf mode=default +all": _skimr_rich("default", ALL_ENRICHMENTS),
-    "skimr/tfidf mode=coverage": _skimr_bare("coverage"),
-    "skimr/tfidf mode=coverage +all": _skimr_rich("coverage", ALL_ENRICHMENTS),
+    "lede/tfidf mode=legacy": _lede_bare("legacy"),
+    "lede/tfidf mode=default": _lede_bare("default"),
+    "lede/tfidf mode=default +stats": _lede_rich("default", ["stats"]),
+    "lede/tfidf mode=default +outline": _lede_rich("default", ["outline"]),
+    "lede/tfidf mode=default +all": _lede_rich("default", ALL_ENRICHMENTS),
+    "lede/tfidf mode=coverage": _lede_bare("coverage"),
+    "lede/tfidf mode=coverage +all": _lede_rich("coverage", ALL_ENRICHMENTS),
     "sumy/LexRank": _sumy(LexRankSummarizer),
     "sumy/TextRank": _sumy(TextRankSummarizer),
     "sumy/LSA": _sumy(LsaSummarizer),
@@ -141,14 +141,14 @@ def _try_warmup_spacy() -> str:
     Returns a status string for the report header.
     """
     try:
-        from skimr_spacy import warmup
+        from lede_spacy import warmup
     except ImportError:
-        return "skimr-spacy not installed (regex-only metadata)"
+        return "lede-spacy not installed (regex-only metadata)"
     try:
         warmup()
     except Exception as exc:  # noqa: BLE001 — best-effort
-        return f"skimr-spacy import OK but warmup failed: {exc!r}"
-    return "skimr-spacy warmed (still regex-default unless caller opts in)"
+        return f"lede-spacy import OK but warmup failed: {exc!r}"
+    return "lede-spacy warmed (still regex-default unless caller opts in)"
 
 
 def main() -> int:
@@ -181,11 +181,11 @@ def main() -> int:
             "corpus": p.stem, "p50_ms": p50, "chars": chars,
             "extras": {k: 0 for k in ALL_ENRICHMENTS},
         })
-    rows.append({"method": "rust-skimr/tfidf mode=default", "corpus_rows": rust_rows})
+    rows.append({"method": "rust-lede/tfidf mode=default", "corpus_rows": rust_rows})
 
     # ---- Markdown report ----
     md: list[str] = []
-    md.append(f"# Comparison matrix — skimr v0.2 vs sumy ({date})\n\n")
+    md.append(f"# Comparison matrix — lede v0.2 vs sumy ({date})\n\n")
     md.append(
         f"**Iterations per cell:** {ITERATIONS} (one unrecorded warmup). "
         f"**Target chars:** {TARGET_CHARS}. **Sumy target sentences:** "

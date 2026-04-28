@@ -1,6 +1,6 @@
 """Recommended pattern for very long documents.
 
-skimr is a per-chunk primitive, not a document loader. For inputs >
+lede is a per-chunk primitive, not a document loader. For inputs >
 100 KB, paragraph-chunk first, summarize each chunk, then reassemble.
 This is also the integration shape for chunkshop and similar RAG
 pipelines — see docs/integration-memo.md.
@@ -9,7 +9,7 @@ Run: python examples/05_chunked_pipeline.py
 """
 import re
 
-from skimr import summarize
+from lede import summarize
 
 # Pretend this is a 200 KB document. We'll simulate with a multi-paragraph
 # string that's small enough to fit in this example file.

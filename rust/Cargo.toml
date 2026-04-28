@@ -1,10 +1,10 @@
 [package]
-name = "skimr"
-version = "0.2.2"
+name = "lede"
+version = "0.3.0"
 edition = "2024"
 description = "Deterministic extractive summarization — stdlib + regex only"
 license = "Apache-2.0"
-repository = "https://github.com/yonk-labs/skimr"
+repository = "https://github.com/yonk-labs/lede"
 readme = "../README.md"
 keywords = ["summarization", "extractive", "text", "nlp", "tf-idf"]
 categories = ["text-processing"]
@@ -21,8 +21,8 @@ text2num = { version = "2.6", optional = true }
 wordforms = ["dep:text2num"]
 
 [[bin]]
-name = "skimr"
-path = "src/bin/skimr.rs"
+name = "lede"
+path = "src/bin/lede.rs"
 
 [[bin]]
 name = "bench_tfidf"

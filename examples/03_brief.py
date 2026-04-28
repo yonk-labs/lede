@@ -1,4 +1,4 @@
-"""skimr.brief() — paste-ready document brief in three formats.
+"""lede.brief() — paste-ready document brief in three formats.
 
 Composes summarize + key_facts + toc into one artifact. Useful for
 email digests, file browser previews, or a compact citation block in
@@ -6,7 +6,7 @@ a chat message.
 
 Run: python examples/03_brief.py
 """
-from skimr import brief
+from lede import brief
 
 DOC = """
 # Engineering Status — November 2024

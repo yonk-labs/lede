@@ -9,10 +9,10 @@
       "corpus": "crm-note-long",
       "letter_to_summarizer": {
         "A": "sumy/LexRank",
-        "B": "skimr/tfidf-legacy",
-        "C": "skimr/textrank",
+        "B": "lede/tfidf-legacy",
+        "C": "lede/textrank",
         "D": "sumy/TextRank",
-        "E": "skimr/tfidf-v0.2",
+        "E": "lede/tfidf-v0.2",
         "F": "sumy/LSA"
       },
       "ranking_letters": [
@@ -24,20 +24,20 @@
         "C"
       ],
       "ranked_summarizers": [
-        "skimr/tfidf-legacy",
-        "skimr/tfidf-v0.2",
+        "lede/tfidf-legacy",
+        "lede/tfidf-v0.2",
         "sumy/TextRank",
         "sumy/LSA",
         "sumy/LexRank",
-        "skimr/textrank"
+        "lede/textrank"
       ],
       "scores": {
-        "skimr/tfidf-legacy": 6,
-        "skimr/tfidf-v0.2": 5,
+        "lede/tfidf-legacy": 6,
+        "lede/tfidf-v0.2": 5,
         "sumy/TextRank": 4,
         "sumy/LSA": 3,
         "sumy/LexRank": 2,
-        "skimr/textrank": 1
+        "lede/textrank": 1
       },
       "usage": {
         "prompt_tokens": 1021,
@@ -49,11 +49,11 @@
       "corpus": "crm-note-short",
       "letter_to_summarizer": {
         "A": "sumy/LexRank",
-        "B": "skimr/tfidf-v0.2",
-        "C": "skimr/textrank",
+        "B": "lede/tfidf-v0.2",
+        "C": "lede/textrank",
         "D": "sumy/TextRank",
         "E": "sumy/LSA",
-        "F": "skimr/tfidf-legacy"
+        "F": "lede/tfidf-legacy"
       },
       "ranking_letters": [
         "B",
@@ -64,18 +64,18 @@
         "A"
       ],
       "ranked_summarizers": [
-        "skimr/tfidf-v0.2",
-        "skimr/tfidf-legacy",
+        "lede/tfidf-v0.2",
+        "lede/tfidf-legacy",
         "sumy/TextRank",
-        "skimr/textrank",
+        "lede/textrank",
         "sumy/LSA",
         "sumy/LexRank"
       ],
       "scores": {
-        "skimr/tfidf-v0.2": 6,
-        "skimr/tfidf-legacy": 5,
+        "lede/tfidf-v0.2": 6,
+        "lede/tfidf-legacy": 5,
         "sumy/TextRank": 4,
-        "skimr/textrank": 3,
+        "lede/textrank": 3,
         "sumy/LSA": 2,
         "sumy/LexRank": 1
       },
@@ -89,9 +89,9 @@
       "corpus": "meeting-minutes",
       "letter_to_summarizer": {
         "A": "sumy/LexRank",
-        "B": "skimr/tfidf-legacy",
-        "C": "skimr/textrank",
-        "D": "skimr/tfidf-v0.2",
+        "B": "lede/tfidf-legacy",
+        "C": "lede/textrank",
+        "D": "lede/tfidf-v0.2",
         "E": "sumy/TextRank",
         "F": "sumy/LSA"
       },
@@ -105,17 +105,17 @@
       ],
       "ranked_summarizers": [
         "sumy/LexRank",
-        "skimr/tfidf-legacy",
-        "skimr/tfidf-v0.2",
-        "skimr/textrank",
+        "lede/tfidf-legacy",
+        "lede/tfidf-v0.2",
+        "lede/textrank",
         "sumy/TextRank",
         "sumy/LSA"
       ],
       "scores": {
         "sumy/LexRank": 6,
-        "skimr/tfidf-legacy": 5,
-        "skimr/tfidf-v0.2": 4,
-        "skimr/textrank": 3,
+        "lede/tfidf-legacy": 5,
+        "lede/tfidf-v0.2": 4,
+        "lede/textrank": 3,
         "sumy/TextRank": 2,
         "sumy/LSA": 1
       },
@@ -128,12 +128,12 @@
     {
       "corpus": "news-article",
       "letter_to_summarizer": {
-        "A": "skimr/tfidf-legacy",
-        "B": "skimr/textrank",
+        "A": "lede/tfidf-legacy",
+        "B": "lede/textrank",
         "C": "sumy/LexRank",
         "D": "sumy/TextRank",
         "E": "sumy/LSA",
-        "F": "skimr/tfidf-v0.2"
+        "F": "lede/tfidf-v0.2"
       },
       "ranking_letters": [
         "A",
@@ -144,19 +144,19 @@
         "C"
       ],
       "ranked_summarizers": [
-        "skimr/tfidf-legacy",
+        "lede/tfidf-legacy",
         "sumy/LSA",
-        "skimr/tfidf-v0.2",
+        "lede/tfidf-v0.2",
         "sumy/TextRank",
-        "skimr/textrank",
+        "lede/textrank",
         "sumy/LexRank"
       ],
       "scores": {
-        "skimr/tfidf-legacy": 6,
+        "lede/tfidf-legacy": 6,
         "sumy/LSA": 5,
-        "skimr/tfidf-v0.2": 4,
+        "lede/tfidf-v0.2": 4,
         "sumy/TextRank": 3,
-        "skimr/textrank": 2,
+        "lede/textrank": 2,
         "sumy/LexRank": 1
       },
       "usage": {
@@ -168,10 +168,10 @@
     {
       "corpus": "privacy-policy",
       "letter_to_summarizer": {
-        "A": "skimr/tfidf-legacy",
+        "A": "lede/tfidf-legacy",
         "B": "sumy/LexRank",
-        "C": "skimr/textrank",
-        "D": "skimr/tfidf-v0.2",
+        "C": "lede/textrank",
+        "D": "lede/tfidf-v0.2",
         "E": "sumy/LSA",
         "F": "sumy/TextRank"
       },
@@ -186,18 +186,18 @@
       "ranked_summarizers": [
         "sumy/LSA",
         "sumy/TextRank",
-        "skimr/tfidf-v0.2",
+        "lede/tfidf-v0.2",
         "sumy/LexRank",
-        "skimr/tfidf-legacy",
-        "skimr/textrank"
+        "lede/tfidf-legacy",
+        "lede/textrank"
       ],
       "scores": {
         "sumy/LSA": 6,
         "sumy/TextRank": 5,
-        "skimr/tfidf-v0.2": 4,
+        "lede/tfidf-v0.2": 4,
         "sumy/LexRank": 3,
-        "skimr/tfidf-legacy": 2,
-        "skimr/textrank": 1
+        "lede/tfidf-legacy": 2,
+        "lede/textrank": 1
       },
       "usage": {
         "prompt_tokens": 1421,
@@ -208,9 +208,9 @@
     {
       "corpus": "scientific-paper",
       "letter_to_summarizer": {
-        "A": "skimr/textrank",
-        "B": "skimr/tfidf-legacy",
-        "C": "skimr/tfidf-v0.2",
+        "A": "lede/textrank",
+        "B": "lede/tfidf-legacy",
+        "C": "lede/tfidf-v0.2",
         "D": "sumy/LexRank",
         "E": "sumy/TextRank",
         "F": "sumy/LSA"
@@ -224,20 +224,20 @@
         "B"
       ],
       "ranked_summarizers": [
-        "skimr/textrank",
+        "lede/textrank",
         "sumy/LexRank",
-        "skimr/tfidf-v0.2",
+        "lede/tfidf-v0.2",
         "sumy/TextRank",
         "sumy/LSA",
-        "skimr/tfidf-legacy"
+        "lede/tfidf-legacy"
       ],
       "scores": {
-        "skimr/textrank": 6,
+        "lede/textrank": 6,
         "sumy/LexRank": 5,
-        "skimr/tfidf-v0.2": 4,
+        "lede/tfidf-v0.2": 4,
         "sumy/TextRank": 3,
         "sumy/LSA": 2,
-        "skimr/tfidf-legacy": 1
+        "lede/tfidf-legacy": 1
       },
       "usage": {
         "prompt_tokens": 1450,
@@ -249,10 +249,10 @@
       "corpus": "scotus-opinion",
       "letter_to_summarizer": {
         "A": "sumy/LSA",
-        "B": "skimr/tfidf-legacy",
+        "B": "lede/tfidf-legacy",
         "C": "sumy/LexRank",
-        "D": "skimr/tfidf-v0.2",
-        "E": "skimr/textrank",
+        "D": "lede/tfidf-v0.2",
+        "E": "lede/textrank",
         "F": "sumy/TextRank"
       },
       "ranking_letters": [
@@ -264,19 +264,19 @@
         "A"
       ],
       "ranked_summarizers": [
-        "skimr/tfidf-legacy",
-        "skimr/tfidf-v0.2",
+        "lede/tfidf-legacy",
+        "lede/tfidf-v0.2",
         "sumy/TextRank",
         "sumy/LexRank",
-        "skimr/textrank",
+        "lede/textrank",
         "sumy/LSA"
       ],
       "scores": {
-        "skimr/tfidf-legacy": 6,
-        "skimr/tfidf-v0.2": 5,
+        "lede/tfidf-legacy": 6,
+        "lede/tfidf-v0.2": 5,
         "sumy/TextRank": 4,
         "sumy/LexRank": 3,
-        "skimr/textrank": 2,
+        "lede/textrank": 2,
         "sumy/LSA": 1
       },
       "usage": {
@@ -290,10 +290,10 @@
       "letter_to_summarizer": {
         "A": "sumy/TextRank",
         "B": "sumy/LexRank",
-        "C": "skimr/tfidf-v0.2",
-        "D": "skimr/tfidf-legacy",
+        "C": "lede/tfidf-v0.2",
+        "D": "lede/tfidf-legacy",
         "E": "sumy/LSA",
-        "F": "skimr/textrank"
+        "F": "lede/textrank"
       },
       "ranking_letters": [
         "A",
@@ -306,17 +306,17 @@
       "ranked_summarizers": [
         "sumy/TextRank",
         "sumy/LexRank",
-        "skimr/textrank",
-        "skimr/tfidf-v0.2",
-        "skimr/tfidf-legacy",
+        "lede/textrank",
+        "lede/tfidf-v0.2",
+        "lede/tfidf-legacy",
         "sumy/LSA"
       ],
       "scores": {
         "sumy/TextRank": 6,
         "sumy/LexRank": 5,
-        "skimr/textrank": 4,
-        "skimr/tfidf-v0.2": 3,
-        "skimr/tfidf-legacy": 2,
+        "lede/textrank": 4,
+        "lede/tfidf-v0.2": 3,
+        "lede/tfidf-legacy": 2,
         "sumy/LSA": 1
       },
       "usage": {
@@ -328,12 +328,12 @@
     {
       "corpus": "tech-spec",
       "letter_to_summarizer": {
-        "A": "skimr/textrank",
-        "B": "skimr/tfidf-legacy",
+        "A": "lede/textrank",
+        "B": "lede/tfidf-legacy",
         "C": "sumy/TextRank",
         "D": "sumy/LexRank",
         "E": "sumy/LSA",
-        "F": "skimr/tfidf-v0.2"
+        "F": "lede/tfidf-v0.2"
       },
       "ranking_letters": [
         "E",
@@ -345,19 +345,19 @@
       ],
       "ranked_summarizers": [
         "sumy/LSA",
-        "skimr/tfidf-v0.2",
+        "lede/tfidf-v0.2",
         "sumy/LexRank",
         "sumy/TextRank",
-        "skimr/tfidf-legacy",
-        "skimr/textrank"
+        "lede/tfidf-legacy",
+        "lede/textrank"
       ],
       "scores": {
         "sumy/LSA": 6,
-        "skimr/tfidf-v0.2": 5,
+        "lede/tfidf-v0.2": 5,
         "sumy/LexRank": 4,
         "sumy/TextRank": 3,
-        "skimr/tfidf-legacy": 2,
-        "skimr/textrank": 1
+        "lede/tfidf-legacy": 2,
+        "lede/textrank": 1
       },
       "usage": {
         "prompt_tokens": 1380,
@@ -369,11 +369,11 @@
       "corpus": "wikipedia-article",
       "letter_to_summarizer": {
         "A": "sumy/LexRank",
-        "B": "skimr/tfidf-legacy",
-        "C": "skimr/tfidf-v0.2",
+        "B": "lede/tfidf-legacy",
+        "C": "lede/tfidf-v0.2",
         "D": "sumy/LSA",
         "E": "sumy/TextRank",
-        "F": "skimr/textrank"
+        "F": "lede/textrank"
       },
       "ranking_letters": [
         "E",
@@ -387,17 +387,17 @@
         "sumy/TextRank",
         "sumy/LexRank",
         "sumy/LSA",
-        "skimr/textrank",
-        "skimr/tfidf-v0.2",
-        "skimr/tfidf-legacy"
+        "lede/textrank",
+        "lede/tfidf-v0.2",
+        "lede/tfidf-legacy"
       ],
       "scores": {
         "sumy/TextRank": 6,
         "sumy/LexRank": 5,
         "sumy/LSA": 4,
-        "skimr/textrank": 3,
-        "skimr/tfidf-v0.2": 2,
-        "skimr/tfidf-legacy": 1
+        "lede/textrank": 3,
+        "lede/tfidf-v0.2": 2,
+        "lede/tfidf-legacy": 1
       },
       "usage": {
         "prompt_tokens": 1473,
@@ -407,9 +407,9 @@
     }
   ],
   "aggregate": {
-    "skimr/tfidf-v0.2": 42,
-    "skimr/tfidf-legacy": 36,
-    "skimr/textrank": 26,
+    "lede/tfidf-v0.2": 42,
+    "lede/tfidf-legacy": 36,
+    "lede/textrank": 26,
     "sumy/LexRank": 35,
     "sumy/TextRank": 40,
     "sumy/LSA": 31

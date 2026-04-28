@@ -1,7 +1,67 @@
 # Changelog
 
-skimr's release notes. Tag annotations on each `vX.Y.Z` git tag are the
+lede's release notes. Tag annotations on each `vX.Y.Z` git tag are the
 canonical record; this file is a human-readable summary in one place.
+
+Entries below `## [0.2.2]` reference the project under its previous name,
+`skimr`. The v0.0.1 / v0.2.0 / v0.2.1 / v0.2.2 git tags + GitHub Releases
+remain as `skimr` releases — they were real shipped artifacts under that
+name. See the v0.3.0 entry for the rename rationale.
+
+## [0.3.0] — 2026-04-28
+
+**Renamed: `skimr` → `lede`.** No behavior, fixture, or output changes;
+this is a wholesale rename to avoid namespace conflict with the
+well-known `skimr` R package. New install / import:
+
+```bash
+pip install lede
+```
+
+```python
+from lede import summarize
+```
+
+Companion package: `skimr-spacy` → `lede-spacy`, module
+`skimr_spacy` → `lede_spacy`. Rust crate: `skimr` → `lede`. Repo:
+`yonk-labs/skimr` → `yonk-labs/lede` (GitHub auto-redirects the old
+URL).
+
+The historical `v0.2.x` `skimr` tags + GitHub Releases stay as-is for
+archaeology — they were real releases, just under the old name.
+
+### Migration
+
+```bash
+# Python
+pip uninstall skimr skimr-spacy
+pip install lede           # or: pip install lede[wordforms,yake,textrank]
+pip install lede-spacy     # if you used the spaCy companion
+```
+
+```diff
+- from skimr import summarize, brief, clean_text, strip_think, extract_keyword
++ from lede   import summarize, brief, clean_text, strip_think, extract_keyword
+
+- from skimr.extract import stats, outline, metadata, phrases, correlate_facts
++ from lede.extract  import stats, outline, metadata, phrases, correlate_facts
+
+- import skimr_spacy
++ import lede_spacy
+```
+
+```toml
+# Rust Cargo.toml
+- skimr = { version = "0.2.2" }
++ lede  = { version = "0.3.0" }
+```
+
+```rust
+- use skimr::{summarize, Mode};
++ use lede::{summarize, Mode};
+```
+
+Other than the rename, identical to v0.2.2.
 
 ## [0.2.2] — 2026-04-27
 

@@ -1,6 +1,6 @@
 import pytest
 
-from skimr.extract import key_facts
+from lede.extract import key_facts
 
 
 def test_key_facts_returns_sentences_containing_stats():

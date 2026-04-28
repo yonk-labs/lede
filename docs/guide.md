@@ -1,8 +1,8 @@
-# Tutorial: Using skimr
+# Tutorial: Using lede
 
-A walk-through of skimr's main features. Each lesson shows a snippet,
+A walk-through of lede's main features. Each lesson shows a snippet,
 the actual output, and what to change to see how the output changes.
-Real outputs from `skimr` v0.2.1 — nothing fabricated.
+Real outputs from `lede` v0.2.1 — nothing fabricated.
 
 The same Apollo 11 paragraph (~945 chars) is used throughout so you
 can compare lessons directly:
@@ -28,24 +28,24 @@ You can paste it into a `text` variable in any of the snippets below.
 ## Setup
 
 ```bash
-git clone git@github.com:yonk-labs/skimr.git
-cd skimr
+git clone git@github.com:yonk-labs/lede.git
+cd lede
 pip install -e .
 ```
 
 Verify:
 
 ```bash
-python -c "import skimr; print(skimr.__version__)"
+python -c "import lede; print(lede.__version__)"
 # 0.2.1
 ```
 
-For Rust the equivalent is `cd rust && cargo build --release`. The Rust CLI binary lands at `rust/target/release/skimr`. Throughout this guide, **every Python lesson works identically in Rust on the regex backend** unless explicitly noted as Python-only at the bottom of the lesson.
+For Rust the equivalent is `cd rust && cargo build --release`. The Rust CLI binary lands at `rust/target/release/lede`. Throughout this guide, **every Python lesson works identically in Rust on the regex backend** unless explicitly noted as Python-only at the bottom of the lesson.
 
 ## Lesson 1 — your first summary
 
 ```python
-from skimr import summarize
+from lede import summarize
 
 r = summarize(text, max_length=400)
 print(r.summary)
@@ -60,13 +60,13 @@ That's the topic sentence and the closing recap — a real "first-and-last" skim
 **🦀 Rust** (same input, byte-identical output):
 
 ```rust
-let r = skimr::summarize(text, 400, skimr::Mode::Default);
+let r = lede::summarize(text, 400, lede::Mode::Default);
 println!("{}", r.summary);
 ```
 
 ## Lesson 2 — change the budget
 
-`max_length` is a soft upper bound on output character count. skimr picks the highest-scoring sentences that fit.
+`max_length` is a soft upper bound on output character count. lede picks the highest-scoring sentences that fit.
 
 | `max_length` | Output | Length |
 |---|---|---|
@@ -107,14 +107,14 @@ On the Apollo 11 paragraph, `default` and `legacy` produce the same result (the 
 
 Try it on a multi-paragraph document and you'll see `coverage` spread sentences across sections while `default` clusters around the highest-signal section.
 
-**🦀 Rust:** `skimr::Mode::{Default, Legacy, Coverage}` are the three values.
+**🦀 Rust:** `lede::Mode::{Default, Legacy, Coverage}` are the three values.
 
 ## Lesson 4 — find sentences relevant to a query
 
 If you have a topic in mind, `extract_keyword` ranks sentences by relevance instead of importance.
 
 ```python
-from skimr import extract_keyword
+from lede import extract_keyword
 
 print(extract_keyword(text, "Moon Armstrong", num_sentences=2))
 ```
@@ -133,7 +133,7 @@ print(extract_keyword(text, "Pacific splashdown", num_sentences=2))
 
 Now the splashdown sentence ranks first. The score combines keyword-match count with three bonuses (length > 200 chars, presence of digits, causal/analytical vocabulary).
 
-**🦀 Rust:** `skimr::extract_keyword(text, keywords, num_sentences)`.
+**🦀 Rust:** `lede::extract_keyword(text, keywords, num_sentences)`.
 
 ## Lesson 5 — get structured facts alongside the summary
 
@@ -177,7 +177,7 @@ Each new attachment costs <1 ms. The full set runs in ~2-4 ms p50 across the [10
 `brief()` composes summarize + key_facts + toc into one artifact. Three output formats:
 
 ```python
-from skimr import brief
+from lede import brief
 
 print(brief(text, format="markdown"))
 ```
@@ -194,14 +194,14 @@ print(brief(text, format="markdown"))
 
 Other formats: `format="string"` (plain-text with `Overview:` / `Key facts:` labels) and `format="dict"` (structured Python dict for programmatic use).
 
-**🦀 Rust:** `skimr::brief(text)` for the default; `skimr::brief_with_options(text, BriefOptions { format: BriefFormat::Markdown, .. })` to pick a format.
+**🦀 Rust:** `lede::brief(text)` for the default; `lede::brief_with_options(text, BriefOptions { format: BriefFormat::Markdown, .. })` to pick a format.
 
 ## Lesson 7 — call any primitive standalone
 
 If you only want the section names, the dates, or the key facts — skip `summarize` and call the primitive directly.
 
 ```python
-from skimr.extract import toc, phrases, key_facts, stats, metadata
+from lede.extract import toc, phrases, key_facts, stats, metadata
 
 toc(text)            # ('section names',)  — empty for this Apollo paragraph (no headings)
 phrases(text)        # ('lunar surface',)  — repeated multi-word n-grams
@@ -212,16 +212,16 @@ key_facts(text, max_facts=3)
 # )
 ```
 
-Each primitive lives at `skimr.extract.<name>` and works on its own — useful when you only need one piece per chunk.
+Each primitive lives at `lede.extract.<name>` and works on its own — useful when you only need one piece per chunk.
 
-**🦀 Rust:** `skimr::extract::stats::stats(text)`, `skimr::extract::outline::toc(text)`, etc.
+**🦀 Rust:** `lede::extract::stats::stats(text)`, `lede::extract::outline::toc(text)`, etc.
 
 ## Lesson 8 — clean text and strip reasoning blocks
 
 Two utilities for prepping input before it hits an LLM (or after, if the LLM is a reasoning model that emitted `<think>` blocks).
 
 ```python
-from skimr import clean_text, strip_think
+from lede import clean_text, strip_think
 
 clean_text("**Bold** _italic_ — see the attached. Just wanted to follow up. Revenue grew 23% in Q3.")
 # 'bold italic — see the attached. follow up. revenue grew 23% in q3.'
@@ -236,11 +236,11 @@ strip_think("<think>internal reasoning here</think>The visible answer.")
 
 `strip_think` removes `<think>…</think>` blocks (Qwen3, DeepSeek-R1, etc.) and trims surrounding whitespace.
 
-**🦀 Rust:** `skimr::clean_text(text)` and `skimr::strip_think(text)` — same names, same bytes.
+**🦀 Rust:** `lede::clean_text(text)` and `lede::strip_think(text)` — same names, same bytes.
 
 ## Lesson 9 — features that work on Python only
 
-Some extras don't have a Rust equivalent in skimr (yet). The decision whether to add a Rust port is documented per feature in [`docs/REFERENCE.md` § Runtime parity](REFERENCE.md#runtime-parity).
+Some extras don't have a Rust equivalent in lede (yet). The decision whether to add a Rust port is documented per feature in [`docs/REFERENCE.md` § Runtime parity](REFERENCE.md#runtime-parity).
 
 ### `[wordforms]` — spelled-out numbers
 
@@ -263,7 +263,7 @@ pip install -e ".[textrank]"
 ```
 
 ```python
-from skimr.textrank import summarize_textrank
+from lede.textrank import summarize_textrank
 summarize_textrank(text, num_sentences=3)
 ```
 
@@ -279,28 +279,28 @@ pip install -e ".[yake]"
 phrases(text, backend="yake")
 ```
 
-**🦀 Rust: not available.** No mature Rust port of the YAKE algorithm exists today. A port is feasible — the algorithm is statistical, not ML-based — but it's non-trivial work and skimr's regex `phrases()` already covers the most common case (repeated multi-word n-grams). Open an issue if you'd consume a Rust YAKE.
+**🦀 Rust: not available.** No mature Rust port of the YAKE algorithm exists today. A port is feasible — the algorithm is statistical, not ML-based — but it's non-trivial work and lede's regex `phrases()` already covers the most common case (repeated multi-word n-grams). Open an issue if you'd consume a Rust YAKE.
 
 ### spaCy NER — named-entity extraction
 
 ```bash
-pip install -e packages/skimr-spacy
+pip install -e packages/lede-spacy
 python -m spacy download en_core_web_sm
 ```
 
 ```python
-import skimr_spacy  # registers backends as a side effect
-from skimr.extract import metadata
-m = metadata("Acme Corp signed with skimr Labs in San Francisco.", backend="spacy")
-m.entities  # ('Acme Corp', 'skimr Labs', 'San Francisco')
+import lede_spacy  # registers backends as a side effect
+from lede.extract import metadata
+m = metadata("Acme Corp signed with lede Labs in San Francisco.", backend="spacy")
+m.entities  # ('Acme Corp', 'lede Labs', 'San Francisco')
 ```
 
-**🦀 Rust: not available, by design.** Pure-Rust transformer NER requires shipping model weights and a heavy ML runtime (`rust-bert` is ONNX/torch-backed; `tch-rs` ports PyTorch). Both contradict skimr's "stdlib + regex only" Rust contract. The Rust port returns `Metadata.entities` as an empty `Vec` under the regex backend, by design. Callers who need NER from a Rust service should call out to a separate NER service (Python skimr-spacy, or a hosted NER endpoint).
+**🦀 Rust: not available, by design.** Pure-Rust transformer NER requires shipping model weights and a heavy ML runtime (`rust-bert` is ONNX/torch-backed; `tch-rs` ports PyTorch). Both contradict lede's "stdlib + regex only" Rust contract. The Rust port returns `Metadata.entities` as an empty `Vec` under the regex backend, by design. Callers who need NER from a Rust service should call out to a separate NER service (Python lede-spacy, or a hosted NER endpoint).
 
 ## What to read next
 
 - [`docs/REFERENCE.md`](REFERENCE.md) — full primitive catalog with type signatures.
-- [`docs/comparison.md`](comparison.md) — skimr vs Sumy vs LLM API with worked examples and timings.
-- [`docs/integration-memo.md`](integration-memo.md) — how skimr fits into a larger RAG pipeline (chunkshop integration design).
+- [`docs/comparison.md`](comparison.md) — lede vs Sumy vs LLM API with worked examples and timings.
+- [`docs/integration-memo.md`](integration-memo.md) — how lede fits into a larger RAG pipeline (chunkshop integration design).
 - [`docs/v0-2-design.md`](v0-2-design.md) — design contract: SC-A through SC-F acceptance tests.
 - [`examples/`](../examples/) — runnable scripts mirroring most of these lessons.

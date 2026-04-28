@@ -1,4 +1,4 @@
-//! Phrase extractor — mirrors src/skimr/extract/phrases.py regex backend.
+//! Phrase extractor — mirrors src/lede/extract/phrases.py regex backend.
 
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
