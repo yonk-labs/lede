@@ -9,6 +9,8 @@
 [![python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![rust](https://img.shields.io/badge/rust-1.85%2B-orange)](rust/Cargo.toml)
 
+> **lede** /liːd/ *noun* (journalism) — the opening sentence or paragraph of a news article, designed to entice the reader by summarizing the most important facts. *"Don't bury the lede."*
+
 **lede skims documents and pulls out the key sentences and facts.** Think of it like speed-reading: it ranks every sentence in your text by how informative it is, picks the top few, and gives them back to you in original order. The summary is **direct quotes from the document** — never paraphrased by an LLM, never made up. What you read is what was actually written.
 
 It also runs in **under a millisecond** on a typical document. With structured fact extraction (numbers, dates, sections, entities) attached: still under 5 ms. An LLM API call doing the same thing takes 500–5000 ms, costs money, and gives you a different summary every time you call it.
