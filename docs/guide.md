@@ -28,19 +28,19 @@ You can paste it into a `text` variable in any of the snippets below.
 ## Setup
 
 ```bash
-git clone git@github.com:yonk-labs/lede.git
-cd lede
-pip install -e .
+pip install lede
 ```
 
 Verify:
 
 ```bash
 python -c "import lede; print(lede.__version__)"
-# 0.2.1
+# 0.3.0
 ```
 
-For Rust the equivalent is `cd rust && cargo build --release`. The Rust CLI binary lands at `rust/target/release/lede`. Throughout this guide, **every Python lesson works identically in Rust on the regex backend** unless explicitly noted as Python-only at the bottom of the lesson.
+For Rust the equivalent is `cargo add lede` (library) or `cargo install lede` (CLI). The CLI binary lands on `$PATH` as `lede`. Throughout this guide, **every Python lesson works identically in Rust on the regex backend** unless explicitly noted as Python-only at the bottom of the lesson.
+
+For development from a checkout, see [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 ## Lesson 1 — your first summary
 
@@ -245,7 +245,7 @@ Some extras don't have a Rust equivalent in lede (yet). The decision whether to 
 ### `[wordforms]` — spelled-out numbers
 
 ```bash
-pip install -e ".[wordforms]"
+pip install "lede[wordforms]"
 ```
 
 ```python
@@ -259,7 +259,7 @@ stats("Five thousand documents reviewed in eight days.", convert_word_names=True
 ### `[textrank]` — graph-based summarizer
 
 ```bash
-pip install -e ".[textrank]"
+pip install "lede[textrank]"
 ```
 
 ```python
@@ -272,7 +272,7 @@ summarize_textrank(text, num_sentences=3)
 ### `[yake]` — statistical key-phrase extractor
 
 ```bash
-pip install -e ".[yake]"
+pip install "lede[yake]"
 ```
 
 ```python
@@ -284,7 +284,7 @@ phrases(text, backend="yake")
 ### spaCy NER — named-entity extraction
 
 ```bash
-pip install -e packages/lede-spacy
+pip install lede-spacy
 python -m spacy download en_core_web_sm
 ```
 

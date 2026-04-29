@@ -113,27 +113,27 @@ There's also `lede.brief(text)` for a paste-ready at-a-glance brief (overview + 
 ### Optional extras
 
 ```bash
-pip install -e ".[wordforms]"
+pip install "lede[wordforms]"
 ```
 
 Adds spelled-out number support to `stats()` and `correlate_facts()` (`"five thousand documents"` → a `Stat`). Available as the `wordforms` cargo feature on the Rust side, which binds to the same Rust crate so output stays byte-identical.
 
 ```bash
-pip install -e ".[yake]"
+pip install "lede[yake]"
 ```
 
 Registers a `backend="yake"` for `phrases()` — salient-phrase ranking instead of the default repeated-n-gram heuristic. Python only.
 
 ```bash
-pip install -e ".[textrank]"
+pip install "lede[textrank]"
 ```
 
 Enables `summarize_textrank` for graph-based extractive on long docs (Python-only, requires `networkx`).
 
-For spaCy-backed `Metadata.entities` (PERSON / ORG / GPE), install the companion package from `packages/lede-spacy/` and the spaCy model:
+For spaCy-backed `Metadata.entities` (PERSON / ORG / GPE), install the companion package and the spaCy model:
 
 ```bash
-pip install -e packages/lede-spacy
+pip install lede-spacy
 python -m spacy download en_core_web_sm
 ```
 
@@ -145,19 +145,15 @@ Importing `lede_spacy` registers itself as a backend; `extract.metadata(text, ba
 
 ## Install
 
-lede is not yet on PyPI — install from source:
-
 ```bash
-git clone git@github.com:yonk-labs/lede.git
-cd lede
-pip install -e .                     # default: zero deps
-pip install -e ".[textrank]"         # adds networkx-based TextRank mode
-pip install -e ".[wordforms]"        # adds spelled-out number recognition
-pip install -e ".[yake]"             # adds YAKE phrases backend
-pip install -e packages/lede-spacy  # adds spaCy-backed entities (companion)
+pip install lede                     # default: zero deps
+pip install "lede[textrank]"         # adds networkx-based TextRank mode
+pip install "lede[wordforms]"        # adds spelled-out number recognition
+pip install "lede[yake]"             # adds YAKE phrases backend
+pip install lede-spacy               # adds spaCy-backed entities (companion package)
 ```
 
-PyPI / crates.io publication is tracked for a later release.
+For development from a checkout, see the [Rust](#rust) section below for the `cargo` route, or `pip install -e ".[dev]"` for an editable Python install. Contributor setup is documented in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Quick Start
 
@@ -204,7 +200,24 @@ echo "<think>...</think>Real answer." | lede --mode strip_think
 
 A Rust port lives at [`rust/`](rust/). It produces **byte-identical output** to the Python implementation for every fixture in [`fixtures/`](fixtures/) — the contract for cross-runtime parity.
 
-### Install from source
+### Install
+
+Add as a library dependency from [crates.io](https://crates.io/crates/lede):
+
+```bash
+cargo add lede
+# Or, with the wordforms feature (parity with Python's [wordforms] extra):
+cargo add lede --features wordforms
+```
+
+Or install the CLI binary:
+
+```bash
+cargo install lede
+# binary on $PATH as `lede`
+```
+
+To build from a checkout instead:
 
 ```bash
 git clone https://github.com/yonk-labs/lede.git
@@ -259,6 +272,8 @@ Rust parity.
 
 Deeper material:
 
+- [`docs/FAQ.md`](docs/FAQ.md) — how scoring works, what's tunable,
+  when to use something else.
 - [`docs/REFERENCE.md`](docs/REFERENCE.md) — full primitive catalog
   with type signatures + the [runtime parity matrix](docs/REFERENCE.md#runtime-parity)
   (Python vs Rust per feature).

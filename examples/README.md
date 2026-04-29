@@ -6,9 +6,9 @@ None of them require optional extras unless explicitly noted.
 ## Setup
 
 ```bash
-git clone git@github.com:yonk-labs/lede.git
+pip install lede
+git clone https://github.com/yonk-labs/lede.git    # only needed to access the example scripts
 cd lede
-pip install -e .
 ```
 
 ## Examples
@@ -20,8 +20,8 @@ pip install -e .
 | [`03_brief.py`](03_brief.py) | `lede.brief()` — paste-ready document brief in `string`, `markdown`, and `dict` formats. | none |
 | [`04_extract_primitives.py`](04_extract_primitives.py) | Calling each `lede.extract.*` primitive standalone. | none |
 | [`05_chunked_pipeline.py`](05_chunked_pipeline.py) | Recommended pattern for documents > 100 KB: paragraph-chunk → lede → reassemble. | none |
-| [`06_with_spacy_entities.py`](06_with_spacy_entities.py) | Optional `lede-spacy` companion — adds `Metadata.entities` (PERSON / ORG / GPE) via spaCy. | `pip install -e packages/lede-spacy && python -m spacy download en_core_web_sm` |
-| [`07_wordforms_numbers.py`](07_wordforms_numbers.py) | Optional `[wordforms]` extra — `"five thousand documents"` surfaces as a `Stat`. | `pip install -e ".[wordforms]"` |
+| [`06_with_spacy_entities.py`](06_with_spacy_entities.py) | Optional `lede-spacy` companion — adds `Metadata.entities` (PERSON / ORG / GPE) via spaCy. | `pip install lede-spacy && python -m spacy download en_core_web_sm` |
+| [`07_wordforms_numbers.py`](07_wordforms_numbers.py) | Optional `[wordforms]` extra — `"five thousand documents"` surfaces as a `Stat`. | `pip install "lede[wordforms]"` |
 
 ## Running
 
