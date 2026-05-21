@@ -281,3 +281,41 @@ class TestCoverageHints:
             hints=["county"],
         ).summary
         assert result  # non-empty
+
+
+from lede.extract import key_facts
+
+
+class TestKeyFactsHints:
+    def test_backward_compat_no_hints(self):
+        a = key_facts(SAMPLE, max_facts=5)
+        b = key_facts(SAMPLE, max_facts=5, hints=None)
+        assert a == b
+
+    def test_hard_full_focus_only_matching(self):
+        facts = key_facts(
+            SAMPLE,
+            max_facts=10,
+            hints=["smith"],
+            hint_focus=1.0,
+            hint_mode="hard",
+        )
+        for f in facts:
+            assert "smith" in f.lower()
+
+    def test_hint_quota_split(self):
+        # max_facts=10, hint_focus=0.5 → up to 5 hint-bearing + 5 any
+        facts = key_facts(
+            SAMPLE,
+            max_facts=10,
+            hints=["county"],
+            hint_focus=0.5,
+            hint_mode="hard",
+        )
+        # If any county-bearing candidate exists in SAMPLE, at least one returned.
+        hint_bearing = [f for f in facts if "county" in f.lower()]
+        assert len(hint_bearing) >= 1 or len(facts) == 0
+
+    def test_hint_focus_out_of_range(self):
+        with pytest.raises(ValueError, match="hint_focus"):
+            key_facts(SAMPLE, max_facts=5, hints=["county"], hint_focus=2.0)
