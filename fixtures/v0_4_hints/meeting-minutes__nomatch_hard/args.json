@@ -1,0 +1,9 @@
+{
+  "hint_focus": 1.0,
+  "hint_mode": "hard",
+  "hints": [
+    "xyzzy"
+  ],
+  "max_length": 300,
+  "mode": "default"
+}

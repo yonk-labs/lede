@@ -1,0 +1,26 @@
+## Technical Deep-Dive: Johnson Education Co
+
+Detailed walkthrough of our Proxy capabilities with Johnson Education Co's engineering and business teams. Covered architecture, integration, and roadmap. Overall the call went well but we surfaced several concrete blockers we need to address before they move forward.
+
+### Call Summary
+
+Comprehensive call with Sarah Jones and two other stakeholders from their technical team. Main focus was understanding how our Proxy handles data management challenges across their existing fleet. Good energy throughout the session. Their architect was sharp and asked pointed questions about failover semantics and multi-tenant isolation.
+
+### Competitive Landscape
+
+Competition includes Cerner as the incumbent and Medidata as another active evaluation. We're differentiated on native support for their Healthcare workflows and a more flexible pricing model. However Cerner has been offering aggressive discounts to keep them in the ecosystem, and Medidata's recent release shipped a comparable feature set. We can't rely on differentiation alone.
+
+### Technical Concerns
+
+Sarah raised concerns about our integration path. Specifically she wants to see: proof of successful migration from their current stack, clear rollback procedures if something breaks in production, and detailed observability integration. Their SRE team uses Prometheus and they expect first-class metrics.
+
+### Commercial Concerns
+
+Budget is tight this quarter. Original quote was $120K/year but procurement pushed back hard. We need to structure a phased rollout or they'll defer the decision. Decision expected within 30 days.
+
+### Next Steps
+
+- Send technical migration playbook by Friday
+- Schedule follow-up with their SRE team next week
+- Prepare phased pricing proposal with CFO by Monday
+- Confirm Q3 deployment timeline in writing

@@ -1,0 +1,27 @@
+## Design: Async Event Pipeline v2
+
+This document proposes a redesign of the event pipeline that handles customer-facing telemetry. The current pipeline was built three years ago for a load of 50,000 events per minute and has grown organically to handle nearly 800,000. It now accounts for 40 percent of our infrastructure bill and is the top source of on-call pages.
+
+### Goals
+
+The redesign targets four concrete improvements. First, decouple the ingest path from the processing path so a downstream slowdown cannot block intake. Second, move from a single-writer architecture to sharded writers so we can scale horizontally without rebalancing. Third, add explicit backpressure semantics so producers know when to slow down instead of dropping events silently. Fourth, reduce the operational surface area by consolidating the three different queuing systems currently in use.
+
+### Non-goals
+
+Changing the event schema is out of scope for this redesign. We considered introducing a new schema version but the downstream teams have not had the bandwidth to migrate consumers. Any schema work will happen as a follow-up. Similarly, we are not touching the analytics read path in this project; that is a separate effort already in flight with its own team.
+
+### Proposed architecture
+
+Events enter through a single HTTPS endpoint fronted by our standard API gateway. The gateway handles authentication, rate limiting, and protocol translation. Accepted events are written to a Kafka topic partitioned by customer ID. Three consumer groups subscribe to the topic. The first group persists events to the data warehouse via a batched writer. The second group fans events out to real-time subscribers via WebSocket. The third group feeds the alerting pipeline.
+
+### Capacity planning
+
+At current load, the pipeline processes an average of 13,000 events per second with peaks exceeding 25,000. The new design targets headroom of 3x current peak, so roughly 75,000 events per second. Based on our benchmarks, this requires six Kafka brokers, nine partitions per topic, and twelve consumer instances per group. Storage growth is estimated at 2 terabytes per day, with a 90-day retention window.
+
+### Migration plan
+
+Migration will happen over four phases. Phase one stands up the new pipeline in parallel with the existing one, receiving shadow traffic only. Phase two switches 10 percent of real traffic to the new pipeline and monitors for parity. Phase three ramps to 50 percent after a minimum of two weeks. Phase four completes the cutover and decommissions the old pipeline. Total timeline is estimated at three to four months assuming no major discoveries during shadow traffic analysis.
+
+### Risks
+
+Three primary risks have been identified. Data loss during cutover is the highest severity — mitigated by the shadow traffic phase and explicit consistency checks. Unexpected consumer behavior is second — mitigated by gradual ramp and automated rollback triggers. Cost overrun is third — mitigated by capacity modeling reviewed by the infrastructure team. A formal risk review is scheduled for next month.

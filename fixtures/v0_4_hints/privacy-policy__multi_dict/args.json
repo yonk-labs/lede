@@ -1,0 +1,10 @@
+{
+  "hint_focus": 0.7,
+  "hint_mode": "soft",
+  "hints": {
+    "county": 1.0,
+    "john smith": 2.0
+  },
+  "max_length": 300,
+  "mode": "default"
+}

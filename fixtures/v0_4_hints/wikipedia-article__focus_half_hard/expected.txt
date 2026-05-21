@@ -1,0 +1,1 @@
+The curse of dimensionality was first described rigorously in the context of numerical analysis by Richard Bellman in the 1950s.

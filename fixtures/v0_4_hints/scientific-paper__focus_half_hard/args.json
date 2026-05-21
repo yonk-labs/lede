@@ -1,0 +1,9 @@
+{
+  "hint_focus": 0.5,
+  "hint_mode": "hard",
+  "hints": [
+    "smith"
+  ],
+  "max_length": 300,
+  "mode": "default"
+}

@@ -1,0 +1,10 @@
+{
+  "hint_focus": 0.7,
+  "hint_mode": "soft",
+  "hints": [
+    "smith",
+    "county"
+  ],
+  "max_length": 300,
+  "mode": "default"
+}

@@ -1,0 +1,3 @@
+## Technical Deep-Dive: Johnson Education Co
+
+Detailed walkthrough of our Proxy capabilities with Johnson Education Co's engineering and business teams. Covered architecture, integration, and roadmap. Overall the call went well but we surfaced several concrete blockers we need to address before t...

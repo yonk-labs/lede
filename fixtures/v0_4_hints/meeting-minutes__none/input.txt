@@ -1,0 +1,15 @@
+Meeting: Platform Migration Planning
+Date: 2026-04-15
+Attendees: Sarah (PM), Jon (Backend Lead), Priya (SRE), Marcus (Staff Eng)
+
+Sarah opened by reviewing the project charter and target go-live date. Current plan has us shipping to staging by end of May and production by mid-June. Risk register has grown since last week — three items added, two downgraded.
+
+Jon walked through the backend rewrite status. The new service layer is feature-complete and has been in staging for eight days without incident. Unit tests are passing at 94 percent coverage. The remaining gaps are around the batch export path, which depends on an upstream change still in review.
+
+Priya raised concerns about observability. The existing dashboards assume the old schema; they'll need to be rebuilt. She estimated two weeks of work. Sarah asked if that could run in parallel with the backend work, and Priya confirmed it could.
+
+Marcus pushed back on the current deployment strategy. He wants a longer canary period — seven days instead of three — because the new system changes failure modes in ways we haven't fully mapped. After discussion the group agreed to a five-day canary with explicit rollback criteria and a named decision owner.
+
+Open questions at end of meeting: who owns the customer communication plan, when does the load test run, and whether the database migration needs a maintenance window. Sarah will circulate a follow-up note with answers by Wednesday.
+
+Action items: Jon to unblock the export path review, Priya to start the dashboard rebuild, Marcus to draft the rollback criteria, Sarah to own communication plan.

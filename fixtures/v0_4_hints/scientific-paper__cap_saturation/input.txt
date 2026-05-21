@@ -1,0 +1,25 @@
+Title: Compensated Summation Reduces Floating-Point Error in Cross-Runtime Numerical Reproducibility
+
+Abstract
+
+We investigate the sources of floating-point divergence between CPython 3.12 and Rust stdlib numerical code in the context of deterministic text processing pipelines. CPython 3.12 adopted Neumaier compensated summation as the default implementation of the built-in sum function for floating-point sequences, while the Rust standard library's Iterator::sum continues to use naive left-fold summation. We measure the magnitude of resulting divergence on typical TF-IDF score accumulations and find that differences of one to three units in the last place (ULPs) are common for sequences of six or more terms. We show that porting CPython's compensated summation algorithm to Rust eliminates this divergence without measurable runtime overhead.
+
+Introduction
+
+Deterministic byte-identical output across runtimes is a hard requirement for reproducible pipelines. Prior work on cross-language parity has focused on string encoding, regex semantics, and hash ordering, but floating-point accumulation has received less attention. We became aware of the issue while building a multi-language extractive summarization library that must produce identical output from Python and Rust implementations.
+
+Methods
+
+We implemented TF-IDF scoring in both Python (using the 3.12 stdlib sum) and Rust (using Iterator::sum) with identical input tokenization and weighting. We evaluated output on a five-thousand-document corpus and recorded exact byte differences.
+
+Results
+
+Of five thousand documents, two hundred and forty-one produced Rust outputs that differed from Python outputs by at least one byte. In every divergent case, the divergence was traceable to TF-IDF score differences of between one and three ULPs, which in turn changed the stable-sort order of sentences whose scores were numerically equivalent at lower precision. Total aggregate error across the corpus was bounded by 4.8e-14 in absolute terms.
+
+Discussion
+
+The practical consequence of the observed divergence is not a measurable loss of summary quality. ULP-level score differences rarely change which sentences are chosen as semantically best. The consequence is that byte-level reproducibility, a hard requirement for some downstream applications, fails. Porting CPython's Neumaier summation to Rust restored bit-identical output across all five thousand documents. The implementation is twelve lines of safe Rust and adds no measurable overhead in release builds. We recommend that any numerical Rust code intended to produce output byte-identical to CPython 3.12+ adopt Neumaier summation where floating-point sums of six or more terms occur.
+
+Conclusion
+
+The root cause of observed divergence was the CPython 3.12 switch to compensated summation, which the Rust standard library does not match. The fix is trivial and has no performance cost. Teams shipping multi-runtime deterministic pipelines should audit floating-point accumulation paths and port Neumaier summation where applicable.
