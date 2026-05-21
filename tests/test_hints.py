@@ -283,7 +283,77 @@ class TestCoverageHints:
         assert result  # non-empty
 
 
-from lede.extract import key_facts
+from lede.extract import key_facts, phrases, correlate_facts
+
+
+# Text that produces multi-word phrases (must appear >=2 times to be "repeated")
+# and entity-number correlations.
+PHRASE_SAMPLE = (
+    "Cook County reported revenue. "
+    "The Cook County board met. "
+    "Local revenue grew 10 percent. "
+    "Local revenue rose to record highs. "
+    "John Smith Cook County board chairman attended. "
+    "John Smith Cook County board chairman spoke briefly. "
+    "Smith and the board reviewed numbers. "
+    "Smith mentioned 5 percent growth."
+)
+
+
+class TestPhrasesHints:
+    def test_backward_compat(self):
+        a = phrases(PHRASE_SAMPLE)
+        b = phrases(PHRASE_SAMPLE, hints=None)
+        assert a == b
+
+    def test_hard_filter_only_hint_phrases(self):
+        out = phrases(
+            PHRASE_SAMPLE,
+            hints=["county"],
+            hint_focus=1.0,
+            hint_mode="hard",
+        )
+        for p in out:
+            assert "county" in p.lower(), f"non-matching phrase leaked: {p!r}"
+
+    def test_soft_reorders_hint_phrases_first(self):
+        no_hints = phrases(PHRASE_SAMPLE)
+        with_hints = phrases(PHRASE_SAMPLE, hints=["county"], hint_mode="soft")
+        # Same set of phrases, possibly different order.
+        assert set(with_hints) == set(no_hints)
+        # County-bearing phrases come before non-county phrases in soft mode.
+        seen_non_match = False
+        for p in with_hints:
+            if "county" in p.lower():
+                assert not seen_non_match, (
+                    f"county phrase {p!r} appeared after a non-county phrase"
+                )
+            else:
+                seen_non_match = True
+
+    def test_hint_focus_out_of_range(self):
+        with pytest.raises(ValueError, match="hint_focus"):
+            phrases(PHRASE_SAMPLE, hints=["county"], hint_focus=2.0)
+
+
+class TestCorrelateHints:
+    def test_backward_compat(self):
+        a = correlate_facts(PHRASE_SAMPLE)
+        b = correlate_facts(PHRASE_SAMPLE, hints=None)
+        assert a == b
+
+    def test_hard_filter_or_semantics(self):
+        # Match against entity OR number; "smith" hint should keep correlations
+        # whose entity contains "smith".
+        out = correlate_facts(
+            PHRASE_SAMPLE,
+            hints=["smith"],
+            hint_focus=1.0,
+            hint_mode="hard",
+        )
+        for pf in out:
+            target = f"{pf.entity} {pf.number}".lower()
+            assert "smith" in target, f"non-matching fact leaked: {pf!r}"
 
 
 class TestKeyFactsHints:

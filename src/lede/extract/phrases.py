@@ -1,6 +1,7 @@
 """Heuristic phrase extractor. Repeated 2-5 token n-grams between stopwords."""
 import re
 from ._backends import register, resolve, get_default_backend
+from .._hints import hint_bonus
 
 
 _STOP = frozenset(
@@ -71,7 +72,13 @@ def _subsumed(candidates: list[str], counts: dict[str, int]) -> set[str]:
     return drop
 
 
-def _regex_phrases(text: str, keywords: str | None = None) -> tuple[str, ...]:
+def _regex_phrases(
+    text: str,
+    keywords: str | None = None,
+    *,
+    hints: list[tuple[str, float]] | None = None,
+    hint_mode: str = "soft",
+) -> tuple[str, ...]:
     """Regex/heuristic phrase extractor. Registered as the 'regex' backend."""
     if not text:
         return ()
@@ -101,21 +108,68 @@ def _regex_phrases(text: str, keywords: str | None = None) -> tuple[str, ...]:
         if r not in seen:
             seen.add(r)
             deduped.append(r)
-    return tuple(deduped)
+
+    if not hints:
+        return tuple(deduped)
+
+    # Partition by hint match. Match target is the phrase string itself.
+    hint_bearing: list[str] = []
+    non_hint: list[str] = []
+    for phrase in deduped:
+        if hint_bonus(phrase, hints) > 0:
+            hint_bearing.append(phrase)
+        else:
+            non_hint.append(phrase)
+
+    if hint_mode == "hard":
+        return tuple(hint_bearing)
+    # soft: hint-bearing first (original sub-order), then non-hint (original sub-order)
+    return tuple(hint_bearing + non_hint)
 
 
 register("regex", "phrases", _regex_phrases)
 
 
-def phrases(text: str, keywords: str | None = None, *, backend: str | None = None) -> tuple[str, ...]:
+def phrases(
+    text: str,
+    keywords: str | None = None,
+    *,
+    backend: str | None = None,
+    hints: list[str] | dict[str, float] | None = None,
+    hint_focus: float = 0.7,
+    hint_mode: str = "soft",
+) -> tuple[str, ...]:
     """Extract repeated multi-word phrases (2-5 token n-grams from non-stopword runs).
 
     backend='regex' (default): the heuristic stdlib implementation above.
     backend='spacy': requires lede-spacy installed (noun_chunks-based impl, future T10b).
     backend='auto': spacy if registered else regex.
     backend=None: uses the global default (see `lede.set_default_backend`).
+
+    Hint biasing (v0.4):
+        Pass `hints` to bias which phrases are returned/ordered.
+        - 'soft' (default): hint-bearing phrases reordered to come first;
+          all phrases retained.
+        - 'hard': only hint-bearing phrases returned (filter behavior).
+        - `hint_focus` is accepted for API uniformity but has no effect on
+          this primitive because phrases() has no internal count cap. Use
+          `hint_mode` to control behavior. See REFERENCE.md "Hint biasing".
     """
+    from .._hints import preprocess_hints
+
+    processed_hints = preprocess_hints(hints)
+    if processed_hints:
+        if not 0.0 <= hint_focus <= 1.0:
+            raise ValueError(f"hint_focus must be in [0.0, 1.0]; got {hint_focus}")
+        if hint_mode not in ("soft", "hard"):
+            raise ValueError(f"hint_mode must be 'soft' or 'hard'; got {hint_mode!r}")
+
     if backend is None:
         backend = get_default_backend()
     impl = resolve(backend, "phrases")
+
+    # Only the regex backend accepts hints today. For other backends (yake, spacy),
+    # forward without hints to preserve backward compat.
+    if backend == "regex" and processed_hints:
+        return impl(text, keywords=keywords, hints=processed_hints, hint_mode=hint_mode)
     return impl(text, keywords=keywords)
