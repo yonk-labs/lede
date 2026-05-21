@@ -1,0 +1,3 @@
+Ticket #44812 — Ingest job hangs after upgrade to chunkshop 0.2.0
+Reporter: jamie.l@acme.example
+Priority: P2 Running under python 3.12 on ubuntu 22.04, pgvector 0.7. Tried reverting to 0.1.6 and the job completes in 22 minutes as usual. Job completed overnight in 19 minutes. Resolution: Caused by default embedder precision change in 0.2.0 triggering a HuggingFace model download on a network-restricted batch node. Customer pre-seeding int8 weights on shared cache as a follow-up.

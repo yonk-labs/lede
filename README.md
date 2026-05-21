@@ -78,6 +78,43 @@ Use the LLM if you want the *highest* quality summary and you can pay 500–5000
 | **`re.findall(r"\d+%")` + a sentence splitter** | One-off scripts | You want this to keep working when the input contains UTF-8 emoji, 50 K-digit pathological strings, abbreviation edge-cases, em-dash titles, and 9 other things you didn't think of. The fixtures + tests are the value. |
 | **LLM-as-summarizer** (Claude / GPT / Cohere) | Highest quality, latency and cost are fine | Hot path, deterministic output requirement, snapshot tests, regulated environment, or you want lede in *front* of the LLM as a 50% input-token-cutter |
 
+### Targeted summarization with hints (v0.4)
+
+Pass `hints` to bias selection toward specific terms or phrases — useful when
+you know what you're looking for ("the county John Smith lives in", "all the
+parts about networking").
+
+```python
+from lede import summarize
+
+result = summarize(
+    text,
+    hints=["John Smith", "county"],   # words/phrases to bias toward
+    hint_focus=0.7,                   # 0.0 ignores, 1.0 = only hints
+).summary
+```
+
+`hint_mode="hard"` switches from soft bias to hard filter (only hint-bearing
+sentences eligible). The same kwargs work on `brief`, `extract.key_facts`,
+`extract.phrases`, and `extract.correlate_facts`.
+
+For lemma or synonym expansion, see [`lede_spacy.expand_hints`](docs/lede-spacy-integration.md).
+
+Backward compatible: callers that don't pass hints get byte-identical output
+to v0.3.0.
+
+### Top salient terms (v0.4)
+
+```python
+from lede.extract import top_terms
+
+terms = top_terms(text, n=10)
+# → ('john smith', 'cook county', 'council', ...)
+```
+
+Returns the top-N salient words and/or phrases using TF-IDF + phrase frequency.
+Accepts the same `hints` kwargs as the other ranking primitives.
+
 ## What's new in v0.2
 
 lede v0.2 is the RAG-prep primitive: one call returns a summary plus structured enrichments that ride along.

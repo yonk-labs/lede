@@ -1,0 +1,9 @@
+{
+  "hint_focus": 1.0,
+  "hint_mode": "hard",
+  "hints": [
+    "john smith"
+  ],
+  "max_length": 300,
+  "mode": "default"
+}

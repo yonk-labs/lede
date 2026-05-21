@@ -2,6 +2,7 @@
 
 use crate::extract::phrases::{phrases, stop};
 use crate::extract::stats::{Stat, StatsOptions, stats, stats_with_options};
+use crate::hints::{HintMode, HintWeight, hint_bonus, preprocess_hints};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
@@ -163,4 +164,50 @@ pub fn correlate_facts_with_options(text: &str, options: StatsOptions) -> Vec<Ph
         .into_iter()
         .filter(|pf| entity_counts[&pf.entity] >= 2)
         .collect()
+}
+
+/// Same as [`correlate_facts_with_options`] with hint biasing.
+///
+/// When `hints` is empty, returns the same result as
+/// [`correlate_facts_with_options`].
+///
+/// When `hints` is non-empty:
+/// - Match target is `"{entity} {number}"` (same as Python).
+/// - Partitions by `hint_bonus(target, hints) > 0.0`.
+/// - `Hard` mode: returns only hint-bearing facts.
+/// - `Soft` mode: hint-bearing facts first (original sub-order), then
+///   non-hint facts (original sub-order).
+///
+/// Mirrors Python `extract/correlate.py::_regex_correlate_facts` hint path.
+#[must_use]
+pub fn correlate_facts_with_hints(
+    text: &str,
+    options: StatsOptions,
+    hints: &[HintWeight],
+    hint_mode: HintMode,
+) -> Vec<PhraseFact> {
+    let final_facts = correlate_facts_with_options(text, options);
+    let processed = preprocess_hints(hints);
+    if processed.is_empty() {
+        return final_facts;
+    }
+
+    let mut hint_bearing: Vec<PhraseFact> = Vec::new();
+    let mut non_hint: Vec<PhraseFact> = Vec::new();
+    for pf in final_facts {
+        let target = format!("{} {}", pf.entity, pf.number);
+        if hint_bonus(&target, &processed) > 0.0 {
+            hint_bearing.push(pf);
+        } else {
+            non_hint.push(pf);
+        }
+    }
+
+    match hint_mode {
+        HintMode::Hard => hint_bearing,
+        HintMode::Soft => {
+            hint_bearing.extend(non_hint);
+            hint_bearing
+        }
+    }
 }

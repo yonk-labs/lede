@@ -1,5 +1,6 @@
 //! Phrase extractor — mirrors src/lede/extract/phrases.py regex backend.
 
+use crate::hints::{HintMode, HintWeight, hint_bonus, preprocess_hints};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
@@ -133,4 +134,47 @@ pub fn phrases(text: &str, keywords: Option<&str>) -> Vec<String> {
     let mut seen: HashSet<String> = HashSet::new();
     out.retain(|p| seen.insert(p.clone()));
     out
+}
+
+/// Phrase extractor with hint biasing.
+///
+/// When `hints` is empty, returns the same result as [`phrases`].
+///
+/// When `hints` is non-empty:
+/// - Partitions candidates by whether `hint_bonus(phrase, hints) > 0.0`.
+/// - `Hard` mode: returns only hint-bearing phrases.
+/// - `Soft` mode: hint-bearing phrases first (original sub-order), then
+///   non-hint phrases (original sub-order). All candidates retained.
+///
+/// Mirrors Python `extract/phrases.py::_regex_phrases` hint path.
+#[must_use]
+pub fn phrases_with_hints(
+    text: &str,
+    keywords: Option<&str>,
+    hints: &[HintWeight],
+    hint_mode: HintMode,
+) -> Vec<String> {
+    let deduped = phrases(text, keywords);
+    let processed = preprocess_hints(hints);
+    if processed.is_empty() {
+        return deduped;
+    }
+
+    let mut hint_bearing: Vec<String> = Vec::new();
+    let mut non_hint: Vec<String> = Vec::new();
+    for phrase in deduped {
+        if hint_bonus(&phrase, &processed) > 0.0 {
+            hint_bearing.push(phrase);
+        } else {
+            non_hint.push(phrase);
+        }
+    }
+
+    match hint_mode {
+        HintMode::Hard => hint_bearing,
+        HintMode::Soft => {
+            hint_bearing.extend(non_hint);
+            hint_bearing
+        }
+    }
 }

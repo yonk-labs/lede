@@ -1,0 +1,1 @@
+Detailed walkthrough of our Proxy capabilities with Johnson Education Co's engineering and business teams. Covered architecture, integration, and roadmap. Budget is tight this quarter. Original quote was $120K/year but procurement pushed back hard. Decision expected within 30 days.

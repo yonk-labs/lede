@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lede-spacy"
-version = "0.3.0"
+version = "0.4.0"
 description = "spaCy-powered enrichment backend for lede — PERSON/ORG/GPE entity extraction via en_core_web_sm."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,7 +22,7 @@ classifiers = [
     "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
-    "lede>=0.3.0",
+    "lede>=0.4.0",
     "spacy>=3.8,<3.9",
 ]
 
@@ -33,6 +33,7 @@ Issues = "https://github.com/yonk-labs/lede/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+synonyms = ["nltk>=3.8"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lede_spacy"]

@@ -1,0 +1,9 @@
+{
+  "hint_focus": 0.0,
+  "hint_mode": "soft",
+  "hints": [
+    "county"
+  ],
+  "max_length": 300,
+  "mode": "default"
+}

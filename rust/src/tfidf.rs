@@ -10,9 +10,10 @@
 //! byte-identically.
 
 use crate::headings::{heading_name, is_heading};
+use crate::hints::{HintMode, HintWeight};
 use crate::types::{AttachOpts, Mode, SummaryResult};
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
 const TFIDF_WEIGHT: f64 = 0.60;
@@ -299,7 +300,7 @@ pub(crate) fn separate_heading_lines(text: &str) -> String {
 
 /// Map each sentence index to the lowercase name of the most recent heading
 /// above it (or `""` if none). Mirrors Python's `_build_section_map`.
-fn build_section_map(sentences: &[String]) -> Vec<String> {
+pub(crate) fn build_section_map(sentences: &[String]) -> Vec<String> {
     let mut current = String::new();
     let mut map = Vec::with_capacity(sentences.len());
     for sentence in sentences {
@@ -319,7 +320,7 @@ fn build_section_map(sentences: &[String]) -> Vec<String> {
 /// - Sentences under a high-signal section heading get tfidf *= 1.3.
 /// - Cue-phrase sentences ("Held:", "Resolution:", ...) get +2.0.
 /// - Sentences containing digits get +0.3.
-fn composite_score_default(sentences: &[String], section_map: &[String]) -> Vec<f64> {
+pub(crate) fn composite_score_default(sentences: &[String], section_map: &[String]) -> Vec<f64> {
     let parts = composite_score_parts(sentences);
     let mut scores = Vec::with_capacity(sentences.len());
     for (i, sentence) in sentences.iter().enumerate() {
@@ -552,4 +553,212 @@ pub fn summarize_with_attach(
 #[must_use]
 pub fn summarize(text: &str, max_length: usize, mode: Mode) -> SummaryResult {
     summarize_with_attach(text, max_length, mode, &AttachOpts::default())
+}
+
+// --- v0.4 hint-aware summarization ---
+
+/// Options for hint-biased summarization.
+///
+/// Default (all fields at their zero/default values) produces output
+/// byte-identical to [`summarize`] — the hint path is only activated when
+/// `hints` is non-empty after preprocessing.
+#[derive(Debug, Clone)]
+pub struct SummarizeOpts {
+    /// `(term, weight)` hint pairs. Terms are preprocessed (lowercased,
+    /// whitespace-collapsed, empties dropped) before use.
+    pub hints: Vec<HintWeight>,
+    /// Budget fraction allocated to the hint pool. Must be in `[0.0, 1.0]`.
+    /// `0.0` gives the hint pool no budget (equivalent to no hints);
+    /// `1.0` allocates the entire budget to the hint pool.
+    pub hint_focus: f64,
+    /// Selection mode for the hint pool.
+    pub hint_mode: HintMode,
+}
+
+impl Default for SummarizeOpts {
+    fn default() -> Self {
+        Self {
+            hints: Vec::new(),
+            hint_focus: 0.7,
+            hint_mode: HintMode::Soft,
+        }
+    }
+}
+
+/// Inner two-pool selection algorithm used by [`summarize_with_hints`].
+///
+/// Preconditions (caller has validated):
+/// - `processed` is non-empty
+/// - `mode` is not `Mode::Legacy`
+/// - `hint_focus` is in `[0.0, 1.0]`
+/// - `text` is non-empty and `max_length >= MIN_BUDGET_FOR_SENTENCES`
+/// - `sentences.len() >= MIN_SENTENCES`
+fn two_pool_select(
+    text: &str,
+    max_length: usize,
+    mode: Mode,
+    processed: &[HintWeight],
+    hint_focus: f64,
+    hint_mode: HintMode,
+    sentences: &[String],
+) -> String {
+    // Compute plain scores.
+    let plain_scores: Vec<f64> = if mode == Mode::Coverage {
+        crate::coverage::composite_score_coverage_for_hints(sentences)
+    } else {
+        let section_map = build_section_map(sentences);
+        composite_score_default(sentences, &section_map)
+    };
+
+    // Compute per-sentence hint bonuses, then build hint_scores.
+    let bonuses: Vec<f64> = sentences
+        .iter()
+        .map(|s| crate::hints::hint_bonus(s, processed))
+        .collect();
+
+    let hint_scores: Vec<f64> = match hint_mode {
+        HintMode::Hard => (0..sentences.len())
+            .map(|i| {
+                if bonuses[i] > 0.0 {
+                    plain_scores[i] + bonuses[i]
+                } else {
+                    f64::NEG_INFINITY
+                }
+            })
+            .collect(),
+        HintMode::Soft => (0..sentences.len())
+            .map(|i| plain_scores[i] + bonuses[i])
+            .collect(),
+    };
+
+    // Character lengths (Python `len(s)` counts chars; Rust mirrors with `chars().count()`).
+    let lengths: Vec<usize> = sentences.iter().map(|s| s.chars().count()).collect();
+
+    // Budget split via integer-math rounding (mirrors Python `round_to_int`).
+    // `max_length` fits in i64 on any realistic platform; result is in [0, max_length].
+    #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
+    let hint_budget = crate::hints::round_to_int(max_length as i64, hint_focus) as usize;
+    let normal_budget = max_length - hint_budget;
+
+    let empty: HashSet<usize> = HashSet::new();
+    let mut selected_hint =
+        crate::hints::select_by_chars(&hint_scores, &lengths, hint_budget, &empty, 1);
+    let mut selected_normal =
+        crate::hints::select_by_chars(&plain_scores, &lengths, normal_budget, &selected_hint, 1);
+
+    // Rollover: unused hint budget → plain pool.
+    // In hard mode, rollover still uses hint_scores so -inf sentences stay
+    // ineligible. In soft mode, plain_scores allow any sentence.
+    // The extra indices always merge into selected_normal (mirrors Python).
+    let used_hint: usize = selected_hint.iter().map(|i| lengths[*i]).sum::<usize>()
+        + selected_hint.len().saturating_sub(1);
+    let unused_hint = hint_budget.saturating_sub(used_hint);
+    if unused_hint > 0 {
+        let rollover_scores = if hint_mode == HintMode::Hard {
+            &hint_scores
+        } else {
+            &plain_scores
+        };
+        let mut excl: HashSet<usize> = selected_hint.iter().copied().collect();
+        excl.extend(selected_normal.iter().copied());
+        let extra = crate::hints::select_by_chars(rollover_scores, &lengths, unused_hint, &excl, 1);
+        selected_normal.extend(extra);
+    }
+
+    // Soft-only rollover: unused normal budget → hint pool.
+    if hint_mode == HintMode::Soft {
+        let used_normal: usize = selected_normal.iter().map(|i| lengths[*i]).sum::<usize>()
+            + selected_normal.len().saturating_sub(1);
+        let unused_normal = normal_budget.saturating_sub(used_normal);
+        if unused_normal > 0 {
+            let mut excl: HashSet<usize> = selected_hint.iter().copied().collect();
+            excl.extend(selected_normal.iter().copied());
+            let extra =
+                crate::hints::select_by_chars(&hint_scores, &lengths, unused_normal, &excl, 1);
+            selected_hint.extend(extra);
+        }
+    }
+
+    // Merge, sort, deduplicate, emit.
+    let mut selected: Vec<usize> = selected_hint
+        .into_iter()
+        .chain(selected_normal)
+        .collect::<HashSet<usize>>()
+        .into_iter()
+        .collect();
+    selected.sort_unstable();
+
+    if selected.is_empty() {
+        truncate(text, max_length)
+    } else {
+        selected
+            .into_iter()
+            .map(|i| sentences[i].clone())
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+}
+
+/// Hint-biased extractive summary.
+///
+/// When `opts.hints` is empty (or all hints are blank after preprocessing),
+/// delegates to [`summarize`] for byte-identical backward compatibility.
+///
+/// # Panics
+///
+/// - `Mode::Legacy` with non-empty processed hints: legacy mode does not
+///   support hint biasing.
+/// - `opts.hint_focus` outside `[0.0, 1.0]`.
+#[must_use]
+pub fn summarize_with_hints(
+    text: &str,
+    max_length: usize,
+    mode: Mode,
+    opts: &SummarizeOpts,
+) -> SummaryResult {
+    let processed = crate::hints::preprocess_hints(&opts.hints);
+
+    // Empty hints → delegate to plain summarize (backward compat, byte-identical).
+    if processed.is_empty() {
+        return summarize(text, max_length, mode);
+    }
+
+    // Validate.
+    assert!(mode != Mode::Legacy, "hints not supported in legacy mode");
+    assert!(
+        (0.0..=1.0).contains(&opts.hint_focus),
+        "hint_focus must be in [0.0, 1.0]; got {}",
+        opts.hint_focus
+    );
+
+    // Early-exit for trivial inputs (mirrors Python `_summarize_with_hints`).
+    if text.is_empty() {
+        return SummaryResult::bare(String::new());
+    }
+    if max_length < MIN_BUDGET_FOR_SENTENCES {
+        return SummaryResult::bare(truncate(text, max_length));
+    }
+
+    let prepared = separate_heading_lines(text);
+    let sentences = crate::sentences::split_sentences(&prepared);
+    if sentences.len() < MIN_SENTENCES {
+        let summary = if text.chars().count() <= max_length {
+            text.to_string()
+        } else {
+            truncate(text, max_length)
+        };
+        return SummaryResult::bare(summary);
+    }
+
+    let summary = two_pool_select(
+        text,
+        max_length,
+        mode,
+        &processed,
+        opts.hint_focus,
+        opts.hint_mode,
+        &sentences,
+    );
+
+    SummaryResult::bare(summary)
 }

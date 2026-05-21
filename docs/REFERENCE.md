@@ -4,17 +4,18 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 
 **Jump to:**
 - [Top-level APIs](#top-level-apis) — `summarize`, `brief`
-- [Extraction primitives](#extraction-primitives) — `outline`, `toc`, `stats`, `key_facts`, `metadata`, `phrases`, `correlate_facts`
+- [Hint biasing](#hint-biasing-v04) — `hints`, `hint_focus`, `hint_mode` on all ranking primitives (v0.4)
+- [Extraction primitives](#extraction-primitives) — `outline`, `toc`, `stats`, `key_facts`, `metadata`, `phrases`, `correlate_facts`, `top_terms`
 - [Utilities](#utilities) — `clean_text`, `strip_think`, `extract_keyword`
 - [Backend selector](#backend-selector) — regex / spacy / auto
-- [Optional extras](#optional-extras) — wordforms, yake, textrank, lede-spacy
+- [Optional extras](#optional-extras) — wordforms, yake, textrank, lede-spacy, lede-spacy[synonyms]
 - [Choosing the right primitive](#choosing-the-right-primitive)
 
 ---
 
 ## Top-level APIs
 
-### `lede.summarize(text, max_length=500, *, mode="default", attach=None) -> SummaryResult`
+### `lede.summarize(text, max_length=500, *, mode="default", attach=None, hints=None, hint_focus=0.7, hint_mode="soft") -> SummaryResult`
 
 **Purpose:** compress a document to a character budget while preserving the most informative sentences. Think "minify" — the output is a shorter version of the source, suitable for LLM pre-processing, previews, or dense archival.
 
@@ -31,7 +32,7 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 
 ---
 
-### `lede.brief(text, *, overview_max=0.35, max_facts=10, include_phrases=False, format="string") -> str | dict`
+### `lede.brief(text, *, overview_max=0.35, max_facts=10, include_phrases=False, format="string", hints=None, hint_focus=0.7, hint_mode="soft") -> str | dict`
 
 **Purpose:** produce a quick at-a-glance brief of what a document is about, what interesting facts it contains, and what else is in it. Think "reader brief" — a new reader should be able to decide in seconds whether the doc is worth reading in full.
 
@@ -51,6 +52,140 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 **When to use:** caller wants to understand a document's shape without reading it. Email digest, file browser preview, document ingest pipeline.
 
 **Design policy:** agnostic of document type. No heuristics for "this is a scientific paper so use the Abstract." The primitive just composes extraction results; callers can override any piece.
+
+---
+
+## Hint biasing (v0.4)
+
+Optional `hints` kwargs on lede's ranking primitives bias selection toward
+sentences, facts, phrases, or correlations that mention specific terms or phrases.
+
+### Public API
+
+The following primitives accept three new optional kwargs: `hints`, `hint_focus`,
+and `hint_mode`:
+
+- `lede.summarize`
+- `lede.brief` (forwards to its internal `summarize`, `key_facts`, and `phrases` calls)
+- `lede.extract.key_facts`
+- `lede.extract.phrases`
+- `lede.extract.correlate_facts`
+- `lede.extract.top_terms` (also new in v0.4)
+
+```python
+from lede import summarize
+
+result = summarize(
+    text,
+    hints=["John Smith", "county"],   # list[str] or dict[str, float]
+    hint_focus=0.7,                   # budget split in [0.0, 1.0]
+    hint_mode="soft",                 # "soft" or "hard"
+).summary
+```
+
+### Backward compatibility
+
+When `hints` is `None` (the default) on any primitive, no new code path runs and
+output is byte-identical to v0.3.0. The v0.1 and v0.2 fixture walkers continue
+to pass unchanged. Existing callers see no difference.
+
+### Argument semantics
+
+**`hints`** — `list[str]` or `dict[str, float]`.
+
+- `list[str]`: each string is a hint term; all terms get weight `1.0`.
+- `dict[str, float]`: keys are hint terms, values are numeric weights. Higher
+  weights produce larger bonuses in soft mode.
+- Multi-word phrases are allowed: `"John Smith"` matches sentences containing
+  the substring "John Smith" as a whole (word-boundary delimited).
+
+**`hint_focus`** — `float` in `[0.0, 1.0]`, default `0.7`.
+
+Controls the fraction of the selection budget reserved for hint-matching
+candidates. Budget unit depends on the primitive:
+
+- `summarize` / `_summarize_with_hints`: character budget.
+- `key_facts`: count budget (`round(max_facts * hint_focus)` → hint quota).
+- `phrases` / `correlate_facts` / `top_terms`: no budget effect (no count
+  cap in these primitives); `hint_focus` is validated but ignored in behavior.
+
+Unused budget in either pool rolls over to the other pool:
+- Unused hint-pool budget → plain pool (in all modes).
+- Unused plain-pool budget → hint pool (soft mode only; hard mode does not
+  draw extra from the plain pool into the hint pool).
+
+**`hint_mode`** — `"soft"` (default) or `"hard"`.
+
+- `"soft"`: hint-matching candidates receive a score bonus and are ranked
+  higher, but non-matching candidates can still appear to fill the quota.
+- `"hard"`: only hint-matching candidates are eligible for the hint-pool
+  quota. The plain-pool quota still draws from all candidates.
+
+### Matching rules
+
+- **Case-insensitive**: `"John Smith"` matches `"john smith"`, `"JOHN SMITH"`, etc.
+- **Word-boundary delimited**: `\b`-anchored — `"county"` does not match
+  `"countries"`.
+- **No Unicode normalization** (NFC/NFD) and no diacritic stripping: `"café"`
+  does not match `"cafe"`.
+- **No stemming or lemmatization** in the core matching. Use
+  `lede_spacy.expand_hints` (see below) for that.
+- **Substring match within a sentence** (or phrase, or correlation): the
+  hint must appear as a complete word sequence in the target string.
+
+For lemma, synonym, or vector-similarity expansion, use
+`lede_spacy.expand_hints` before passing hints to any lede primitive:
+
+```python
+from lede import summarize
+from lede_spacy import expand_hints
+
+expanded = expand_hints(["counties"], kinds=("lemma",))
+# expanded == ["counties", "county"]
+result = summarize(text, hints=expanded, hint_focus=0.7).summary
+```
+
+### Validation
+
+| Primitive | Raises `ValueError` when |
+|---|---|
+| `summarize` | `hint_focus` outside `[0.0, 1.0]`, `hint_mode` not `"soft"` / `"hard"`, `mode="legacy"` with non-None `hints` |
+| `brief` | propagated from the internal primitive calls |
+| `key_facts` | `hint_focus` outside `[0.0, 1.0]`, `hint_mode` not `"soft"` / `"hard"` |
+| `phrases` | `hint_focus` outside `[0.0, 1.0]`, `hint_mode` not `"soft"` / `"hard"` |
+| `correlate_facts` | `hint_focus` outside `[0.0, 1.0]`, `hint_mode` not `"soft"` / `"hard"` |
+| `top_terms` | `hint_focus` outside `[0.0, 1.0]`, `hint_mode` not `"soft"` / `"hard"`, unknown entry in `kinds` |
+
+### Per-primitive specifics
+
+| Primitive | Match target | Budget unit | `hint_focus` has effect |
+|---|---|---|---|
+| `summarize` | sentence text | chars | yes — two-pool char budget split |
+| `brief` | forwarded to sub-primitives | (each primitive's own) | yes — forwarded as-is |
+| `key_facts` | sentence text | count (sentences) | yes — two-pool count quota |
+| `phrases` | phrase string itself | n/a | no — no count cap |
+| `correlate_facts` | `"{entity} {number}"` (OR semantics) | n/a | no — no count cap |
+| `top_terms` | term string | n/a | no — no count cap |
+
+### Parity contract
+
+For the core regex backend, Python and Rust produce byte-identical output on
+the same `(text, hints, hint_focus, hint_mode)` inputs for `summarize`,
+`brief`, and `key_facts`. Enforced by the `v0_4_hints_byte_identical` fixture
+walker (10 corpora × 14 hint configurations = 140 fixtures).
+
+**Not parity-promised:**
+- `phrases(backend='yake')` with hints — YAKE backend does not accept hints.
+- `correlate_facts(backend='spacy')` with hints — spaCy backend does not
+  accept hints.
+- `top_terms` — Python-only in v0.4; Rust mirror deferred to v0.5.
+- `lede_spacy.expand_hints` — Python-only by policy.
+
+### Cross-runtime determinism note
+
+Budget rounding uses integer math (`round_to_int`) to avoid divergence between
+Python's `round()` (banker's rounding, round half to even) and Rust's
+`f64::round()` (round half away from zero) on boundary values.
 
 ---
 
@@ -112,7 +247,7 @@ All extraction primitives live under `lede.extract.*`. They're individually usab
 
 ---
 
-### `lede.extract.key_facts(text, *, max_facts=10, convert_word_names=False) -> tuple[str, ...]` ⟵ **new in T16**
+### `lede.extract.key_facts(text, *, max_facts=10, convert_word_names=False, hints=None, hint_focus=0.7, hint_mode="soft") -> tuple[str, ...]`
 
 **Purpose:** return the N most interesting **sentences** containing numeric or named facts, as complete grammatical sentences (not tuples).
 
@@ -142,7 +277,7 @@ All extraction primitives live under `lede.extract.*`. They're individually usab
 
 ---
 
-### `lede.extract.phrases(text, keywords=None, *, backend=None) -> tuple[str, ...]`
+### `lede.extract.phrases(text, keywords=None, *, backend=None, hints=None, hint_focus=0.7, hint_mode="soft") -> tuple[str, ...]`
 
 **Purpose:** extract multi-word phrases (2–5 tokens).
 
@@ -159,7 +294,7 @@ All extraction primitives live under `lede.extract.*`. They're individually usab
 
 ---
 
-### `lede.extract.correlate_facts(text, *, backend=None, convert_word_names=False) -> tuple[PhraseFact, ...]`
+### `lede.extract.correlate_facts(text, *, backend=None, convert_word_names=False, hints=None, hint_focus=0.7, hint_mode="soft") -> tuple[PhraseFact, ...]`
 
 **Purpose:** pair repeated entities with their numeric facts, with an inferred polarity.
 
@@ -176,6 +311,30 @@ All extraction primitives live under `lede.extract.*`. They're individually usab
 **Known gold/primitive mismatch:** hand-labeled gold in `fixtures/extract/correlate/` often expects polarities inferred from verbs attached to single-mention entities (e.g. `risk register` mentioned once, labeled with both `growth` and `decline` polarities from a single sentence). Neither backend produces this without coreference + salience ranking. See `docs/extraction-gold-labeling.md:105` (Rule 5) and v0.3+ roadmap.
 
 **When to use:** structured relation-ish data where the source has repeated entities with quantified claims. Fact-check scaffolding, KPI extraction from reports.
+
+---
+
+### `lede.extract.top_terms(text, *, n=10, kinds=("words", "phrases")) -> tuple[str, ...]` ⟵ **new in v0.4**
+
+**Purpose:** return the top-N salient terms (single words and/or multi-word phrases) ranked by a unified score.
+
+**Composition:** combines per-document TF-IDF on single tokens (`"words"` kind) with multi-word phrase frequency from the same extractor as `extract.phrases` (`"phrases"` kind). Each kind's scores are normalized to `[0, 1]` before merging.
+
+**Parameters:**
+- `n: int` — cap on returned terms. Default 10.
+- `kinds: tuple` — which candidate pools to use. Any non-empty subset of `("words", "phrases")`. Default both.
+- `hints / hint_focus / hint_mode` — hint biasing kwargs (v0.4). See [Hint biasing](#hint-biasing-v04).
+
+**Scoring:**
+- Word score: `TF * IDF` (same formula as `summarize()`), normalized by max.
+- Phrase score: `repetition_count × token_count`, normalized by max.
+- Returned in score-descending order; ties broken alphabetically (deterministic).
+
+**Hint biasing:** soft mode adds `hint_bonus` to each candidate's score before ranking. Hard mode removes non-matching candidates entirely. `hint_focus` is validated but has no two-pool budget effect (no count cap before `n` truncation).
+
+**Parity:** Python-only in v0.4. Rust mirror deferred to v0.5.
+
+**When to use:** quick tag cloud, keyword index, topic snapshot that combines important single words with key phrases in one pass. Use `extract.phrases` when you want only multi-word phrases, or `summarize()`'s TF-IDF machinery when you're building a summary rather than a term list.
 
 ---
 
@@ -223,7 +382,11 @@ Install with `pip install lede[EXTRA]`:
 | `dev` | `pytest`, `pytest-subtests` | Running the test suite. |
 | `bench` | `sumy`, `numpy` | Running the benchmark comparisons. |
 
-**Companion package:** `lede-spacy` (separate PyPI distribution) registers the `"spacy"` backend for `metadata`, `phrases`, and `correlate_facts` when imported. Pulls `spacy>=3.8` + `en_core_web_sm-3.8.0`.
+**Companion package:** `lede-spacy` (separate PyPI distribution) registers the `"spacy"` backend for `metadata`, `phrases`, and `correlate_facts` when imported. Pulls `spacy>=3.8` + `en_core_web_sm-3.8.0`. Also provides `lede_spacy.expand_hints` for hint expansion.
+
+**`lede-spacy[synonyms]`** — additional extra on the companion package. Install with `pip install lede-spacy[synonyms]`. Pulls `nltk` and downloads the `wordnet` corpus. Required for `expand_hints(kinds=("synonyms",))`.
+
+**`lede-spacy` with vectors** — `expand_hints(kinds=("similar",))` requires a vector-capable spaCy model. Install `en_core_web_md` or `en_core_web_lg` (`en_core_web_sm` has no vectors).
 
 ## Runtime parity
 
@@ -267,8 +430,11 @@ demand.
 | repeated multi-word phrases | `phrases(text)` (regex) |
 | named noun phrases | `phrases(text, backend="spacy")` |
 | ranked key phrases | `phrases(text, backend="yake")` |
+| top salient words + phrases in one pass | `top_terms(text, n=10)` |
 | entity → fact pairings | `correlate_facts(text)` (regex) |
 | entity → fact pairings via dep-parse | `correlate_facts(text, backend="spacy")` |
+| bias any primitive toward specific terms | add `hints=[…]` to `summarize`, `brief`, `key_facts`, `phrases`, `correlate_facts`, or `top_terms` |
+| expand hints with lemmas / synonyms | `lede_spacy.expand_hints(hints, kinds=("lemma", "synonyms"))` |
 | cleaned text (strip markdown / boilerplate) | `clean_text(text)` |
 | stripped LLM reasoning channels | `strip_think(text)` |
 | query-driven sentences | `extract_keyword(text, keywords)` |
@@ -320,9 +486,9 @@ For documents > 100 KB:
 
 ## Versioning
 
-Current: `0.2.0.dev0` (Python) / `0.2.0-dev.0` (Rust SemVer). v0.2 adds extraction primitives, backend selector, lede-spacy companion, and optional `wordforms` / `yake` extras. v0.2.0 tags when T14 comparison matrix + T15 release sign-off land.
+Current: `0.4.0` (Python) / `0.4.0` (Rust SemVer). v0.4 adds hint-biased extraction, the new `top_terms` primitive, and `lede_spacy.expand_hints`. See `CHANGELOG.md` for the full entry.
 
-v0.1.0 conceptually exists as "the TF-IDF summarizer that passed SC-A" but was never tagged — the project pivoted into v0.2 before releasing it.
+**v0.3.0** renamed `skimr` → `lede` (no behavior changes). **v0.2.0** added extraction primitives, backend selector, lede-spacy companion, and optional extras. v0.1.0 conceptually exists as "the TF-IDF summarizer that passed SC-A" but was never tagged.
 
 ---
 

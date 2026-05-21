@@ -9,6 +9,7 @@ pub mod clean;
 pub mod coverage;
 pub mod extract;
 pub mod headings;
+pub mod hints;
 pub mod keyword;
 pub mod parity;
 pub mod sentences;
@@ -18,7 +19,7 @@ pub mod types;
 pub use brief::{BriefDict, BriefFormat, BriefOptions, BriefOutput, brief, brief_with_options};
 pub use clean::{clean_text, strip_think};
 pub use keyword::extract_keyword;
-pub use tfidf::{summarize, summarize_with_attach};
+pub use tfidf::{SummarizeOpts, summarize, summarize_with_attach, summarize_with_hints};
 pub use types::{AttachOpts, Mode, SummaryResult};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

@@ -8,6 +8,65 @@ Entries below `## [0.2.2]` reference the project under its previous name,
 remain as `skimr` releases — they were real shipped artifacts under that
 name. See the v0.3.0 entry for the rename rationale.
 
+## [0.4.0] — 2026-05-21
+
+### Added
+
+- **Hint-biased extraction.** Optional `hints`, `hint_focus`, `hint_mode`
+  kwargs added to `summarize`, `brief`, `extract.key_facts`,
+  `extract.phrases`, `extract.correlate_facts`, and the new
+  `extract.top_terms` primitive. Callers pass a list or weighted dict of
+  terms; lede biases sentence/fact/phrase selection toward content
+  mentioning those terms.
+
+  - `hints: list[str] | dict[str, float]` — hint terms. List entries get
+    weight 1.0; dict values are numeric weights.
+  - `hint_focus: float` (default `0.7`) — fraction of the selection budget
+    reserved for hint-matching candidates (chars for `summarize`; count
+    for `key_facts`; validated but no-op for `phrases`, `correlate_facts`,
+    `top_terms`).
+  - `hint_mode: "soft" | "hard"` (default `"soft"`) — soft adds a bonus and
+    reorders without filtering; hard restricts the hint pool to
+    hint-matching candidates only.
+
+  See `docs/REFERENCE.md` "Hint biasing" for the full contract.
+
+- **`lede.extract.top_terms(text, *, n=10, kinds=("words", "phrases"))`** —
+  new primitive returning the top-N salient words and/or phrases in a
+  unified ranking. Composes single-word TF-IDF with multi-word phrase
+  frequency. Accepts the same `hints` / `hint_focus` / `hint_mode` kwargs.
+  Python-only for v0.4; Rust mirror deferred to v0.5.
+
+- **`lede_spacy.expand_hints(hints, *, kinds=("lemma",), top_k=5, expand_weight=0.5)`** —
+  companion function for expanding hint terms before passing them to any
+  lede primitive. Three expansion strategies:
+  - `"lemma"` — spaCy lemmatizer (any spaCy model).
+  - `"synonyms"` — WordNet via nltk (requires `lede-spacy[synonyms]`).
+  - `"similar"` — spaCy word-vector cosine similarity (requires
+    `en_core_web_md` or `en_core_web_lg`).
+
+- **`lede-spacy[synonyms]` extra** — new optional extra on the `lede-spacy`
+  companion package. Pulls `nltk` and the `wordnet` corpus. Required for
+  `expand_hints(kinds=("synonyms",))`.
+
+- **`v0_4_hints_byte_identical` parity walker** — new fixture gate in
+  `rust/tests/fixtures.rs`. Covers 140 fixtures (10 corpora × 14 hint
+  configurations) verifying byte-identical Python ↔ Rust output for
+  `summarize`, `brief`, and `key_facts` with hints. Runs on every push.
+
+### Backward compatibility
+
+Callers that do not pass `hints` see byte-identical output to v0.3.0 across
+all primitives. The existing `every_fixture_byte_identical` and
+`v0_2_extract_primitives_byte_identical` fixture walkers continue to pass
+unchanged. No existing API surface was removed or changed.
+
+### Changed (Rust crate — breaking for direct struct users)
+
+- `KeyFactsOptions` and `BriefOptions` structs are no longer `Copy` — they
+  now hold `Vec<HintWeight>` for the hint kwargs. Callers using `Copy`
+  semantics need to clone explicitly or pass by reference.
+
 ## [0.3.0] — 2026-04-28
 
 **Renamed: `skimr` → `lede`.** No behavior, fixture, or output changes;

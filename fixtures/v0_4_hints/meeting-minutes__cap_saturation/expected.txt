@@ -1,0 +1,2 @@
+Meeting: Platform Migration Planning
+Date: 2026-04-15 Attendees: Sarah (PM), Jon (Backend Lead), Priya (SRE), Marcus (Staff Eng) Sarah opened by reviewing the project charter and target go-live date. Unit tests are passing at 94 percent coverage. Sarah will circulate a follow-up note with answers by Wednesday. Action items: Jon to unblock the export path review, Priya to start the dashboard rebuild, Marcus to draft the rollback criteria, Sarah to own communication plan.

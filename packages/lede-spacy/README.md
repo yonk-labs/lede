@@ -123,7 +123,7 @@ If you want a single reproducible install, pin the model wheel from
 `requirements.txt`:
 
 ```
-lede-spacy==0.3.0
+lede-spacy==0.4.0
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 ```
 
@@ -181,6 +181,29 @@ When you `import lede_spacy`, three backends register themselves into
 The `regex` backend stays the default — `import lede_spacy` is purely
 additive. Existing callers using `backend="regex"` (or no `backend=`
 kwarg) see no behavior change.
+
+## Expanding hints (v0.4)
+
+`expand_hints()` widens a hint list with related terms so lede's hint biasing
+casts a broader net. Three kinds:
+
+| `kind` | Source | Extra install |
+|---|---|---|
+| `"lemma"` (default) | spaCy lemmatizer | none — uses `en_core_web_sm` already required |
+| `"synonyms"` | WordNet via nltk | `pip install lede-spacy[synonyms]` |
+| `"similar"` | spaCy word vectors | `en_core_web_md` or `_lg` model |
+
+```python
+from lede import summarize
+from lede_spacy import expand_hints
+
+hints = expand_hints(["counties"], kinds=("lemma", "synonyms"))
+# → ["counties", "county", "parish", "borough", "shire", ...]
+
+result = summarize(text, hints=hints, hint_focus=0.7).summary
+```
+
+`expand_hints` is Python-only; the Rust crate has no equivalent.
 
 ## Determinism + parity
 

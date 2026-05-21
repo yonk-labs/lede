@@ -1,0 +1,1 @@
+Resolution: Caused by default embedder precision change in 0.2.0 triggering a HuggingFace model download on a network-restricted batch node.

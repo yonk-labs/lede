@@ -1,0 +1,5 @@
+Meeting: Platform Migration Planning
+Date: 2026-04-15
+Attendees: Sarah (PM), Jon (Backend Lead), Priya (SRE), Marcus (Staff Eng)
+
+Sarah opened by reviewing the project charter and target go-live date. Current plan has us shipping to staging by end of May and production by mid-June. Risk register ...

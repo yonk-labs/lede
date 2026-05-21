@@ -1,6 +1,6 @@
 [package]
 name = "lede"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 description = "Deterministic extractive summarization — stdlib + regex only"
 license = "Apache-2.0"
@@ -27,6 +27,9 @@ path = "src/bin/lede.rs"
 [[bin]]
 name = "bench_tfidf"
 path = "src/bin/bench_tfidf.rs"
+
+[dev-dependencies]
+serde_json = "1"
 
 [lints.rust]
 unsafe_code = "forbid"

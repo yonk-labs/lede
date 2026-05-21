@@ -1,0 +1,1 @@
+We recommend that any numerical Rust code intended to produce output byte-identical to CPython 3.12+ adopt Neumaier summation where floating-point sums of six or more terms occur. The root cause of observed divergence was the CPython 3.12 switch to compensated summation, which the Rust standard library does not match. The fix is trivial and has no performance cost.

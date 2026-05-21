@@ -64,6 +64,7 @@ fn key_facts_with_options_max_facts_override() {
         KeyFactsOptions {
             max_facts: 1,
             convert_word_names: false,
+            ..Default::default()
         },
     );
     assert_eq!(out.len(), 1);
@@ -78,6 +79,7 @@ fn key_facts_word_forms_when_enabled() {
         KeyFactsOptions {
             max_facts: 10,
             convert_word_names: true,
+            ..Default::default()
         },
     );
     assert!(out.iter().any(|s| s.contains("eight days")));

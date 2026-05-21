@@ -42,7 +42,7 @@ pip install lede-spacy
 python -m spacy download en_core_web_sm
 ```
 
-The first command pulls `lede>=0.3.0` and `spacy>=3.8,<3.9`. The second
+The first command pulls `lede>=0.4.0` and `spacy>=3.8,<3.9`. The second
 pulls the ~50 MB model. PyPI doesn't allow direct-URL deps, so the model
 is a separate step — this is the convention spaCy itself uses.
 
@@ -128,7 +128,7 @@ etc.:
 3. Each registered fn accepts `(text: str, **opts)` and returns the
    same shape as the regex baseline (`Metadata`,
    `tuple[str, ...]`, `tuple[PhraseFact, ...]`).
-4. Ship as a separate distribution; depend on `lede>=0.3.0`.
+4. Ship as a separate distribution; depend on `lede>=0.4.0`.
 
 No coordination with lede core is required to add a new backend label.
 
@@ -154,6 +154,43 @@ What lede core will not do:
   versions. `en_core_web_sm` 3.8.0 → 3.9.0 can shift entity boundaries.
 - Add a `backend=` kwarg to Rust primitives until Rust has a real second
   backend to dispatch to. A one-option enum is noise.
+
+## Expanding hints (v0.4)
+
+`lede_spacy.expand_hints()` widens a hint list with related terms before
+passing to lede's hint biasing. Three modes:
+
+| `kind` | Source | Dependency |
+|---|---|---|
+| `"lemma"` (default) | spaCy lemmatizer | `en_core_web_sm` (already required) |
+| `"synonyms"` | WordNet via nltk | `pip install lede-spacy[synonyms]` |
+| `"similar"` | spaCy word vectors | `en_core_web_md` or `_lg` |
+
+### Composition pattern
+
+```python
+from lede import summarize
+from lede_spacy import expand_hints
+
+hints = expand_hints(["counties"], kinds=("lemma", "synonyms"))
+# → ["counties", "county", "parish", "borough", "shire", ...]
+
+result = summarize(text, hints=hints, hint_focus=0.7).summary
+```
+
+### WordNet auto-download
+
+On first call with `kinds=("synonyms",)`, nltk's WordNet corpus is downloaded
+quietly. If you're offline, download once manually:
+
+```bash
+python -m nltk.downloader wordnet
+```
+
+### Parity
+
+`expand_hints` is Python-only by design. The lede Rust crate has no equivalent;
+Rust callers either expand hints themselves or pass literals.
 
 ## See also
 
