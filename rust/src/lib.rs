@@ -9,6 +9,7 @@ pub mod clean;
 pub mod coverage;
 pub mod extract;
 pub mod headings;
+pub mod hints;
 pub mod keyword;
 pub mod parity;
 pub mod sentences;
