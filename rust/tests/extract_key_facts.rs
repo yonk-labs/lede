@@ -64,6 +64,7 @@ fn key_facts_with_options_max_facts_override() {
         KeyFactsOptions {
             max_facts: 1,
             convert_word_names: false,
+            ..Default::default()
         },
     );
     assert_eq!(out.len(), 1);

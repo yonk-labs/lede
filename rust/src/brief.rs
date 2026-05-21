@@ -15,8 +15,9 @@
 
 use crate::extract::key_facts::{KeyFactsOptions, key_facts_with_options};
 use crate::extract::outline::toc;
-use crate::extract::phrases::phrases;
-use crate::tfidf::summarize;
+use crate::extract::phrases::phrases_with_hints;
+use crate::hints::{HintMode, HintWeight};
+use crate::tfidf::{SummarizeOpts, summarize, summarize_with_hints};
 use crate::types::Mode;
 
 /// Output format for [`brief_with_options`].
@@ -35,7 +36,7 @@ pub enum BriefFormat {
 
 /// Options for [`brief_with_options`]. Mirrors Python's keyword-only
 /// kwargs on `brief()`.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct BriefOptions {
     /// Overview char budget as a fraction of source length. Clamped to
     /// `[0.05, 0.50]`. Default `0.35`.
@@ -53,6 +54,15 @@ pub struct BriefOptions {
     pub convert_word_names: Option<bool>,
     /// Output shape. Default [`BriefFormat::String`].
     pub format: BriefFormat,
+    /// Hint terms and weights forwarded to internal `summarize`,
+    /// `key_facts`, and `phrases` calls. Empty vec = no-hints path
+    /// (byte-identical to pre-v0.4). Default empty.
+    pub hints: Vec<HintWeight>,
+    /// Fraction of each primitive's budget reserved for hint-matching
+    /// content. Range `[0.0, 1.0]`. Default `0.7`.
+    pub hint_focus: f64,
+    /// Biasing strategy forwarded to internal calls. Default [`HintMode::Soft`].
+    pub hint_mode: HintMode,
 }
 
 impl Default for BriefOptions {
@@ -63,6 +73,9 @@ impl Default for BriefOptions {
             include_phrases: false,
             convert_word_names: None,
             format: BriefFormat::String,
+            hints: Vec::new(),
+            hint_focus: 0.7,
+            hint_mode: HintMode::Soft,
         }
     }
 }
@@ -128,7 +141,8 @@ pub fn brief(text: &str) -> String {
 #[allow(
     clippy::cast_precision_loss,
     clippy::cast_possible_truncation,
-    clippy::cast_sign_loss
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value
 )]
 pub fn brief_with_options(text: &str, opts: BriefOptions) -> BriefOutput {
     // Clamp overview_max to sane fraction bounds, then char-clamp.
@@ -140,7 +154,16 @@ pub fn brief_with_options(text: &str, opts: BriefOptions) -> BriefOutput {
     let raw_budget = (text.chars().count() as f64 * frac) as usize;
     let budget = raw_budget.clamp(OVERVIEW_MIN_CHARS, OVERVIEW_MAX_CHARS);
 
-    let overview_result = summarize(text, budget, Mode::Default);
+    let overview_result = if opts.hints.is_empty() {
+        summarize(text, budget, Mode::Default)
+    } else {
+        let summarize_opts = SummarizeOpts {
+            hints: opts.hints.clone(),
+            hint_focus: opts.hint_focus,
+            hint_mode: opts.hint_mode,
+        };
+        summarize_with_hints(text, budget, Mode::Default, &summarize_opts)
+    };
     let overview_text = overview_result.summary.trim_end().to_string();
 
     // Resolve wordforms: opts.convert_word_names overrides the build-time
@@ -152,13 +175,16 @@ pub fn brief_with_options(text: &str, opts: BriefOptions) -> BriefOutput {
         KeyFactsOptions {
             max_facts: opts.max_facts,
             convert_word_names: use_wordforms,
+            hints: opts.hints.clone(),
+            hint_focus: opts.hint_focus,
+            hint_mode: opts.hint_mode,
         },
     );
 
     let sections = toc(text);
 
     let phrases_list: Vec<String> = if opts.include_phrases {
-        phrases(text, None)
+        phrases_with_hints(text, None, &opts.hints, opts.hint_mode)
     } else {
         Vec::new()
     };
