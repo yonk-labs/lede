@@ -40,6 +40,36 @@ fn split_paragraphs(text: &str) -> Vec<String> {
         .collect()
 }
 
+/// Per-sentence coverage-mode scores for the hint two-pool path.
+///
+/// Returns the raw 60/25/15 composite (tfidf, position, length) per
+/// sentence — the same base scores `summarize_coverage` computes
+/// internally. Headings get `-inf` so the two-pool selector skips them.
+///
+/// Note: coverage mode's per-paragraph breadth guarantee is intentionally
+/// NOT preserved when hints are used. The caller asked for hint-biased
+/// selection; breadth is a secondary concern.
+///
+/// Mirrors `_composite_score_coverage_for_hints` in `src/lede/coverage.py`.
+#[must_use]
+pub(crate) fn composite_score_coverage_for_hints(sentences: &[String]) -> Vec<f64> {
+    if sentences.is_empty() {
+        return Vec::new();
+    }
+    let parts = composite_score_parts(sentences);
+    sentences
+        .iter()
+        .zip(parts.iter())
+        .map(|(s, (t, p, l))| {
+            if is_heading(s) {
+                f64::NEG_INFINITY
+            } else {
+                TFIDF_WEIGHT * t + POSITION_WEIGHT * p + LENGTH_WEIGHT * l
+            }
+        })
+        .collect()
+}
+
 /// C2 coverage selector — paragraph-aware extractive summary.
 #[must_use]
 pub fn summarize_coverage(text: &str, max_length: usize) -> String {
