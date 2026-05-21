@@ -69,3 +69,31 @@ def match_count(hint: str, sentence: str) -> int:
     if not hint:
         return 0
     return len(_compile_hint(hint).findall(sentence.lower()))
+
+
+def round_to_int(value: int, focus: float) -> int:
+    """Portable integer-math rounding for budget splits.
+
+    Avoids Python `round` (banker's) vs Rust `f64::round` (half-away)
+    divergence. Encodes focus as numerator/10000, then does integer
+    arithmetic. Identical results in Rust via the mirror in
+    rust/src/hints.rs.
+    """
+    num = int(focus * 10000)
+    den = 10000
+    return (value * num + den // 2) // den
+
+
+def hint_bonus(sentence: str, hints: list[tuple[str, float]]) -> float:
+    """Sum of per-hint bonuses for one sentence.
+
+    For each (hint, weight): min(count, _HINT_MATCH_CAP) * weight * _HINT_BASE_WEIGHT
+    """
+    total = 0.0
+    for hint, weight in hints:
+        count = match_count(hint, sentence)
+        if count == 0:
+            continue
+        capped = count if count < _HINT_MATCH_CAP else _HINT_MATCH_CAP
+        total += capped * weight * _HINT_BASE_WEIGHT
+    return total
