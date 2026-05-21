@@ -188,10 +188,17 @@ def key_facts(
             if _try_keep(cand_idx):
                 normal_kept_count += 1
 
-        # Rollover: hint pool came up short → plain pool takes more.
+        # Rollover: hint pool came up short → take more.
+        # In hard mode, stay restricted to hint-bearing candidates (walk hint_keyed,
+        # skipping the float("inf") sentinel entries that mark non-matching items).
+        # In soft mode, draw from plain_keyed (any candidate).
         if hint_kept_count < hint_quota:
             extra_needed = hint_quota - hint_kept_count
-            for _neg_score, _doc, cand_idx in plain_keyed:
+            rollover_pool = hint_keyed if hint_mode == "hard" else plain_keyed
+            for sort_key, _doc, cand_idx in rollover_pool:
+                if hint_mode == "hard" and sort_key == float("inf"):
+                    # non-matching candidate in hard-mode hint pool — skip
+                    continue
                 if cand_idx in selected_cand_indices:
                     continue
                 if extra_needed <= 0:

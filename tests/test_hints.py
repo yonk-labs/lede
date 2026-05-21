@@ -319,3 +319,27 @@ class TestKeyFactsHints:
     def test_hint_focus_out_of_range(self):
         with pytest.raises(ValueError, match="hint_focus"):
             key_facts(SAMPLE, max_facts=5, hints=["county"], hint_focus=2.0)
+
+    def test_hard_mode_does_not_leak_non_matching_facts(self):
+        # Stat-bearing sentences that don't all contain the hint — confirms
+        # the hard-mode rollover stays restricted to hint-matching candidates.
+        text = (
+            "The company earned $5 million in Q3 2023, down from $7 million the prior year. "
+            "Smith filed the annual report on March 15, 2024. "
+            "Total employees grew by 12 percent to reach 450 staff. "
+            "Revenue fell 8 percent year-over-year to $4.2 billion."
+        )
+        facts = key_facts(
+            text,
+            max_facts=10,
+            hints=["smith"],
+            hint_focus=1.0,
+            hint_mode="hard",
+        )
+        # In hard mode + focus=1.0, every returned fact MUST contain "smith".
+        # The non-Smith stat-bearing sentences must not leak in via rollover.
+        for f in facts:
+            assert "smith" in f.lower(), f"LEAK: {f!r}"
+        # Sanity: the Smith-bearing fact should be present.
+        assert any("smith" in f.lower() for f in facts), \
+            "expected at least one Smith-bearing fact"
