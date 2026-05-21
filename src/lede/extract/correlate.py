@@ -136,14 +136,28 @@ def correlate_facts(
     zero-runtime-dep contract.
 
     Hint biasing (v0.4):
-        Pass `hints` to bias which facts are returned/ordered.
-        Match target is OR of entity name and fact value (number field).
-        - 'soft' (default): hint-bearing facts reordered to come first;
-          all facts retained.
-        - 'hard': only hint-bearing facts returned (filter behavior).
-        - `hint_focus` is accepted for API uniformity but has no effect on
-          this primitive because correlate_facts() has no internal count cap.
-          Use `hint_mode` to control behavior. See REFERENCE.md "Hint biasing".
+        Pass ``hints`` to bias which facts are returned or how they are
+        ordered. When ``hints`` is None (the default), output is byte-identical
+        to v0.3.0.
+
+        Match target is OR semantics: a ``PhraseFact`` matches if **either**
+        its ``entity`` field **or** its ``number`` field contains a hint term
+        (case-insensitive, ``\\b``-delimited). Internally, this is checked by
+        constructing the combined target ``"{entity} {number}"``.
+
+        - ``"soft"`` (default): hint-bearing facts reordered to the front in
+          their original relative order; all facts retained.
+        - ``"hard"``: only hint-bearing facts returned (hard filter).
+        - ``hint_focus`` is validated but has no behavioral effect on this
+          primitive because ``correlate_facts()`` returns all candidates rather
+          than a fixed-size count. Use ``hint_mode`` to control filtering.
+
+        See REFERENCE.md "Hint biasing" for the full contract and validation
+        rules.
+
+    Raises:
+        ValueError: on ``hint_focus`` outside [0.0, 1.0] or unknown
+            ``hint_mode``.
     """
     from .._hints import preprocess_hints
 

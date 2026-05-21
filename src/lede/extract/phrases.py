@@ -147,13 +147,24 @@ def phrases(
     backend=None: uses the global default (see `lede.set_default_backend`).
 
     Hint biasing (v0.4):
-        Pass `hints` to bias which phrases are returned/ordered.
-        - 'soft' (default): hint-bearing phrases reordered to come first;
-          all phrases retained.
-        - 'hard': only hint-bearing phrases returned (filter behavior).
-        - `hint_focus` is accepted for API uniformity but has no effect on
-          this primitive because phrases() has no internal count cap. Use
-          `hint_mode` to control behavior. See REFERENCE.md "Hint biasing".
+        Pass ``hints`` to bias which phrases are returned or how they are
+        ordered. When ``hints`` is None (the default), output is byte-identical
+        to v0.3.0.
+
+        - ``"soft"`` (default): hint-bearing phrases reordered to the front
+          in their original relative order; all phrases retained.
+        - ``"hard"``: only hint-bearing phrases returned (hard filter).
+        - ``hint_focus`` is validated but has no behavioral effect on this
+          primitive because ``phrases()`` returns all candidates rather than
+          a fixed-size count. Use ``hint_mode`` to control filtering.
+
+        Matching is case-insensitive and word-boundary-delimited (``\\b``);
+        the match target is the phrase string itself. See REFERENCE.md
+        "Hint biasing" for the full contract and validation rules.
+
+    Raises:
+        ValueError: on ``hint_focus`` outside [0.0, 1.0] or unknown
+            ``hint_mode``.
     """
     from .._hints import preprocess_hints
 

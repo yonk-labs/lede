@@ -450,23 +450,62 @@ def summarize(
 ) -> SummaryResult:
     """Extractive summary with configurable scoring mode and optional hints.
 
-    Hint biasing (v0.4):
-        Pass `hints` to bias selection toward sentences mentioning specific
-        terms or phrases. Backward compatible: when `hints` is None (the
-        default), behavior is byte-identical to v0.3.0.
+    Args:
+        text: input document text.
+        max_length: character budget for the output summary. Default 500.
+        mode: scoring mode — ``"default"`` (TF-IDF + position + length,
+            heading-filtered), ``"legacy"`` (pre-v0.2 byte-identical scorer),
+            or ``"coverage"`` (paragraph-aware selection). Default
+            ``"default"``.
+        attach: list of extra primitives to attach to the returned
+            ``SummaryResult``. Supported names: ``"stats"``, ``"outline"``,
+            ``"metadata"``, ``"phrases"``, ``"correlated_facts"``.
+        hints: optional list[str] or dict[str, float] of terms to bias
+            selection toward. List entries get weight 1.0; dict keys are
+            terms and values are numeric weights. Default None (no biasing).
+        hint_focus: fraction of the character budget reserved for
+            hint-matching sentences. Range [0.0, 1.0]. Default 0.7 — 70 %
+            of budget goes to hint-matching sentences first, remaining 30 %
+            to the highest-scored non-hint sentences. Unused hint-pool budget
+            rolls over to the plain pool (and vice versa in soft mode).
+            Ignored when ``hints`` is None.
+        hint_mode: biasing strategy — ``"soft"`` (default) or ``"hard"``.
+            ``"soft"`` adds a bonus to hint-matching sentences and reorders
+            without filtering; non-matching sentences can still appear.
+            ``"hard"`` restricts the hint pool to only sentences that match
+            at least one hint; unmatched sentences can still appear in the
+            plain-pool quota. Ignored when ``hints`` is None.
 
-        - `hints` — list[str] or dict[str, float]. List entries get weight 1.0.
-        - `hint_focus` — budget split in [0.0, 1.0]. 0.7 default leans toward
-          hint pool; 0.0 ignores hints; 1.0 uses only the hint pool.
-        - `hint_mode` — "soft" (bonus ranking, no guarantee) or "hard" (only
-          hint-matching sentences eligible in the hint pool).
-
-        See docs/REFERENCE.md "Hint biasing" and
-        docs/superpowers/specs/2026-05-21-hints-design.md.
+    Returns:
+        ``SummaryResult`` — a frozen dataclass with ``.summary: str`` plus
+        optional fields populated by ``attach``.  ``str(r)`` and ``f"{r}"``
+        evaluate to ``.summary`` so legacy string callers still work.
 
     Raises:
-        ValueError on unknown mode, on legacy mode + hints, on hint_focus
-        outside [0.0, 1.0], on unknown hint_mode.
+        ValueError: on unknown ``mode``, on ``mode="legacy"`` with hints
+            (not supported), on ``hint_focus`` outside [0.0, 1.0], or on
+            unknown ``hint_mode``.
+
+    Hint biasing (v0.4):
+        When ``hints`` is None (the default), no new code path executes and
+        output is byte-identical to v0.3.0. Matching is case-insensitive
+        and word-boundary-delimited (``\\b``); no Unicode normalization or
+        stemming. For lemma/synonym expansion, compose with
+        ``lede_spacy.expand_hints`` before passing hints here::
+
+            from lede import summarize
+            from lede_spacy import expand_hints
+
+            expanded = expand_hints(["counties"], kinds=("lemma",))
+            # expanded == ["counties", "county"]
+            result = summarize(text, hints=expanded, hint_focus=0.7).summary
+
+        Simple usage without expansion::
+
+            from lede import summarize
+            result = summarize(text, hints=["John Smith", "county"], hint_focus=0.7).summary
+
+        See docs/REFERENCE.md "Hint biasing" for the full contract.
     """
     # Validate hint kwargs first (before any work).
     processed_hints = preprocess_hints(hints)

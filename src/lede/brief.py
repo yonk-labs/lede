@@ -96,10 +96,18 @@ def brief(
             when hint arguments are invalid (out of range, invalid mode).
 
     Hint biasing (v0.4):
-        ``hints``, ``hint_focus``, ``hint_mode`` are forwarded unchanged to the
-        internal ``summarize()``, ``key_facts()``, and ``phrases()`` calls. When
-        ``hints`` is None (the default), output is byte-identical to v0.3.0.
-        See ``lede.summarize`` for argument semantics.
+        ``hints``, ``hint_focus``, and ``hint_mode`` are forwarded unchanged to
+        the internal ``summarize()``, ``key_facts()``, and ``phrases()`` calls.
+        Each primitive applies its own budget split independently using the same
+        ``hint_focus`` value. When ``hints`` is None (the default), output is
+        byte-identical to v0.3.0.
+
+        Matching is case-insensitive and word-boundary-delimited; no Unicode
+        normalization or stemming in core. For lemma/synonym expansion, compose
+        with ``lede_spacy.expand_hints`` before calling ``brief()``.
+
+        See ``lede.summarize`` and docs/REFERENCE.md "Hint biasing" for full
+        argument semantics and validation rules.
 
     Notes on cross-runtime parity:
         Python's auto-detect (``convert_word_names=None``) is at import

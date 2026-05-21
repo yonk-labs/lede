@@ -97,22 +97,65 @@ def top_terms(
     hint_focus: float = 0.7,
     hint_mode: str = "soft",
 ) -> tuple[str, ...]:
-    """Return the top-N salient terms (words and/or phrases) from text.
+    """Return the top-N salient terms (words and/or phrases) from text (v0.4).
 
-    Composes single-word TF-IDF scores with multi-word phrase frequency
-    into a unified ranking. Each kind contributes candidates normalized
-    to a comparable score range; the top-N across all candidates is returned.
+    Composes single-word TF-IDF scores with multi-word phrase frequency into
+    a unified ranking. Each kind contributes candidates normalized to a
+    comparable [0, 1] score range; the top-N across all candidates is
+    returned in score-descending order.
+
+    **Word scoring** (``"words"`` kind): per-document TF-IDF, matching the
+    same formula as ``summarize()`` (IDF = log((n_sents+1)/(df+1))+1.0,
+    score = TF*IDF normalized by max). 3+ letter, non-stopword tokens only.
+
+    **Phrase scoring** (``"phrases"`` kind): candidates from the same repeated
+    n-gram extractor as ``extract.phrases()``; raw score = repetition_count ×
+    token_count, normalized by max.
+
+    When both kinds are requested (the default), phrase candidates can shadow
+    word candidates if they occupy the same token surface, because the merged
+    dict uses phrase-dict insertion order after word-dict.
 
     Args:
         text: input document text.
         n: cap on returned terms. Default 10.
-        kinds: tuple of "words" and/or "phrases". Default both.
-        hints: list[str] or dict[str, float]; optional hint bias (v0.4).
-        hint_focus: budget split in [0.0, 1.0]; default 0.7.
-        hint_mode: "soft" (default) or "hard".
+        kinds: which candidate pools to use. Any non-empty subset of
+            ``("words", "phrases")``. Default both. Order within the tuple
+            does not affect output — scoring and ranking are independent of
+            insertion order.
+        hints: optional list[str] or dict[str, float] of terms to bias
+            selection toward. List entries get weight 1.0. Default None.
+        hint_focus: accepted for API uniformity but has no behavioral effect
+            on this primitive; ``top_terms()`` does not apply a two-pool
+            budget split. Validated to be in [0.0, 1.0] when hints is not
+            None. Default 0.7.
+        hint_mode: ``"soft"`` (default) — adds ``hint_bonus`` to each
+            candidate's score before ranking, so hint-matching terms rank
+            higher. ``"hard"`` — only hint-matching candidates are kept
+            before ranking; non-matching candidates are discarded.
 
     Returns:
-        Tuple of top-N salient term strings, in score-descending order.
+        Tuple of top-N salient term strings in score-descending order.
+        Empty tuple when ``text`` is empty or no candidates survive the
+        ``kinds`` filters.
+
+    Raises:
+        ValueError: on unknown entry in ``kinds``, on ``hint_focus`` outside
+            [0.0, 1.0], or on unknown ``hint_mode``.
+
+    Hint biasing (v0.4):
+        When ``hints`` is None (the default), output is determined solely by
+        TF-IDF and phrase frequency. Matching is case-insensitive and
+        word-boundary-delimited (``\\b``); no Unicode normalization or
+        stemming. For lemma/synonym expansion compose with
+        ``lede_spacy.expand_hints`` before calling this function.
+
+        Note: ``hint_focus`` is validated but has no two-pool effect here
+        (unlike ``summarize()`` or ``key_facts()``). In soft mode, hints
+        raise candidate scores; in hard mode, non-matching candidates are
+        removed. Python-only for v0.4; Rust mirror deferred to v0.5.
+
+        See docs/REFERENCE.md "Hint biasing" for the full contract.
     """
     if not text:
         return ()

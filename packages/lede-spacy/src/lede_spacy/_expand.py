@@ -49,30 +49,87 @@ def expand_hints(
     top_k: int = 5,
     expand_weight: float = 0.5,
 ) -> list[str] | dict[str, float]:
-    """Expand hint terms for lede's hint biasing.
+    """Expand hint terms for lede's hint biasing (v0.4).
+
+    Augments the caller-supplied hints with related forms before passing
+    them to ``lede.summarize``, ``lede.brief``, or any ``lede.extract.*``
+    primitive. The original terms are always preserved at their full weight;
+    expansion terms are added alongside them.
 
     Args:
-        hints: list[str] or dict[str, float]. Hints to expand.
-        kinds: tuple of expansion kinds. Supported: "lemma", "synonyms", "similar".
-        top_k: cap on expansions per single-token hint (synonyms/similar).
-        expand_weight: dict-mode multiplier applied to expansion-term weights.
+        hints: list[str] or dict[str, float]. The original hints to expand.
+            Each string is treated independently; multi-token phrases are
+            passed whole to the lemmatizer but are skipped by the
+            synonyms/similar expanders (which are single-token-only).
+        kinds: tuple of expansion strategies to apply. Any non-empty subset
+            of ``("lemma", "synonyms", "similar")``. Default ``("lemma",)``.
+
+            - ``"lemma"`` — uses the loaded spaCy model's lemmatizer.
+              Requires any spaCy model (``en_core_web_sm`` or larger).
+              Multi-token phrases are lemmatized token-by-token and rejoined.
+              Example: ``"counties"`` → adds ``"county"``.
+
+            - ``"synonyms"`` — expands via WordNet synonyms (nltk).
+              Requires ``pip install lede-spacy[synonyms]`` (pulls ``nltk``
+              + the ``wordnet`` corpus). Single-token terms only; phrases
+              are skipped. Example: ``"county"`` → adds ``"region"``,
+              ``"district"``, etc. (up to ``top_k``).
+
+            - ``"similar"`` — expands via spaCy word-vector cosine
+              similarity. Requires a vector-capable model such as
+              ``en_core_web_md`` or ``en_core_web_lg`` (the default
+              ``en_core_web_sm`` has no vectors). Single-token terms only.
+              Returns the ``top_k`` most similar vocab entries by cosine.
+
+        top_k: maximum number of expansion terms added per single-token
+            hint for the ``"synonyms"`` and ``"similar"`` strategies.
+            Has no effect on ``"lemma"`` (which adds at most one form).
+            Default 5.
+        expand_weight: when ``hints`` is a dict, expansion terms are
+            assigned weight ``original_weight * expand_weight``. Original
+            terms keep their supplied weight unchanged. Default 0.5, meaning
+            expansion forms are half as strongly weighted as the originals.
+            Has no effect when ``hints`` is a list (all weights are 1.0 and
+            expansion terms are just appended without weights).
 
     Returns:
-        list[str] when input is list, dict[str, float] when input is dict.
+        - ``list[str]`` when ``hints`` is a list — original terms plus
+          expansion terms, casefold-deduped, original insertion order
+          preserved.
+        - ``dict[str, float]`` when ``hints`` is a dict — original terms
+          at their original weights plus expansion terms at
+          ``weight * expand_weight``. If an expansion term was already
+          present as an original, it keeps the higher of the two weights.
 
     Raises:
-        ValueError: on unknown kinds.
-        ImportError: when "synonyms" requested without lede-spacy[synonyms] installed.
-        RuntimeError: when "similar" requested without a vector-capable spaCy model.
+        ValueError: on unknown entry in ``kinds``.
+        ImportError: when ``"synonyms"`` is requested but
+            ``lede-spacy[synonyms]`` is not installed (``nltk`` missing or
+            the ``wordnet`` corpus not downloaded).
+        RuntimeError: when ``"similar"`` is requested but the loaded spaCy
+            model has no word vectors (e.g. ``en_core_web_sm``).
 
-    Example::
+    Example — compose with ``lede.summarize``::
 
         from lede import summarize
         from lede_spacy import expand_hints
 
+        # Lemma expansion: "counties" → ["counties", "county"]
         hints = expand_hints(["counties"], kinds=("lemma",))
-        # hints == ["counties", "county"]
-        result = summarize(text, hints=hints).summary
+        result = summarize(text, hints=hints, hint_focus=0.7).summary
+
+    Example — dict mode with weighted synonyms::
+
+        from lede_spacy import expand_hints
+
+        expanded = expand_hints(
+            {"county": 1.0, "sheriff": 1.0},
+            kinds=("lemma", "synonyms"),
+            top_k=3,
+            expand_weight=0.5,
+        )
+        # expanded == {"county": 1.0, "region": 0.5, "district": 0.5,
+        #              "sheriff": 1.0, ...}
     """
     is_dict = isinstance(hints, dict)
     if not hints:

@@ -66,11 +66,37 @@ def key_facts(
         text: input document text.
         max_facts: cap on number of returned sentences. Default 10.
         convert_word_names: forwarded to ``stats()``; requires the
-            'wordforms' extra when True.
+            ``[wordforms]`` extra when True.
+        hints: optional list[str] or dict[str, float] of terms to bias
+            selection toward. List entries get weight 1.0. Default None.
+        hint_focus: fraction of ``max_facts`` quota reserved for
+            hint-matching candidates. Range [0.0, 1.0]. Default 0.7.
+            Ignored when ``hints`` is None.
+        hint_mode: ``"soft"`` (default) or ``"hard"``. ``"soft"`` reorders
+            hint-bearing candidates to fill the hint quota first; ``"hard"``
+            restricts the hint pool to candidates that contain at least one
+            hint. Ignored when ``hints`` is None.
 
     Returns:
         Tuple of complete sentence strings (not ``Stat`` tuples). Empty
         tuple when no sentence contains a recognized fact.
+
+    Raises:
+        ValueError: on ``hint_focus`` outside [0.0, 1.0] or unknown
+            ``hint_mode``.
+
+    Hint biasing (v0.4):
+        When ``hints`` is None (the default), no new code path executes and
+        output is byte-identical to v0.3.0. The two-pool selection uses
+        ``max_facts`` as the count budget (not chars): ``hint_quota =
+        round(max_facts * hint_focus)``, ``normal_quota = max_facts -
+        hint_quota``. Deduplication by ``(stat_type, normalized_value)``
+        runs across both pools combined — a high-scoring hint-bearing
+        sentence can block a duplicate from appearing in the plain pool.
+
+        Matching is case-insensitive and word-boundary-delimited (``\\b``);
+        no Unicode normalization or stemming. See docs/REFERENCE.md "Hint
+        biasing" for the full contract.
     """
     if not text:
         return ()
