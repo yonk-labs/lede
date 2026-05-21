@@ -270,3 +270,14 @@ class TestSummarizeHints:
             hints={"john smith": 2.0, "county": 1.0},
         ).summary
         assert "John Smith" in result or "Cook County" in result
+
+
+class TestCoverageHints:
+    def test_coverage_accepts_hints(self):
+        result = summarize(
+            SAMPLE,
+            max_length=200,
+            mode="coverage",
+            hints=["county"],
+        ).summary
+        assert result  # non-empty

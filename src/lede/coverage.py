@@ -21,6 +21,26 @@ from lede.tfidf import _composite_score_parts
 _PARA_SPLIT_RE = re.compile(r"\n\s*\n+")
 
 
+def _composite_score_coverage_for_hints(sentences: list[str]) -> list[float]:
+    """Per-sentence coverage-mode scores for the hint two-pool path.
+
+    Returns the raw 60/25/15 composite (tfidf, position, length) per
+    sentence — the same base scores `summarize_coverage` computes
+    internally. Headings get `-inf` so the two-pool selector skips them.
+
+    Note: coverage mode's per-paragraph breadth guarantee is intentionally
+    NOT preserved when hints are used. The caller asked for hint-biased
+    selection; breadth is a secondary concern.
+    """
+    if not sentences:
+        return []
+    parts = _composite_score_parts(sentences)
+    return [
+        float("-inf") if is_heading(s) else (0.60 * t + 0.25 * p + 0.15 * l)
+        for (t, p, l), s in zip(parts, sentences)
+    ]
+
+
 def _split_paragraphs(text: str) -> list[str]:
     """Return paragraphs of at least 20 chars after strip."""
     return [p.strip() for p in _PARA_SPLIT_RE.split(text) if len(p.strip()) >= 20]
