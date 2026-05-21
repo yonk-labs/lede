@@ -42,7 +42,7 @@ pip install lede-spacy
 python -m spacy download en_core_web_sm
 ```
 
-The first command pulls `lede>=0.3.0` and `spacy>=3.8,<3.9`. The second
+The first command pulls `lede>=0.4.0` and `spacy>=3.8,<3.9`. The second
 pulls the ~50 MB model. PyPI doesn't allow direct-URL deps, so the model
 is a separate step — this is the convention spaCy itself uses.
 
@@ -128,7 +128,7 @@ etc.:
 3. Each registered fn accepts `(text: str, **opts)` and returns the
    same shape as the regex baseline (`Metadata`,
    `tuple[str, ...]`, `tuple[PhraseFact, ...]`).
-4. Ship as a separate distribution; depend on `lede>=0.3.0`.
+4. Ship as a separate distribution; depend on `lede>=0.4.0`.
 
 No coordination with lede core is required to add a new backend label.
 

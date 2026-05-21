@@ -7,8 +7,11 @@ config.
 
 ## Status
 
-`v0.3.0` (renamed from skimr; see CHANGELOG). All four CI workflows
-(`tests`, `zero-deps`, `rust`, `lede-spacy`) green on `main`.
+`v0.4.0` — hint-biased extraction across the five ranking primitives
++ a new `extract.top_terms` primitive + `lede_spacy.expand_hints()`
+companion. Backward-compatible (no hints = byte-identical to v0.3.0).
+All four CI workflows (`tests`, `zero-deps`, `rust`, `lede-spacy`)
+green on `main`.
 
 ## Authoritative docs in priority order
 
