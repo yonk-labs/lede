@@ -335,25 +335,55 @@ class TestPhrasesHints:
         with pytest.raises(ValueError, match="hint_focus"):
             phrases(PHRASE_SAMPLE, hints=["county"], hint_focus=2.0)
 
+    def test_hint_mode_invalid(self):
+        with pytest.raises(ValueError, match="hint_mode"):
+            phrases(PHRASE_SAMPLE, hints=["county"], hint_mode="medium")
+
 
 class TestCorrelateHints:
+    _CORRELATE_SAMPLE = (
+        "Cook County reported 5 percent growth. "
+        "Cook County board approved 5 percent budget increase. "
+        "Acme Corp earned 2 billion in Q3. "
+        "Acme Corp announced 2 billion revenue."
+    )
+
     def test_backward_compat(self):
         a = correlate_facts(PHRASE_SAMPLE)
         b = correlate_facts(PHRASE_SAMPLE, hints=None)
         assert a == b
 
-    def test_hard_filter_or_semantics(self):
-        # Match against entity OR number; "smith" hint should keep correlations
-        # whose entity contains "smith".
+    def test_hard_filter_or_semantics_entity(self):
+        # Hint matches the entity side of the correlation.
         out = correlate_facts(
-            PHRASE_SAMPLE,
-            hints=["smith"],
+            self._CORRELATE_SAMPLE,
+            hints=["county"],
             hint_focus=1.0,
             hint_mode="hard",
         )
+        # Sanity: implementation produces correlations on this sample.
+        assert len(out) > 0, "test fixture should produce correlations"
+        for pf in out:
+            assert "county" in pf.entity.lower(), \
+                f"LEAK: entity {pf.entity!r} doesn't contain hint"
+
+    def test_hard_filter_or_semantics_number(self):
+        # Hint matches the NUMBER side of the correlation — proves OR semantics.
+        out = correlate_facts(
+            self._CORRELATE_SAMPLE,
+            hints=["5"],
+            hint_focus=1.0,
+            hint_mode="hard",
+        )
+        assert len(out) > 0, "test fixture should produce '5' correlations"
         for pf in out:
             target = f"{pf.entity} {pf.number}".lower()
-            assert "smith" in target, f"non-matching fact leaked: {pf!r}"
+            assert "5" in target, \
+                f"LEAK: target {target!r} doesn't contain hint"
+
+    def test_hint_mode_invalid(self):
+        with pytest.raises(ValueError, match="hint_mode"):
+            correlate_facts(self._CORRELATE_SAMPLE, hints=["county"], hint_mode="medium")
 
 
 class TestKeyFactsHints:
