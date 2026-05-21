@@ -179,3 +179,90 @@ class TestSelectByCount:
         from lede._hints import select_by_count
         # ties broken by lower index first
         assert select_by_count([1.0, 1.0, 1.0], count=2, exclude=set()) == {0, 1}
+
+
+from lede import summarize
+
+
+SAMPLE = (
+    "The town council met on Tuesday. "
+    "John Smith presented his case to the assembly. "
+    "Smith argued for lower property taxes. "
+    "The council voted to defer the decision. "
+    "Cook County is the second-most populous county in Illinois. "
+    "Local farmers expressed concern about water rights. "
+    "The next meeting is scheduled for the third of next month. "
+    "John Smith lives in Cook County and runs a small business."
+)
+
+
+class TestSummarizeHints:
+    def test_backward_compat_no_hints(self):
+        # Same call as v0.3.0 — must produce identical output to the no-hint path.
+        a = summarize(SAMPLE, max_length=300).summary
+        b = summarize(SAMPLE, max_length=300, hints=None).summary
+        assert a == b
+
+    def test_hint_focus_zero_equals_no_hints(self):
+        a = summarize(SAMPLE, max_length=300).summary
+        b = summarize(SAMPLE, max_length=300, hints=["county"], hint_focus=0.0).summary
+        assert a == b
+
+    def test_soft_hints_lean_toward_matches(self):
+        # The hint sentence ("John Smith lives in Cook County...") should appear.
+        result = summarize(SAMPLE, max_length=200, hints=["john smith", "county"]).summary
+        assert "John Smith lives in Cook County" in result
+
+    def test_hard_full_focus_only_matching(self):
+        # hint_mode='hard' + hint_focus=1.0 — every selected sentence contains a hint.
+        result = summarize(
+            SAMPLE,
+            max_length=200,
+            hints=["smith"],
+            hint_focus=1.0,
+            hint_mode="hard",
+        ).summary
+        # Every retained sentence (split on '. ') should contain "Smith".
+        for sent in result.split(". "):
+            stripped = sent.strip(". ")
+            if stripped:
+                assert "smith" in stripped.lower()
+
+    def test_hard_mode_zero_matches_falls_back(self):
+        # Hint that matches nothing in HARD mode + focus=1.0 → falls back to truncation.
+        result = summarize(
+            SAMPLE,
+            max_length=200,
+            hints=["xyzzy"],
+            hint_focus=1.0,
+            hint_mode="hard",
+        ).summary
+        assert result  # not empty; truncation fallback
+
+    def test_legacy_mode_rejects_hints(self):
+        with pytest.raises(ValueError, match="hints not supported in legacy mode"):
+            summarize(SAMPLE, max_length=200, mode="legacy", hints=["smith"])
+
+    def test_hint_focus_out_of_range(self):
+        with pytest.raises(ValueError, match="hint_focus"):
+            summarize(SAMPLE, max_length=200, hints=["smith"], hint_focus=1.5)
+        with pytest.raises(ValueError, match="hint_focus"):
+            summarize(SAMPLE, max_length=200, hints=["smith"], hint_focus=-0.1)
+
+    def test_hint_mode_invalid(self):
+        with pytest.raises(ValueError, match="hint_mode"):
+            summarize(SAMPLE, max_length=200, hints=["smith"], hint_mode="medium")
+
+    def test_empty_hints_list_equals_none(self):
+        a = summarize(SAMPLE, max_length=300).summary
+        b = summarize(SAMPLE, max_length=300, hints=[]).summary
+        assert a == b
+
+    def test_dict_hints_apply_weights(self):
+        # Dict input with positive weights — must not raise; result should still mention hint.
+        result = summarize(
+            SAMPLE,
+            max_length=200,
+            hints={"john smith": 2.0, "county": 1.0},
+        ).summary
+        assert "John Smith" in result or "Cook County" in result

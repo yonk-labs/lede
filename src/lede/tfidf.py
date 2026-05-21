@@ -18,6 +18,12 @@ from collections import Counter
 from lede.sentences import split_sentences
 from lede._headings import is_heading, heading_name
 from lede._types import SummaryResult
+from lede._hints import (
+    preprocess_hints,
+    hint_bonus,
+    select_by_chars,
+    round_to_int,
+)
 
 _TFIDF_WEIGHT = 0.60
 _POSITION_WEIGHT = 0.25
@@ -293,6 +299,89 @@ def _summarize_legacy(text: str, max_length: int = 500) -> str:
     return separator.join(sentences[i] for i in selected)
 
 
+def _summarize_with_hints(
+    text: str,
+    max_length: int,
+    *,
+    mode: str,
+    hints: list[tuple[str, float]],
+    hint_focus: float,
+    hint_mode: str,
+) -> str:
+    """Two-pool selection: hint pool (bonus-augmented or hard-filtered) + plain pool."""
+    if not text:
+        return ""
+    if max_length < _MIN_BUDGET_FOR_SENTENCES:
+        return _truncate(text, max_length)
+
+    prepared = _separate_heading_lines(text)
+    sentences = split_sentences(prepared)
+    if len(sentences) < _MIN_SENTENCES:
+        if len(text) <= max_length:
+            return text
+        return _truncate(text, max_length)
+
+    section_map = _build_section_map(sentences)
+    if mode == "coverage":
+        from lede.coverage import _composite_score_coverage_for_hints  # added in T5
+        plain_scores = _composite_score_coverage_for_hints(sentences)
+    else:
+        plain_scores = _composite_score_default(sentences, section_map)
+
+    # Hint-pool scores. Soft = plain + bonus. Hard = -inf when no match.
+    bonuses = [hint_bonus(s, hints) for s in sentences]
+    if hint_mode == "hard":
+        hint_scores = [
+            (plain_scores[i] + bonuses[i]) if bonuses[i] > 0 else float("-inf")
+            for i in range(len(sentences))
+        ]
+    else:  # soft
+        hint_scores = [plain_scores[i] + bonuses[i] for i in range(len(sentences))]
+
+    lengths = [len(s) for s in sentences]
+    hint_budget = round_to_int(max_length, hint_focus)
+    normal_budget = max_length - hint_budget
+
+    selected_hint = select_by_chars(
+        hint_scores, lengths, budget=hint_budget, exclude=set()
+    )
+    selected_normal = select_by_chars(
+        plain_scores, lengths, budget=normal_budget, exclude=selected_hint
+    )
+
+    # Rollover: unused hint budget → plain pool.
+    # In hard mode, rollover still respects the hard filter (uses hint_scores so
+    # -inf sentences stay ineligible). In soft mode, plain_scores allow any sentence.
+    used_hint = sum(lengths[i] for i in selected_hint) + max(0, len(selected_hint) - 1)
+    unused_hint = hint_budget - used_hint
+    if unused_hint > 0:
+        rollover_scores = hint_scores if hint_mode == "hard" else plain_scores
+        extra = select_by_chars(
+            rollover_scores,
+            lengths,
+            budget=unused_hint,
+            exclude=selected_hint | selected_normal,
+        )
+        selected_normal |= extra
+
+    # Soft-only rollover: unused normal → hint pool.
+    used_normal = sum(lengths[i] for i in selected_normal) + max(0, len(selected_normal) - 1)
+    unused_normal = normal_budget - used_normal
+    if unused_normal > 0 and hint_mode == "soft":
+        extra = select_by_chars(
+            hint_scores,
+            lengths,
+            budget=unused_normal,
+            exclude=selected_hint | selected_normal,
+        )
+        selected_hint |= extra
+
+    selected = sorted(selected_hint | selected_normal)
+    if not selected:
+        return _truncate(text, max_length)
+    return " ".join(sentences[i] for i in selected)
+
+
 def _summarize_default(text: str, max_length: int = 500) -> str:
     """v0.2 default scorer — mirrors _summarize_legacy with the default scorer.
 
@@ -355,26 +444,53 @@ def summarize(
     *,
     mode: str = "default",
     attach: list[str] | tuple[str, ...] | None = None,
+    hints: list[str] | dict[str, float] | None = None,
+    hint_focus: float = 0.7,
+    hint_mode: str = "soft",
 ) -> SummaryResult:
-    """Extractive summary with configurable scoring mode.
+    """Extractive summary with configurable scoring mode and optional hints.
 
-    mode='default' (v0.2) applies the four scorer tweaks on top of the
-    legacy 60/25/15 composite.
+    Hint biasing (v0.4):
+        Pass `hints` to bias selection toward sentences mentioning specific
+        terms or phrases. Backward compatible: when `hints` is None (the
+        default), behavior is byte-identical to v0.3.0.
 
-    mode='legacy' preserves v0.0.1 behavior byte-identically.
+        - `hints` — list[str] or dict[str, float]. List entries get weight 1.0.
+        - `hint_focus` — budget split in [0.0, 1.0]. 0.7 default leans toward
+          hint pool; 0.0 ignores hints; 1.0 uses only the hint pool.
+        - `hint_mode` — "soft" (bonus ranking, no guarantee) or "hard" (only
+          hint-matching sentences eligible in the hint pool).
 
-    mode='coverage' is implemented in Task 3 (v0.2.0).
+        See docs/REFERENCE.md "Hint biasing" and
+        docs/superpowers/specs/2026-05-21-hints-design.md.
 
-    attach: iterable of enrichment names to attach to the result. Valid
-      names: 'stats', 'outline', 'metadata', 'phrases', 'correlated_facts'.
-      Unknown names raise ValueError. Stub primitives return empty
-      collections in v0.2 T4; real implementations land in T6-T11.
-
-    Returns SummaryResult; __str__ returns the summary text so print() and
-    f-strings continue to work. Callers needing raw str use .summary.
+    Raises:
+        ValueError on unknown mode, on legacy mode + hints, on hint_focus
+        outside [0.0, 1.0], on unknown hint_mode.
     """
-    if mode == "coverage":
-        from lede.coverage import summarize_coverage  # module lands in Task 3
+    # Validate hint kwargs first (before any work).
+    processed_hints = preprocess_hints(hints)
+    if processed_hints:
+        if not 0.0 <= hint_focus <= 1.0:
+            raise ValueError(
+                f"hint_focus must be in [0.0, 1.0]; got {hint_focus}"
+            )
+        if hint_mode not in ("soft", "hard"):
+            raise ValueError(
+                f"hint_mode must be 'soft' or 'hard'; got {hint_mode!r}"
+            )
+        if mode == "legacy":
+            raise ValueError("hints not supported in legacy mode")
+        summary_text = _summarize_with_hints(
+            text,
+            max_length=max_length,
+            mode=mode,
+            hints=processed_hints,
+            hint_focus=hint_focus,
+            hint_mode=hint_mode,
+        )
+    elif mode == "coverage":
+        from lede.coverage import summarize_coverage
         summary_text = summarize_coverage(text, max_length=max_length)
     elif mode == "legacy":
         summary_text = _summarize_legacy(text, max_length=max_length)
