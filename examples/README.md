@@ -22,6 +22,8 @@ cd lede
 | [`05_chunked_pipeline.py`](05_chunked_pipeline.py) | Recommended pattern for documents > 100 KB: paragraph-chunk → lede → reassemble. | none |
 | [`06_with_spacy_entities.py`](06_with_spacy_entities.py) | Optional `lede-spacy` companion — adds `Metadata.entities` (PERSON / ORG / GPE) via spaCy. | `pip install lede-spacy && python -m spacy download en_core_web_sm` |
 | [`07_wordforms_numbers.py`](07_wordforms_numbers.py) | Optional `[wordforms]` extra — `"five thousand documents"` surfaces as a `Stat`. | `pip install "lede[wordforms]"` |
+| [`08_hints.py`](08_hints.py) | v0.4 hints: bias summarize, brief, key_facts, and phrases toward specific terms. Demos soft vs. hard hint modes. | none |
+| [`09_top_terms.py`](09_top_terms.py) | v0.4 `extract.top_terms` primitive — return top-N salient single words and phrases, with optional hint-biased reranking. | none |
 
 ## Running
 
