@@ -37,8 +37,9 @@ def _expand_synonyms(term: str, *, top_k: int) -> list[str]:
 
 
 def _expand_similar(term: str, *, top_k: int) -> list[str]:
-    """Placeholder — T16 will implement via spaCy vectors."""
-    raise NotImplementedError("similar expansion lands in T16")
+    """Expand via spaCy word-vector similarity. Requires en_core_web_md or _lg."""
+    from ._similar import expand_similar
+    return expand_similar(_nlp(), term, top_k=top_k)
 
 
 def expand_hints(
@@ -62,7 +63,7 @@ def expand_hints(
     Raises:
         ValueError: on unknown kinds.
         ImportError: when "synonyms" requested without lede-spacy[synonyms] installed.
-        NotImplementedError: when "similar" requested (pending T16).
+        RuntimeError: when "similar" requested without a vector-capable spaCy model.
 
     Example::
 

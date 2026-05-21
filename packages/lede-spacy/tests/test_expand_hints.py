@@ -99,3 +99,33 @@ class TestSynonymExpansion:
         monkeypatch.setitem(sys.modules, "nltk", None)
         with pytest.raises(ImportError, match="lede-spacy\\[synonyms\\]"):
             expand_hints(["car"], kinds=("synonyms",))
+
+
+class TestSimilarExpansion:
+    def _has_vectors(self):
+        from lede_spacy._ner import _nlp
+        nlp = _nlp()
+        # spaCy stores vector size; 0 means no vectors loaded.
+        return nlp.vocab.vectors_length > 0
+
+    def test_similar_requires_vector_model(self):
+        from lede_spacy._ner import _nlp
+        nlp = _nlp()
+        if nlp.vocab.vectors_length > 0:
+            pytest.skip("model has vectors; cannot test the no-vectors error")
+        with pytest.raises(RuntimeError, match="en_core_web_md"):
+            expand_hints(["county"], kinds=("similar",))
+
+    def test_similar_with_vectors(self):
+        if not self._has_vectors():
+            pytest.skip("loaded spaCy model has no vectors (need en_core_web_md or _lg)")
+        out = expand_hints(["county"], kinds=("similar",), top_k=3)
+        assert "county" in out
+        assert len(out) > 1
+
+    def test_similar_multi_word_passthrough(self):
+        if not self._has_vectors():
+            pytest.skip("loaded spaCy model has no vectors")
+        out = expand_hints(["John Smith"], kinds=("similar",))
+        # Multi-word hints pass through unchanged for similar.
+        assert out == ["John Smith"]
