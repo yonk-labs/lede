@@ -127,6 +127,74 @@ TextRank skips the lede and goes straight to the analytical context. Better for 
 
 Captures the lede, the markets, the analyst split, and the political dimension in 500 chars. ~1.5–3 s of latency, ~$0.01 per call.
 
+## Example C — targeted question answering: John Smith's county
+
+A common RAG scenario: you have a document where one specific fact is buried
+in the body, and you want to surface it without paying for an LLM call.
+
+**Input**: a 6-sentence community newsletter. John Smith is mentioned once in
+sentence 3 alongside his county appointment; the rest of the text covers local
+events, funding votes, and library hours.
+
+**Without hints** (`summarize(text, max_length=300)`):
+
+> The Riverside Community Council voted 7–2 on Tuesday to approve a $1.2M
+> parks restoration grant for the Oak Hill district. The next regular meeting
+> is scheduled for June 14 at 6 pm in Council Chambers.
+
+The summary captures the highest-signal sentences (the vote + the meeting
+notice). The John Smith sentence doesn't clear the score threshold — it's
+a single-person name mention without a numeric signal.
+
+**With hints** (`summarize(text, hints=["John Smith", "county"], hint_focus=0.7)`):
+
+> The Riverside Community Council voted 7–2 on Tuesday to approve a $1.2M
+> parks restoration grant for the Oak Hill district. John Smith of Cook County
+> was appointed as the district's liaison to the state parks office.
+
+Ranking biases toward sentences containing the hint terms. The John Smith
+sentence now scores above the meeting-notice boilerplate. Same 300-char
+budget; different selection.
+
+**`hint_mode="hard"`** (`summarize(text, hints=["John Smith", "county"], hint_mode="hard")`):
+
+> John Smith of Cook County was appointed as the district's liaison to the
+> state parks office.
+
+Hard mode makes only hint-bearing sentences eligible. Useful when you want
+the answer sentence and nothing else.
+
+**Sumy/TextRank** (no hint support):
+
+> The Riverside Community Council voted 7–2 on Tuesday to approve a $1.2M
+> parks restoration grant for the Oak Hill district. The next regular meeting
+> is scheduled for June 14 at 6 pm in Council Chambers.
+
+Same as lede without hints — the top-scoring generic sentences. No way to
+steer toward a specific term short of pre-filtering the text yourself.
+
+**LLM prompt** (`"Which county does John Smith live in?"`):
+
+> John Smith lives in Cook County.
+
+The LLM answers precisely. But at ~$0.001–0.01/call and ~1–2 s of latency.
+For a pipeline that processes 10,000 newsletter chunks nightly, that's $10–100
+and 2–5 hours just for this field.
+
+**When to use which:**
+
+| Approach | Latency | Cost | Output |
+|---|---|---|---|
+| lede + hints (`soft`) | <1 ms | $0 | hint-biased extractive summary |
+| lede + hints (`hard`) | <1 ms | $0 | only hint-matching sentences |
+| Sumy/TextRank | ~12 ms | $0 | generic topical summary |
+| LLM | 1,000–5,000 ms | ~$0.001–0.05/doc | reasoned answer in prose |
+
+lede with hints gets you 80–90% of the way for question-answering queries
+that have a specific term anchor — free, deterministic, and fast enough for
+a hot ingestion path. Reach for the LLM when you need open-ended reasoning,
+multi-fact synthesis, or free-form phrasing you can't express as a hint list.
+
 ## Aggregate latency across the 10-corpus benchmark
 
 p50 ms, sorted ascending. From `benchmarks/quality/matrix-2026-04-26.md`:

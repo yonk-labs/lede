@@ -4,6 +4,8 @@ created: 2026-04-21
 status: draft — pending user review
 ---
 
+> See also: [v0.4 hint biasing design](superpowers/specs/2026-05-21-hints-design.md)
+
 ## TL;DR
 
 Evolve lede from a deterministic summarizer into a **RAG-prep primitive**: one call produces a summary PLUS a suite of structured enrichments (stats, outline, metadata, phrases, correlated facts) that ride along in a single pass. Optimized for pipelines where ingested text is summarized, embedded, and stored as a retrieval point — end-to-end budget under 250 ms per document. Shipped as a single big-bang v0.2.0 release with a new `lede.extract.*` namespace and an optional `lede[ner]` extra for named-entity recognition.
