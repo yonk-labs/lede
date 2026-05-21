@@ -79,6 +79,7 @@ fn key_facts_word_forms_when_enabled() {
         KeyFactsOptions {
             max_facts: 10,
             convert_word_names: true,
+            ..Default::default()
         },
     );
     assert!(out.iter().any(|s| s.contains("eight days")));
