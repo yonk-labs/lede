@@ -7,6 +7,7 @@ enrichment primitives. After import:
 """
 from lede.extract._backends import register
 from ._correlate import spacy_correlate_facts
+from ._expand import expand_hints
 from ._metadata import spacy_metadata
 from ._ner import extract_entities, warmup
 from ._phrases import spacy_phrases
@@ -18,6 +19,7 @@ register("spacy", "correlate_facts", spacy_correlate_facts)
 
 __version__ = "0.3.0"
 __all__ = [
+    "expand_hints",
     "extract_entities",
     "spacy_correlate_facts",
     "spacy_phrases",
