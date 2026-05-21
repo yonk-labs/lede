@@ -53,3 +53,49 @@ class TestLemmaExpansion:
         # Either "county" or "counties" should drive selection.
         low = result.lower()
         assert "county" in low or "counties" in low
+
+
+class TestSynonymExpansion:
+    def test_synonyms_for_car(self):
+        # Skip if nltk isn't installed in the current env.
+        pytest.importorskip("nltk")
+        out = expand_hints(["car"], kinds=("synonyms",), top_k=5)
+        # Original is preserved.
+        assert "car" in out
+        # WordNet has stable synonyms for "car" (auto, automobile, etc.).
+        assert len(out) > 1
+
+    def test_synonyms_dict_scales_weights(self):
+        pytest.importorskip("nltk")
+        out = expand_hints({"car": 2.0}, kinds=("synonyms",), top_k=5)
+        assert isinstance(out, dict)
+        assert out["car"] == 2.0
+        # Expansion terms get weight 0.5 * 2.0 = 1.0
+        for k, v in out.items():
+            if k != "car":
+                assert v == 1.0
+
+    def test_multi_word_synonyms_passthrough(self):
+        pytest.importorskip("nltk")
+        # WordNet has no entry for "John Smith"; the multi-token hint
+        # passes through unchanged.
+        out = expand_hints(["John Smith"], kinds=("synonyms",))
+        assert out == ["John Smith"]
+
+    def test_synonyms_combined_with_lemma(self):
+        pytest.importorskip("nltk")
+        # "cars" lemmatizes to "car"; WordNet has synonyms for "car".
+        out = expand_hints(["cars"], kinds=("lemma", "synonyms"), top_k=3)
+        # Original is present.
+        assert "cars" in out
+        # Lemma "car" is present.
+        assert "car" in out
+        # At least one synonym expansion came in.
+        assert len(out) > 2
+
+    def test_synonyms_missing_nltk_raises(self, monkeypatch):
+        # Force nltk to be unimportable in the function's namespace.
+        import sys
+        monkeypatch.setitem(sys.modules, "nltk", None)
+        with pytest.raises(ImportError, match="lede-spacy\\[synonyms\\]"):
+            expand_hints(["car"], kinds=("synonyms",))

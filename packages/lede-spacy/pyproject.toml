@@ -33,6 +33,7 @@ Issues = "https://github.com/yonk-labs/lede/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+synonyms = ["nltk>=3.8"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lede_spacy"]

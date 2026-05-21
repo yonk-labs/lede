@@ -31,14 +31,9 @@ def _expand_lemma(term: str) -> list[str]:
 
 
 def _expand_synonyms(term: str, *, top_k: int) -> list[str]:
-    """Placeholder — T15 will implement via WordNet.
-
-    Until T15, raise so callers see a clear error.
-    """
-    raise NotImplementedError(
-        "synonyms expansion lands in T15. "
-        "Install with: pip install lede-spacy[synonyms]"
-    )
+    """Expand via WordNet synonyms. Requires lede-spacy[synonyms]."""
+    from ._synonyms import expand_synonyms
+    return expand_synonyms(term, top_k=top_k)
 
 
 def _expand_similar(term: str, *, top_k: int) -> list[str]:
@@ -66,7 +61,8 @@ def expand_hints(
 
     Raises:
         ValueError: on unknown kinds.
-        NotImplementedError: when "synonyms" or "similar" requested (pending T15/T16).
+        ImportError: when "synonyms" requested without lede-spacy[synonyms] installed.
+        NotImplementedError: when "similar" requested (pending T16).
 
     Example::
 
