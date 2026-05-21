@@ -253,6 +253,10 @@ class TestSummarizeHints:
         with pytest.raises(ValueError, match="hint_mode"):
             summarize(SAMPLE, max_length=200, hints=["smith"], hint_mode="medium")
 
+    def test_unknown_mode_raises_even_with_hints(self):
+        with pytest.raises(ValueError, match="unknown mode"):
+            summarize(SAMPLE, max_length=200, mode="foobar", hints=["smith"])
+
     def test_empty_hints_list_equals_none(self):
         a = summarize(SAMPLE, max_length=300).summary
         b = summarize(SAMPLE, max_length=300, hints=[]).summary

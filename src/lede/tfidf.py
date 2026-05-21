@@ -471,6 +471,8 @@ def summarize(
     # Validate hint kwargs first (before any work).
     processed_hints = preprocess_hints(hints)
     if processed_hints:
+        if mode not in ("default", "coverage", "legacy"):
+            raise ValueError(f"unknown mode: {mode!r}")
         if not 0.0 <= hint_focus <= 1.0:
             raise ValueError(
                 f"hint_focus must be in [0.0, 1.0]; got {hint_focus}"
