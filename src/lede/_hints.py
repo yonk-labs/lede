@@ -7,6 +7,7 @@ Must remain byte-identical to rust/src/hints.rs.
 """
 from __future__ import annotations
 
+import math
 import re
 from typing import Iterable
 
@@ -97,3 +98,63 @@ def hint_bonus(sentence: str, hints: list[tuple[str, float]]) -> float:
         capped = count if count < _HINT_MATCH_CAP else _HINT_MATCH_CAP
         total += capped * weight * _HINT_BASE_WEIGHT
     return total
+
+
+def _rank_indices(scores: list[float]) -> list[int]:
+    """Sort indices by (-score, original_index). Deterministic."""
+    return sorted(range(len(scores)), key=lambda i: (-scores[i], i))
+
+
+def select_by_chars(
+    scores: list[float],
+    lengths: list[int],
+    *,
+    budget: int,
+    exclude: set[int],
+    separator_len: int = 1,
+) -> set[int]:
+    """Greedy char-budget selector.
+
+    Picks indices in score-descending order (position tiebreak) until
+    the budget can't fit another sentence. Skips `exclude`. Treats
+    -inf scores as ineligible.
+    """
+    if budget <= 0:
+        return set()
+    chosen: set[int] = set()
+    used = 0
+    for idx in _rank_indices(scores):
+        if idx in exclude:
+            continue
+        if scores[idx] == -math.inf:
+            continue
+        needed = lengths[idx] + (separator_len if chosen else 0)
+        if used + needed <= budget:
+            chosen.add(idx)
+            used += needed
+    return chosen
+
+
+def select_by_count(
+    scores: list[float],
+    *,
+    count: int,
+    exclude: set[int],
+) -> set[int]:
+    """Top-N count-budget selector for primitives like key_facts/phrases.
+
+    Same ranking as `select_by_chars`. Stops after `count` selections.
+    Treats -inf as ineligible.
+    """
+    if count <= 0:
+        return set()
+    chosen: set[int] = set()
+    for idx in _rank_indices(scores):
+        if idx in exclude:
+            continue
+        if scores[idx] == -math.inf:
+            continue
+        chosen.add(idx)
+        if len(chosen) >= count:
+            break
+    return chosen

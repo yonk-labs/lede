@@ -119,3 +119,63 @@ class TestHintBonus:
         # total = 1.0
         s = "Smith lives in Cook County"
         assert hint_bonus(s, [("smith", 1.0), ("county", 1.0)]) == 1.0
+
+
+class TestSelectByChars:
+    def test_simple_budget(self):
+        from lede._hints import select_by_chars
+        # Sentences: index 0 score 1.0 (10 chars), index 1 score 2.0 (20 chars)
+        scores = [1.0, 2.0]
+        lengths = [10, 20]
+        # Budget 25 — both fit (20 + 10 = 30 > 25; pick higher-score 20 first, then 10? No: 20+10=30 doesn't fit)
+        # 20 first (score 2.0), then check 10 (score 1.0): used=20, separator=1, 20+1+10=31 > 25. Skip.
+        assert select_by_chars(scores, lengths, budget=25, exclude=set()) == {1}
+
+    def test_separator_accounted(self):
+        from lede._hints import select_by_chars
+        scores = [1.0, 0.9, 0.8]
+        lengths = [10, 10, 10]
+        # budget 22: first pick 10 (used=10), second 10+1=11 fits (used=21), third needs 10+1=11 → 32>22
+        assert select_by_chars(scores, lengths, budget=22, exclude=set()) == {0, 1}
+
+    def test_excludes_skipped(self):
+        from lede._hints import select_by_chars
+        scores = [2.0, 1.0]
+        lengths = [10, 10]
+        assert select_by_chars(scores, lengths, budget=20, exclude={0}) == {1}
+
+    def test_zero_budget_returns_empty(self):
+        from lede._hints import select_by_chars
+        assert select_by_chars([1.0], [10], budget=0, exclude=set()) == set()
+
+    def test_negative_infinity_score_skipped(self):
+        from lede._hints import select_by_chars
+        scores = [float("-inf"), 1.0]
+        lengths = [10, 10]
+        assert select_by_chars(scores, lengths, budget=50, exclude=set()) == {1}
+
+
+class TestSelectByCount:
+    def test_simple_topn(self):
+        from lede._hints import select_by_count
+        scores = [0.5, 1.0, 0.3, 0.9]
+        assert select_by_count(scores, count=2, exclude=set()) == {1, 3}
+
+    def test_excludes_skipped(self):
+        from lede._hints import select_by_count
+        scores = [2.0, 1.0, 0.5]
+        assert select_by_count(scores, count=2, exclude={0}) == {1, 2}
+
+    def test_zero_count(self):
+        from lede._hints import select_by_count
+        assert select_by_count([1.0, 2.0], count=0, exclude=set()) == set()
+
+    def test_negative_infinity_score_skipped(self):
+        from lede._hints import select_by_count
+        scores = [float("-inf"), 1.0]
+        assert select_by_count(scores, count=2, exclude=set()) == {1}
+
+    def test_position_tiebreak(self):
+        from lede._hints import select_by_count
+        # ties broken by lower index first
+        assert select_by_count([1.0, 1.0, 1.0], count=2, exclude=set()) == {0, 1}
