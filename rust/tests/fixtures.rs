@@ -227,3 +227,107 @@ fn first_diff_line(expected: &str, actual: &str) -> String {
         )
     }
 }
+
+// ----------------------------------------------------------------------------
+// v0.4 hints parity walker (T13)
+//
+// Layout: fixtures/v0_4_hints/<corpus>__<case>/{input.txt, args.json, expected.txt}
+// args.json encodes: max_length, mode, hint_focus, hint_mode, hints (list|dict|null).
+// The walker runs lede::tfidf::summarize_with_hints with the configured
+// parameters and byte-compares against expected.txt (canonical Python output).
+//
+// Any mismatch is a real Python ↔ Rust parity failure — do NOT modify the
+// implementation to make this test pass; fix the Rust implementation instead.
+
+#[test]
+fn v0_4_hints_byte_identical() {
+    use lede::Mode;
+    use lede::hints::{HintMode, HintWeight};
+    use lede::tfidf::{SummarizeOpts, summarize_with_hints};
+    use serde_json::Value;
+    use std::fs;
+
+    let dir = fixtures_root().join("v0_4_hints");
+    assert!(
+        dir.is_dir(),
+        "missing fixtures directory: {}",
+        dir.display()
+    );
+
+    let mut fixture_dirs: Vec<_> = fs::read_dir(&dir)
+        .expect("read v0_4_hints dir")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .filter(|p| p.is_dir())
+        .collect();
+    fixture_dirs.sort();
+    assert!(
+        !fixture_dirs.is_empty(),
+        "no fixture subdirectories in {}",
+        dir.display()
+    );
+
+    let mut failures = Vec::new();
+    for fixture in &fixture_dirs {
+        let text = fs::read_to_string(fixture.join("input.txt")).expect("input.txt");
+        let args_raw = fs::read_to_string(fixture.join("args.json")).expect("args.json");
+        let expected = fs::read_to_string(fixture.join("expected.txt")).expect("expected.txt");
+        let args: Value = serde_json::from_str(&args_raw).expect("parse args.json");
+
+        let max_length = args["max_length"].as_u64().expect("max_length") as usize;
+        let mode = match args["mode"].as_str().unwrap_or("default") {
+            "coverage" => Mode::Coverage,
+            "legacy" => Mode::Legacy,
+            _ => Mode::Default,
+        };
+        let hint_focus = args["hint_focus"].as_f64().unwrap_or(0.7);
+        let hint_mode = match args["hint_mode"].as_str().unwrap_or("soft") {
+            "hard" => HintMode::Hard,
+            _ => HintMode::Soft,
+        };
+        let hints: Vec<HintWeight> = match &args["hints"] {
+            Value::Null => vec![],
+            Value::Array(arr) => arr
+                .iter()
+                .filter_map(|v| v.as_str().map(|s| (s.to_string(), 1.0_f64)))
+                .collect(),
+            Value::Object(map) => map
+                .iter()
+                .filter_map(|(k, v)| v.as_f64().map(|w| (k.clone(), w)))
+                .collect(),
+            other => panic!(
+                "unsupported hints shape in {}: {other:?}",
+                fixture.display()
+            ),
+        };
+
+        let opts = SummarizeOpts {
+            hints,
+            hint_focus,
+            hint_mode,
+        };
+        let actual = summarize_with_hints(&text, max_length, mode, &opts).summary;
+
+        if actual.as_bytes() != expected.as_bytes() {
+            failures.push(format!(
+                "{}: bytes differ\n  expected ({} bytes): {:?}\n  actual   ({} bytes): {:?}",
+                fixture
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("<?>"),
+                expected.len(),
+                expected,
+                actual.len(),
+                actual,
+            ));
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "v0_4_hints parity walker FAILED ({} mismatches of {}):\n\n{}",
+        failures.len(),
+        fixture_dirs.len(),
+        failures.join("\n\n")
+    );
+}
