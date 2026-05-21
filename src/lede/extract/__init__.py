@@ -22,6 +22,7 @@ from .metadata import metadata
 from .phrases import phrases
 from .correlate import correlate_facts
 from .key_facts import key_facts
+from .top_terms import top_terms
 
 # Optional backend: YAKE ('yake','phrases'). Self-registers when the yake
 # package is installed; otherwise silently skipped so default deps stay zero.
@@ -33,5 +34,5 @@ except ImportError:
 __all__ = [
     "Stat", "Section", "Metadata", "PhraseFact",
     "stats", "outline", "toc", "metadata", "phrases", "correlate_facts",
-    "key_facts",
+    "key_facts", "top_terms",
 ]
