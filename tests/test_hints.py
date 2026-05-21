@@ -443,3 +443,38 @@ class TestKeyFactsHints:
         # Sanity: the Smith-bearing fact should be present.
         assert any("smith" in f.lower() for f in facts), \
             "expected at least one Smith-bearing fact"
+
+
+from lede import brief
+
+
+class TestBriefHints:
+    def test_backward_compat_no_hints(self):
+        a = brief(SAMPLE, overview_max=0.4, max_facts=5)
+        b = brief(SAMPLE, overview_max=0.4, max_facts=5, hints=None)
+        assert a == b
+
+    def test_dict_format_with_hints(self):
+        result = brief(
+            SAMPLE,
+            overview_max=0.4,
+            max_facts=5,
+            hints=["county"],
+            format="dict",
+        )
+        assert isinstance(result, dict)
+        assert "overview" in result and "key_facts" in result
+
+    def test_hints_forwarded_to_overview(self):
+        result = brief(
+            SAMPLE,
+            overview_max=0.5,
+            max_facts=5,
+            hints=["john smith", "county"],
+            hint_focus=1.0,
+            hint_mode="soft",
+            format="dict",
+        )
+        # Overview should mention at least one hint.
+        text = result["overview"].lower()
+        assert "smith" in text or "county" in text

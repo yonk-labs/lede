@@ -46,6 +46,9 @@ def brief(
     include_phrases: bool = False,
     convert_word_names: bool | None = None,
     format: str = "string",
+    hints: list[str] | dict[str, float] | None = None,
+    hint_focus: float = 0.7,
+    hint_mode: str = "soft",
 ) -> str | dict:
     """Produce an at-a-glance brief of a document.
 
@@ -74,13 +77,29 @@ def brief(
             - ``"string"`` (default) — plain text with section labels.
             - ``"markdown"`` — ``##`` headers + bullet lists.
             - ``"dict"`` — structured dict with overview/key_facts/toc/phrases.
+        hints: optional list or dict of keywords to bias toward in the overview,
+            key facts, and phrases sections. When a list, each hint is weighted 1.0.
+            When a dict, keys are hints and values are numeric weights. Default None.
+        hint_focus: fraction of each primitive's budget reserved for hint-matching
+            content. Range [0.0, 1.0]. Default 0.7. Forwarded to summarize(),
+            key_facts(), and phrases().
+        hint_mode: biasing strategy. One of ``"soft"`` (default, reorder and score)
+            or ``"hard"`` (only hint-matching content up to the quota). Forwarded
+            to summarize(), key_facts(), and phrases().
 
     Returns:
         ``str`` for ``"string"`` / ``"markdown"`` formats, ``dict`` for
         ``"dict"`` format.
 
     Raises:
-        ValueError: when ``format`` is not one of the three supported values.
+        ValueError: when ``format`` is not one of the three supported values, or
+            when hint arguments are invalid (out of range, invalid mode).
+
+    Hint biasing (v0.4):
+        ``hints``, ``hint_focus``, ``hint_mode`` are forwarded unchanged to the
+        internal ``summarize()``, ``key_facts()``, and ``phrases()`` calls. When
+        ``hints`` is None (the default), output is byte-identical to v0.3.0.
+        See ``lede.summarize`` for argument semantics.
 
     Notes on cross-runtime parity:
         Python's auto-detect (``convert_word_names=None``) is at import
@@ -97,7 +116,13 @@ def brief(
     budget = int(len(text) * overview_max)
     budget = max(_OVERVIEW_MIN_CHARS, min(_OVERVIEW_MAX_CHARS, budget))
 
-    overview_result = summarize(text, max_length=budget)
+    overview_result = summarize(
+        text,
+        max_length=budget,
+        hints=hints,
+        hint_focus=hint_focus,
+        hint_mode=hint_mode,
+    )
     overview_text = overview_result.summary.rstrip()
 
     use_wordforms = _HAS_WORDFORMS if convert_word_names is None else convert_word_names
@@ -105,11 +130,18 @@ def brief(
         text,
         max_facts=max_facts,
         convert_word_names=use_wordforms,
+        hints=hints,
+        hint_focus=hint_focus,
+        hint_mode=hint_mode,
     )
 
     sections = toc(text)
 
-    phrases_list: tuple[str, ...] = phrases(text) if include_phrases else ()
+    phrases_list: tuple[str, ...] = (
+        phrases(text, hints=hints, hint_focus=hint_focus, hint_mode=hint_mode)
+        if include_phrases
+        else ()
+    )
 
     if format == "dict":
         return {
