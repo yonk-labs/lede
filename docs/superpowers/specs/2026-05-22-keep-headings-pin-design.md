@@ -1,8 +1,8 @@
-# Optional heading & pin retention in `summarize` (v0.5)
+# Optional heading & pin retention in `summarize` (v0.4.2)
 
 **Status:** design approved, awaiting implementation plan
 **Date:** 2026-05-22
-**Target version:** 0.5.0
+**Target version:** 0.4.2
 **Affected surfaces:** `lede` core (Python + Rust)
 
 ---
@@ -44,7 +44,7 @@ Pinning is 100% optional. This is non-negotiable.
 
 ## 3. Scope
 
-### In scope (v0.5)
+### In scope (v0.4.2)
 
 Three new keyword-only kwargs on `lede.summarize`:
 
@@ -68,7 +68,7 @@ Rust mirror in `rust/src/tfidf.rs`, reusing `rust/src/headings.rs`
 `benchmarks/gen_parity_fixtures.py`; the fixture walker enforces
 byte-identical output on the opted-in path.
 
-### Not in scope (v0.5)
+### Not in scope (v0.4.2)
 
 - A separate `keep_title` kwarg. The title is the depth-1 heading and
   is folded into `keep_headings` (decision 4.1).
