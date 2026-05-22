@@ -167,3 +167,9 @@ def test_keep_headings_works_in_coverage_mode():
     r = summarize(_DOC, max_length=200, mode="coverage", keep_headings=True)
     assert r.summary.startswith("# Quarterly Report")
     assert "# Quarterly Report" in r.pinned_headings
+
+
+def test_keep_headings_composes_with_hints():
+    r = summarize(_DOC, max_length=200, hints=["revenue"], keep_headings=True)
+    assert r.summary.startswith("# Quarterly Report")
+    assert "## Revenue" in r.pinned_headings

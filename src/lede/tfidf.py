@@ -301,7 +301,7 @@ def _summarize_legacy(text: str, max_length: int = 500) -> str:
     return separator.join(sentences[i] for i in selected)
 
 
-def _summarize_with_hints(
+def _select_with_hints(
     text: str,
     max_length: int,
     *,
@@ -309,19 +309,18 @@ def _summarize_with_hints(
     hints: list[tuple[str, float]],
     hint_focus: float,
     hint_mode: str,
-) -> str:
-    """Two-pool selection: hint pool (bonus-augmented or hard-filtered) + plain pool."""
+) -> tuple[list[str], list[int]] | None:
+    """Two-pool hint selection returning (sentences, selected_sorted), or
+    None for early-return / empty-selection paths."""
     if not text:
-        return ""
+        return None
     if max_length < _MIN_BUDGET_FOR_SENTENCES:
-        return _truncate(text, max_length)
+        return None
 
     prepared = _separate_heading_lines(text)
     sentences = split_sentences(prepared)
     if len(sentences) < _MIN_SENTENCES:
-        if len(text) <= max_length:
-            return text
-        return _truncate(text, max_length)
+        return None
 
     section_map = _build_section_map(sentences)
     if mode == "coverage":
@@ -380,7 +379,35 @@ def _summarize_with_hints(
 
     selected = sorted(selected_hint | selected_normal)
     if not selected:
+        return None
+    return sentences, selected
+
+
+def _summarize_with_hints(
+    text: str,
+    max_length: int,
+    *,
+    mode: str,
+    hints: list[tuple[str, float]],
+    hint_focus: float,
+    hint_mode: str,
+) -> str:
+    """Two-pool selection: hint pool (bonus-augmented or hard-filtered) + plain pool."""
+    if not text:
+        return ""
+    if max_length < _MIN_BUDGET_FOR_SENTENCES:
         return _truncate(text, max_length)
+    sel = _select_with_hints(
+        text, max_length, mode=mode, hints=hints,
+        hint_focus=hint_focus, hint_mode=hint_mode,
+    )
+    if sel is None:
+        prepared = _separate_heading_lines(text)
+        sentences = split_sentences(prepared)
+        if len(sentences) < _MIN_SENTENCES and len(text) <= max_length:
+            return text
+        return _truncate(text, max_length)
+    sentences, selected = sel
     return " ".join(sentences[i] for i in selected)
 
 
@@ -434,7 +461,10 @@ def _select_for_mode(
     Slice 1 implements default mode; coverage and hints land in a later
     task (they return None here, making keep_headings a safe no-op)."""
     if processed_hints:
-        return None
+        return _select_with_hints(
+            text, max_length, mode=mode, hints=processed_hints,
+            hint_focus=hint_focus, hint_mode=hint_mode,
+        )
     if mode == "coverage":
         from lede.coverage import select_coverage_indices
         return select_coverage_indices(text, max_length)
