@@ -12,6 +12,7 @@ pub mod headings;
 pub mod hints;
 pub mod keyword;
 pub mod parity;
+pub mod pins;
 pub mod sentences;
 pub mod tfidf;
 pub mod types;

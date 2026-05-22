@@ -544,6 +544,7 @@ pub fn summarize_with_attach(
         } else {
             None
         },
+        pinned_headings: Vec::new(),
     }
 }
 
