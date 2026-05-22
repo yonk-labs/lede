@@ -6,6 +6,8 @@ heading detection. The Rust mirror is rust/src/pins.rs.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from lede._headings import is_structural_heading, heading_name, md_depth
 
 
@@ -47,3 +49,68 @@ def render_toc(text: str) -> str:
         indent = "  " * max(0, section.depth - 1)
         lines.append(f"{indent}{section.name}")
     return "\n".join(lines)
+
+
+def render_with_pins(
+    sentences: list[str],
+    selected: list[int],
+    *,
+    keep_headings: bool,
+    include_toc: bool,
+    pin: Sequence[str] | None,
+    text: str,
+) -> tuple[str, tuple[str, ...]]:
+    """Weave pinned content around the extractive body.
+
+    Returns (output_string, pinned_headings). `selected` must be sorted
+    ascending. Headings interleave in document order; the title (if any)
+    is pinned at the top; `pin` lines and the TOC prepend as blocks in
+    the order pin -> toc -> body. Deterministic: dedup preserves first
+    occurrence; no ordering depends on hashing or locale."""
+    pinned_headings: list[str] = []
+
+    if keep_headings:
+        heading_of = nearest_heading_map(sentences)
+        title_idx = document_title_index(sentences)
+        emitted: set[int] = set()
+        out_lines: list[str] = []
+        buf: list[str] = []
+
+        def flush() -> None:
+            if buf:
+                out_lines.append(" ".join(buf))
+                buf.clear()
+
+        if title_idx is not None:
+            out_lines.append(sentences[title_idx])
+            emitted.add(title_idx)
+            pinned_headings.append(sentences[title_idx])
+
+        for s_idx in selected:
+            h = heading_of[s_idx]
+            if h is not None and h not in emitted:
+                flush()
+                out_lines.append(sentences[h])
+                emitted.add(h)
+                pinned_headings.append(sentences[h])
+            buf.append(sentences[s_idx])
+        flush()
+
+        if pinned_headings:
+            body = "\n".join(out_lines)
+        else:
+            # No headings pinned: byte-identical to the plain scorer.
+            body = " ".join(sentences[i] for i in selected)
+    else:
+        body = " ".join(sentences[i] for i in selected)
+
+    blocks: list[str] = []
+    if pin:
+        blocks.append("\n".join(pin))
+    if include_toc:
+        toc_text = render_toc(text)
+        if toc_text:
+            blocks.append(toc_text)
+    blocks.append(body)
+    output = "\n\n".join(b for b in blocks if b)
+    return output, tuple(pinned_headings)
