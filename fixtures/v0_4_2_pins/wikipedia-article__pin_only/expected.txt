@@ -1,0 +1,4 @@
+PINNED A
+PINNED B
+
+The curse of dimensionality was first described rigorously in the context of numerical analysis by Richard Bellman in the 1950s. Recent work has shown that carefully tuned HNSW and IVF-PQ indexes can achieve 95 percent recall at over fifty thousand queries per second on commodity hardware.

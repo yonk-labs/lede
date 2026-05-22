@@ -1,0 +1,4 @@
+Privacy Policy — Effective Date: 2026-01-01
+This privacy policy describes how Acme Cloud Platform, Inc. collects, uses, shares, and protects information about the individuals who use our services.
+Information We Collect
+This includes your name, email address, billing address, payment method details, and any content you upload to our storage buckets.

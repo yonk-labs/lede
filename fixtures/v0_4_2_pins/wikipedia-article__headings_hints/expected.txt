@@ -1,0 +1,4 @@
+Performance
+Recent work has shown that carefully tuned HNSW and IVF-PQ indexes can achieve 95 percent recall at over fifty thousand queries per second on commodity hardware.
+Applications
+ANN search is used in reverse image search, deduplication, and content moderation.

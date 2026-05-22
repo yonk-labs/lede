@@ -1,0 +1,6 @@
+## Design: Async Event Pipeline v2
+It now accounts for 40 percent of our infrastructure bill and is the top source of on-call pages.
+### Goals
+First, decouple the ingest path from the processing path so a downstream slowdown cannot block intake.
+### Proposed architecture
+Events enter through a single HTTPS endpoint fronted by our standard API gateway.

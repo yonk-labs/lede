@@ -1,0 +1,6 @@
+## Technical Deep-Dive: Johnson Education Co
+Detailed walkthrough of our Proxy capabilities with Johnson Education Co's engineering and business teams.
+### Call Summary
+Main focus was understanding how our Proxy handles data management challenges across their existing fleet.
+### Technical Concerns
+Their SRE team uses Prometheus and they expect first-class metrics.

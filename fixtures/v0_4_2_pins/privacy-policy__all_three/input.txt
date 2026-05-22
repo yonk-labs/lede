@@ -1,0 +1,31 @@
+Privacy Policy — Effective Date: 2026-01-01
+
+This privacy policy describes how Acme Cloud Platform, Inc. collects, uses, shares, and protects information about the individuals who use our services.
+
+1. Information We Collect
+
+We collect information you provide directly to us, such as when you create an account, configure a project, or contact support. This includes your name, email address, billing address, payment method details, and any content you upload to our storage buckets. We also collect information automatically when you use the service, including IP address, browser type, operating system, pages visited, referrer URLs, and timestamps of requests.
+
+2. How We Use Information
+
+We use the information we collect to provide and improve the service, to process transactions, to send service-related notifications, to prevent fraud, and to comply with legal obligations. We may use aggregated and anonymized information for research, analytics, and product development purposes.
+
+3. Information Sharing
+
+We do not sell your personal information. We share information only with service providers acting on our behalf (for example, payment processors, email delivery providers, and customer support tooling vendors), when required by law or valid legal process, when necessary to protect the rights, property, or safety of our users or the public, and in connection with a merger, acquisition, or sale of assets, subject to confidentiality commitments.
+
+4. Data Retention
+
+Account and billing records are retained for seven years after account closure to comply with tax and audit obligations. Usage logs are retained for thirteen months and then deleted. Content you upload to your storage buckets is retained until you delete it; upon account closure we delete bucket contents within thirty days unless you provide a written request to extend.
+
+5. Your Rights
+
+Depending on your jurisdiction, you may have the right to access the personal information we hold about you, to correct inaccuracies, to request deletion, to object to certain processing, and to request that we transfer your data to another provider in a machine-readable format. Residents of the European Union and United Kingdom may exercise these rights under the General Data Protection Regulation and the UK GDPR. Residents of California may exercise these rights under the California Consumer Privacy Act. To exercise any of these rights, contact privacy@acmecloud.example.
+
+6. International Transfers
+
+We operate data centers in the United States and the European Union. Personal information collected in the EU is stored on EU infrastructure by default and is only transferred outside the EU under Standard Contractual Clauses approved by the European Commission.
+
+7. Changes to This Policy
+
+We may update this policy from time to time. Material changes will be announced by email to the account owner at least thirty days before the change takes effect.

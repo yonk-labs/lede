@@ -1,0 +1,20 @@
+Ticket #44812 — Ingest job hangs after upgrade to chunkshop 0.2.0
+Reporter: jamie.l@acme.example
+Priority: P2
+
+Original message:
+We upgraded chunkshop from 0.1.6 to 0.2.0 last Friday and since then our nightly ingest job has been hanging indefinitely on the step between chunking and embedding. No error in stdout. Job just sits there. Running under python 3.12 on ubuntu 22.04, pgvector 0.7. YAML config and logs attached. Tried reverting to 0.1.6 and the job completes in 22 minutes as usual. Something in 0.2.0 broke us.
+
+Reply from support (Kai T., day 1):
+Thanks Jamie. From your logs I can see chunkshop finishes chunking at line 4812 and never emits the "embedder start" line. In 0.2.0 we switched the default embedder from fastembed-onnx-fp32 to fastembed-onnx-int8 to reduce memory pressure. On first run with the new default, the int8 model weights download from HuggingFace cache. If your ingest box has no outbound internet during nightly windows — a common setup for air-gapped batch nodes — the download hangs on the socket. Could you confirm whether your batch box has egress to huggingface.co during the nightly window?
+
+Reply from reporter (day 1):
+You nailed it. The ingest box is firewalled. Daytime ops boxes have egress but nightly batch nodes do not. I didn't realize the embedder was reaching out to the internet.
+
+Reply from support (Kai T., day 2):
+Two options. Short term: add EMBEDDING_CACHE_DIR to your YAML pointing at a shared NFS path, run the model once on a box with egress, and the batch node will read from cache. Long term: set embedder.precision to fp32 in the YAML to pin to the model weights you already have downloaded from 0.1.6, or set embedder.allow_download to false to surface a fast failure instead of a silent hang.
+
+Reply from reporter (day 3):
+Thanks. Pinned precision to fp32 for now, set allow_download to false, and opened an internal ticket with our SRE team to pre-seed the int8 model onto the shared cache so we can take advantage of the memory savings next week. Job completed overnight in 19 minutes. Closing this ticket.
+
+Resolution: Caused by default embedder precision change in 0.2.0 triggering a HuggingFace model download on a network-restricted batch node. Mitigated by pinning embedder.precision=fp32 and setting allow_download=false in the YAML. Customer pre-seeding int8 weights on shared cache as a follow-up.
