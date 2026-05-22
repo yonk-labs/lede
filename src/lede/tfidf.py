@@ -485,7 +485,9 @@ def summarize(
 
     Args:
         text: input document text.
-        max_length: character budget for the output summary. Default 500.
+        max_length: character budget for the extractive body. Default 500.
+            Pinned content (``pin``, TOC, injected headings) is added on
+            top of this budget, so total output may exceed ``max_length``.
         mode: scoring mode — ``"default"`` (TF-IDF + position + length,
             heading-filtered), ``"legacy"`` (pre-v0.2 byte-identical scorer),
             or ``"coverage"`` (paragraph-aware selection). Default
@@ -508,16 +510,33 @@ def summarize(
             ``"hard"`` restricts the hint pool to only sentences that match
             at least one hint; unmatched sentences can still appear in the
             plain-pool quota. Ignored when ``hints`` is None.
+        keep_headings: when ``True``, pins the document title (a depth-1
+            markdown heading at the document start, if present) and the
+            nearest enclosing section heading above each selected sentence.
+            Headings are deduplicated and interleaved into the body in
+            document order. Supported in ``"default"`` and ``"coverage"``
+            modes; composes with ``hints``. Default ``False``.
+        include_toc: when ``True``, prepends a full outline / table-of-
+            contents block (from ``lede.extract.outline``) before the body.
+            Default ``False``.
+        pin: sequence of caller-supplied lines forced verbatim into the
+            output. Lines are prepended as a block in the given order,
+            before any TOC or body content. Default ``None``.
 
     Returns:
         ``SummaryResult`` — a frozen dataclass with ``.summary: str`` plus
-        optional fields populated by ``attach``.  ``str(r)`` and ``f"{r}"``
-        evaluate to ``.summary`` so legacy string callers still work.
+        optional fields populated by ``attach``.  The ``.pinned_headings``
+        field lists the headings auto-detected and injected by
+        ``keep_headings`` (empty tuple otherwise; ``pin`` lines and TOC
+        entries are not listed there).  ``str(r)`` and ``f"{r}"`` evaluate
+        to ``.summary`` so legacy string callers still work.
 
     Raises:
         ValueError: on unknown ``mode``, on ``mode="legacy"`` with hints
-            (not supported), on ``hint_focus`` outside [0.0, 1.0], or on
-            unknown ``hint_mode``.
+            (not supported), on ``hint_focus`` outside [0.0, 1.0], on
+            unknown ``hint_mode``, or on ``mode="legacy"`` with any of
+            ``keep_headings=True``, ``include_toc=True``, or ``pin``
+            supplied (not supported in legacy mode).
 
     Hint biasing (v0.4):
         When ``hints`` is None (the default), no new code path executes and
@@ -539,6 +558,38 @@ def summarize(
             result = summarize(text, hints=["John Smith", "county"], hint_focus=0.7).summary
 
         See docs/REFERENCE.md "Hint biasing" for the full contract.
+
+    Heading & pin retention (v0.4.2):
+        All three kwargs default to off — when none are set, output is
+        byte-identical to v0.4.1. When any are active, block order in the
+        output is (top to bottom):
+
+        1. ``pin`` block — caller-supplied lines, verbatim, in given order.
+        2. TOC block — full outline when ``include_toc=True``.
+        3. Body — extractive sentences, with document title and the nearest
+           enclosing section heading above each sentence interleaved when
+           ``keep_headings=True``.
+
+        Pinned content is added **on top of** ``max_length``. The budget
+        governs only the extractive body, so pins always survive even if
+        ``max_length`` is tight. ``mode="legacy"`` rejects all three kwargs
+        (raises ``ValueError``).
+
+        The ``SummaryResult.pinned_headings`` field is a ``tuple[str, ...]``
+        listing the auto-detected headings injected by ``keep_headings``
+        (empty when ``keep_headings=False`` or no headings were found).
+        ``pin`` lines and TOC entries are not recorded there::
+
+            from lede import summarize
+
+            r = summarize(text, max_length=500, keep_headings=True, pin=["Figure 3: Q3 revenue"])
+            r.summary          # pinned lines + headings woven into the body
+            r.pinned_headings  # the auto-detected headings that were injected
+
+        Headings are detected via lede's structural heading detector (the
+        same one ``extract.outline`` uses): markdown ``#`` lines and
+        title-case bare lines. The short-sentence heuristic is not used.
+        See docs/REFERENCE.md "Heading & pin retention" for the full contract.
     """
     # Validate hint kwargs first (before any work).
     processed_hints = preprocess_hints(hints)

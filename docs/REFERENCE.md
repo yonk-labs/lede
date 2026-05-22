@@ -5,6 +5,7 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 **Jump to:**
 - [Top-level APIs](#top-level-apis) — `summarize`, `brief`
 - [Hint biasing](#hint-biasing-v04) — `hints`, `hint_focus`, `hint_mode` on all ranking primitives (v0.4)
+- [Heading & pin retention](#heading--pin-retention-v042) — `keep_headings`, `include_toc`, `pin` on `summarize` (v0.4.2)
 - [Extraction primitives](#extraction-primitives) — `outline`, `toc`, `stats`, `key_facts`, `metadata`, `phrases`, `correlate_facts`, `top_terms`
 - [Utilities](#utilities) — `clean_text`, `strip_think`, `extract_keyword`
 - [Backend selector](#backend-selector) — regex / spacy / auto
@@ -15,7 +16,7 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 
 ## Top-level APIs
 
-### `lede.summarize(text, max_length=500, *, mode="default", attach=None, hints=None, hint_focus=0.7, hint_mode="soft") -> SummaryResult`
+### `lede.summarize(text, max_length=500, *, mode="default", attach=None, hints=None, hint_focus=0.7, hint_mode="soft", keep_headings=False, include_toc=False, pin=None) -> SummaryResult`
 
 **Purpose:** compress a document to a character budget while preserving the most informative sentences. Think "minify" — the output is a shorter version of the source, suitable for LLM pre-processing, previews, or dense archival.
 
@@ -186,6 +187,78 @@ walker (10 corpora × 14 hint configurations = 140 fixtures).
 Budget rounding uses integer math (`round_to_int`) to avoid divergence between
 Python's `round()` (banker's rounding, round half to even) and Rust's
 `f64::round()` (round half away from zero) on boundary values.
+
+---
+
+## Heading & pin retention (v0.4.2)
+
+Three optional keyword-only kwargs on `lede.summarize` let callers pin headings, a table-of-contents, or arbitrary verbatim lines into the output without consuming the character budget:
+
+```python
+from lede import summarize
+
+r = summarize(
+    text,
+    max_length=500,
+    keep_headings=True,           # weave document title + section headings into body
+    include_toc=True,             # prepend full outline block
+    pin=["Figure 3: Q3 revenue"], # prepend caller-supplied lines verbatim
+)
+r.summary          # pinned lines + TOC + headings woven into the body
+r.pinned_headings  # the auto-detected headings that were injected
+```
+
+### Parameters
+
+| Kwarg | Type | Default | Effect |
+|---|---|---|---|
+| `keep_headings` | `bool` | `False` | Pins the document title (depth-1 `#` heading at the doc start, if present) plus the nearest enclosing section heading above each *selected* sentence. Headings are deduplicated and interleaved in document order. |
+| `include_toc` | `bool` | `False` | Prepends a full outline/table-of-contents block (from `lede.extract.outline`) before the body. |
+| `pin` | `Sequence[str] \| None` | `None` | Caller-supplied lines forced verbatim into the output, prepended in given order before any TOC or body content. |
+
+### Block ordering
+
+Output is structured top-to-bottom as:
+
+1. **`pin` block** — caller-supplied lines in the order given.
+2. **TOC block** — full outline when `include_toc=True`.
+3. **Body** — extractive sentences; document title and nearest enclosing section heading are interleaved here when `keep_headings=True`.
+
+### Budget rule
+
+Pinned content is added **on top of** `max_length`. The `max_length` budget governs only the extractive body, so pins, TOC entries, and injected headings always survive regardless of how tight the budget is. Total output length may exceed `max_length` by the pinned characters.
+
+### `pinned_headings` field
+
+The returned `SummaryResult.pinned_headings: tuple[str, ...]` lists the headings auto-detected and injected by `keep_headings`. It is empty when `keep_headings=False` or when no headings were found in the text. `pin` lines and TOC entries are **not** recorded in `pinned_headings`.
+
+### Heading detection
+
+Headings are detected via lede's structural heading detector — the same one `extract.outline` uses. Detected patterns include markdown `#` lines and bare title-case lines without terminal punctuation. The short-sentence heuristic used by the sentence splitter is not used.
+
+### Backward compatibility
+
+All three kwargs default to off. When none are set, output is byte-identical to v0.4.1. The v0.1, v0.2, and v0.4 fixture walkers continue to pass unchanged. Existing callers see no difference.
+
+### Mode support and validation
+
+| Mode | Supported |
+|---|---|
+| `"default"` | Yes — `keep_headings`, `include_toc`, `pin` all work. |
+| `"coverage"` | Yes — same support as `"default"`. |
+| `"legacy"` | No — raises `ValueError` if any of the three kwargs is active. |
+
+`keep_headings` composes with `hints`: hint-biased sentence selection is used to determine which sentences to include, and the nearest enclosing heading above each selected sentence is then injected. See [Hint biasing](#hint-biasing-v04) for hint semantics.
+
+**`brief()` does not accept these kwargs.** Heading retention applies only to `summarize`.
+
+### Validation table
+
+| Condition | Raises |
+|---|---|
+| `mode="legacy"` with `keep_headings=True` | `ValueError` |
+| `mode="legacy"` with `include_toc=True` | `ValueError` |
+| `mode="legacy"` with `pin` supplied | `ValueError` |
 
 ---
 
