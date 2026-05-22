@@ -46,11 +46,17 @@ def _split_paragraphs(text: str) -> list[str]:
     return [p.strip() for p in _PARA_SPLIT_RE.split(text) if len(p.strip()) >= 20]
 
 
-def summarize_coverage(text: str, max_length: int = 500) -> str:
-    """C2 coverage selector — paragraph-aware extractive summary."""
+def select_coverage_indices(
+    text: str, max_length: int = 500
+) -> "tuple[list[str], list[int]] | None":
+    """Return (sentences, selected_indices_sorted) for coverage-mode selection.
+
+    Returns None when an early-return path applies (empty sentences list).
+    The returned ``selected`` list may be empty (no sentence fit the budget).
+    """
     sentences = split_sentences(text)
     if not sentences:
-        return text
+        return None
     parts = _composite_score_parts(sentences)
     scores = [0.60 * t + 0.25 * p + 0.15 * l for (t, p, l) in parts]
 
@@ -123,6 +129,15 @@ def summarize_coverage(text: str, max_length: int = 500) -> str:
             break
 
     selected.sort()
+    return sentences, selected
+
+
+def summarize_coverage(text: str, max_length: int = 500) -> str:
+    """C2 coverage selector — paragraph-aware extractive summary."""
+    sel = select_coverage_indices(text, max_length)
+    if sel is None:
+        return text
+    sentences, selected = sel
     # Use " " to match default and legacy modes' separator. Earlier coverage
     # used "\n", which surprised callers diffing across modes. AAT-022.
     return " ".join(sentences[i] for i in selected)

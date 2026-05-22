@@ -436,7 +436,8 @@ def _select_for_mode(
     if processed_hints:
         return None
     if mode == "coverage":
-        return None
+        from lede.coverage import select_coverage_indices
+        return select_coverage_indices(text, max_length)
     return _select_default(text, max_length)
 
 
