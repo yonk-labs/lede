@@ -15,7 +15,7 @@ from lede.keyword import extract_keyword
 from lede._types import SummaryResult
 from lede.extract._backends import set_default_backend
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 __all__ = [
     "summarize",
     "brief",

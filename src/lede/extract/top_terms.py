@@ -16,6 +16,7 @@ from collections import Counter
 from ..sentences import split_sentences
 from ..tfidf import _STOPWORDS, _TOKEN_RE
 from .._hints import preprocess_hints, hint_bonus
+from .._types import TermScore
 from .phrases import _regex_phrases, _runs
 
 
@@ -93,10 +94,11 @@ def top_terms(
     *,
     n: int = 10,
     kinds: tuple[str, ...] = ("words", "phrases"),
+    with_scores: bool = False,
     hints: list[str] | dict[str, float] | None = None,
     hint_focus: float = 0.7,
     hint_mode: str = "soft",
-) -> tuple[str, ...]:
+) -> tuple[str, ...] | tuple[TermScore, ...]:
     """Return the top-N salient terms (words and/or phrases) from text (v0.4).
 
     Composes single-word TF-IDF scores with multi-word phrase frequency into
@@ -123,6 +125,14 @@ def top_terms(
             ``("words", "phrases")``. Default both. Order within the tuple
             does not affect output — scoring and ranking are independent of
             insertion order.
+        with_scores: when True, return ``tuple[TermScore]`` instead of
+            ``tuple[str]`` (v0.4.1). Each ``TermScore`` is a NamedTuple
+            ``(term, score, kind)`` in the same unified ranked order, where
+            ``score`` is the value that drove the ranking and ``kind`` is
+            ``"word"`` or ``"phrase"``. Default False (returns bare strings,
+            byte-for-byte the v0.4.0 behavior). See ``lede.extract.TermScore``
+            for the score-calibration caveat (scores are per-kind-normalized,
+            not cross-kind comparable).
         hints: optional list[str] or dict[str, float] of terms to bias
             selection toward. List entries get weight 1.0. Default None.
         hint_focus: accepted for API uniformity but has no behavioral effect
@@ -135,7 +145,8 @@ def top_terms(
             before ranking; non-matching candidates are discarded.
 
     Returns:
-        Tuple of top-N salient term strings in score-descending order.
+        ``tuple[str, ...]`` of top-N salient terms in score-descending order
+        (default), or ``tuple[TermScore, ...]`` when ``with_scores=True``.
         Empty tuple when ``text`` is empty or no candidates survive the
         ``kinds`` filters.
 
@@ -173,12 +184,21 @@ def top_terms(
         if hint_mode not in ("soft", "hard"):
             raise ValueError(f"hint_mode must be 'soft' or 'hard'; got {hint_mode!r}")
 
-    # Gather candidates from each requested kind.
+    # Gather candidates from each requested kind, tracking each term's kind.
+    # Words are single tokens (no space); phrases are 2-5 token n-grams
+    # (always contain a space) — so the keyspaces never collide.
     candidates: dict[str, float] = {}
+    kind_of: dict[str, str] = {}
     if "words" in kinds:
-        candidates.update(_word_scores(text))
+        word_scores = _word_scores(text)
+        candidates.update(word_scores)
+        for term in word_scores:
+            kind_of[term] = "word"
     if "phrases" in kinds:
-        candidates.update(_phrase_scores(text))
+        phrase_scores = _phrase_scores(text)
+        candidates.update(phrase_scores)
+        for term in phrase_scores:
+            kind_of[term] = "phrase"
 
     if not candidates:
         return ()
@@ -200,4 +220,10 @@ def top_terms(
 
     # Sort by (-score, term) for deterministic output.
     ranked = sorted(candidates.items(), key=lambda x: (-x[1], x[0]))
-    return tuple(term for term, _ in ranked[:n])
+    top = ranked[:n]
+    if with_scores:
+        return tuple(
+            TermScore(term=term, score=score, kind=kind_of[term])
+            for term, score in top
+        )
+    return tuple(term for term, _ in top)

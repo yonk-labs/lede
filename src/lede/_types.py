@@ -1,5 +1,30 @@
 """v0.2.0 return types (frozen dataclasses)."""
 from dataclasses import dataclass
+from typing import NamedTuple
+
+
+class TermScore(NamedTuple):
+    """One scored term from ``extract.top_terms(with_scores=True)`` (v0.4.1).
+
+    A ``NamedTuple`` (not a frozen dataclass like the other types here) so
+    downstream consumers can both unpack positionally
+    (``for term, score, kind in result``) and access by name
+    (``ts.term`` / ``ts.score`` / ``ts.kind``).
+
+    Fields:
+        term: the word or phrase.
+        score: per-kind-normalized salience in ``[0.0, 1.0]`` (plain mode);
+            in soft-hint mode the ``hint_bonus`` is added on top so a
+            matching term may exceed 1.0. Scores are normalized within each
+            kind independently — a word at 1.0 and a phrase at 1.0 are each
+            top-of-their-kind, not equal on a shared cross-kind scale.
+        kind: ``"word"`` (single token, TF-IDF scored) or ``"phrase"``
+            (multi-word n-gram, repetition×length scored).
+    """
+
+    term: str
+    score: float
+    kind: str
 
 
 @dataclass(frozen=True)

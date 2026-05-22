@@ -314,7 +314,7 @@ All extraction primitives live under `lede.extract.*`. They're individually usab
 
 ---
 
-### `lede.extract.top_terms(text, *, n=10, kinds=("words", "phrases")) -> tuple[str, ...]` ⟵ **new in v0.4**
+### `lede.extract.top_terms(text, *, n=10, kinds=("words", "phrases"), with_scores=False) -> tuple[str, ...] | tuple[TermScore, ...]` ⟵ **new in v0.4** (`with_scores` added v0.4.1)
 
 **Purpose:** return the top-N salient terms (single words and/or multi-word phrases) ranked by a unified score.
 
@@ -323,6 +323,7 @@ All extraction primitives live under `lede.extract.*`. They're individually usab
 **Parameters:**
 - `n: int` — cap on returned terms. Default 10.
 - `kinds: tuple` — which candidate pools to use. Any non-empty subset of `("words", "phrases")`. Default both.
+- `with_scores: bool` — when True, return `tuple[TermScore]` instead of `tuple[str]` (v0.4.1). Default False (bare strings, byte-for-byte the v0.4.0 behavior).
 - `hints / hint_focus / hint_mode` — hint biasing kwargs (v0.4). See [Hint biasing](#hint-biasing-v04).
 
 **Scoring:**
@@ -330,11 +331,24 @@ All extraction primitives live under `lede.extract.*`. They're individually usab
 - Phrase score: `repetition_count × token_count`, normalized by max.
 - Returned in score-descending order; ties broken alphabetically (deterministic).
 
+**`with_scores=True` (v0.4.1):** returns `tuple[TermScore, ...]` in the identical ranked order, where `TermScore` is a `NamedTuple`:
+
+```python
+class TermScore(NamedTuple):
+    term: str
+    score: float   # the value that drove the ranking
+    kind: str      # "word" | "phrase"
+```
+
+`TermScore` is tuple-unpackable (`for term, score, kind in result`) and name-accessible (`ts.term` / `ts.score` / `ts.kind`).
+
+> **Score-calibration caveat.** Scores are normalized **within each kind independently** — a word at `1.0` and a phrase at `1.0` are each top-of-their-kind, not equal on a shared cross-kind scale. The unified interleaving by these per-kind-normalized values is a reasonable heuristic, not a globally-calibrated relevance score. In soft-hint mode the `hint_bonus` is added on top, so a matching term's `score` may exceed `1.0`. In hard-hint mode the `score` is the base value (no bonus added).
+
 **Hint biasing:** soft mode adds `hint_bonus` to each candidate's score before ranking. Hard mode removes non-matching candidates entirely. `hint_focus` is validated but has no two-pool budget effect (no count cap before `n` truncation).
 
-**Parity:** Python-only in v0.4. Rust mirror deferred to v0.5.
+**Parity:** Python-only in v0.4/v0.4.1. Rust mirror (including `with_scores`) deferred to v0.5.
 
-**When to use:** quick tag cloud, keyword index, topic snapshot that combines important single words with key phrases in one pass. Use `extract.phrases` when you want only multi-word phrases, or `summarize()`'s TF-IDF machinery when you're building a summary rather than a term list.
+**When to use:** quick tag cloud, keyword index, topic snapshot that combines important single words with key phrases in one pass. Use `with_scores=True` when a downstream consumer needs the relevance score and word/phrase distinction per term. Use `extract.phrases` when you want only multi-word phrases, or `summarize()`'s TF-IDF machinery when you're building a summary rather than a term list.
 
 ---
 
@@ -486,7 +500,7 @@ For documents > 100 KB:
 
 ## Versioning
 
-Current: `0.4.0` (Python) / `0.4.0` (Rust SemVer). v0.4 adds hint-biased extraction, the new `top_terms` primitive, and `lede_spacy.expand_hints`. See `CHANGELOG.md` for the full entry.
+Current: `0.4.1` (Python) / `0.4.1` (Rust SemVer). v0.4 adds hint-biased extraction, the `top_terms` primitive, and `lede_spacy.expand_hints`. v0.4.1 adds `top_terms(with_scores=True)` returning `TermScore` records. See `CHANGELOG.md` for the full entry.
 
 **v0.3.0** renamed `skimr` → `lede` (no behavior changes). **v0.2.0** added extraction primitives, backend selector, lede-spacy companion, and optional extras. v0.1.0 conceptually exists as "the TF-IDF summarizer that passed SC-A" but was never tagged.
 
