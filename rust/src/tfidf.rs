@@ -425,6 +425,59 @@ fn summarize_legacy(text: &str, max_length: usize) -> String {
         .join(" ")
 }
 
+/// Index-returning selector for the v0.2 default mode.
+///
+/// Returns `Some((sentences, selected_indices))` when the pipeline fires,
+/// `None` when there are not enough sentences or budget (caller decides
+/// the fallback). Pure refactor of the selection body from `summarize_default`.
+fn select_default_indices(text: &str, max_length: usize) -> Option<(Vec<String>, Vec<usize>)> {
+    if text.is_empty() {
+        return None;
+    }
+    if max_length < MIN_BUDGET_FOR_SENTENCES {
+        return None;
+    }
+    let prepared = separate_heading_lines(text);
+    let sentences = crate::sentences::split_sentences(&prepared);
+    if sentences.len() < MIN_SENTENCES {
+        return None;
+    }
+    let section_map = build_section_map(&sentences);
+    let scores = composite_score_default(&sentences, &section_map);
+    let mut indices: Vec<usize> = (0..sentences.len()).collect();
+    indices.sort_by(|&a, &b| {
+        let sa = -scores[a];
+        let sb = -scores[b];
+        sa.partial_cmp(&sb)
+            .expect("no NaN in pipeline scores")
+            .then(a.cmp(&b))
+    });
+    let mut selected: Vec<usize> = Vec::new();
+    let mut used = 0usize;
+    let separator_chars = 1usize;
+    for idx in indices {
+        if scores[idx] == f64::NEG_INFINITY {
+            continue;
+        }
+        let sent_chars = sentences[idx].chars().count();
+        let needed = sent_chars
+            + if selected.is_empty() {
+                0
+            } else {
+                separator_chars
+            };
+        if used + needed <= max_length {
+            selected.push(idx);
+            used += needed;
+        }
+    }
+    if selected.is_empty() {
+        return None;
+    }
+    selected.sort_unstable();
+    Some((sentences, selected))
+}
+
 /// v0.2 default summarizer — legacy pipeline with the default scorer and
 /// heading-line preprocessing. Headings are filtered from candidates.
 ///
@@ -438,63 +491,21 @@ fn summarize_default(text: &str, max_length: usize) -> String {
     if max_length < MIN_BUDGET_FOR_SENTENCES {
         return truncate(text, max_length);
     }
-
-    // Pre-split heading-only lines so they become standalone sentences and
-    // can be individually filtered by the heading detector.
-    let prepared = separate_heading_lines(text);
-    let sentences = crate::sentences::split_sentences(&prepared);
-    if sentences.len() < MIN_SENTENCES {
-        if text.chars().count() <= max_length {
-            return text.to_string();
-        }
-        return truncate(text, max_length);
-    }
-
-    let section_map = build_section_map(&sentences);
-    let scores = composite_score_default(&sentences, &section_map);
-
-    // Sort indices by (-score, index). Stable sort preserves original index on ties.
-    // Headings have score = -inf and end up last; they're skipped explicitly below.
-    let mut indices: Vec<usize> = (0..sentences.len()).collect();
-    indices.sort_by(|&a, &b| {
-        let sa = -scores[a];
-        let sb = -scores[b];
-        sa.partial_cmp(&sb)
-            .expect("no NaN in pipeline scores")
-            .then(a.cmp(&b))
-    });
-
-    let mut selected: Vec<usize> = Vec::new();
-    let mut used = 0usize;
-    let separator_chars = 1usize;
-    for idx in indices {
-        if scores[idx] == f64::NEG_INFINITY {
-            continue;
-        }
-        let sentence = &sentences[idx];
-        let sent_chars = sentence.chars().count();
-        let needed = sent_chars
-            + if selected.is_empty() {
-                0
-            } else {
-                separator_chars
-            };
-        if used + needed <= max_length {
-            selected.push(idx);
-            used += needed;
+    if let Some((sentences, selected)) = select_default_indices(text, max_length) {
+        selected
+            .into_iter()
+            .map(|i| sentences[i].clone())
+            .collect::<Vec<_>>()
+            .join(" ")
+    } else {
+        let prepared = separate_heading_lines(text);
+        let sentences = crate::sentences::split_sentences(&prepared);
+        if sentences.len() < MIN_SENTENCES && text.chars().count() <= max_length {
+            text.to_string()
+        } else {
+            truncate(text, max_length)
         }
     }
-
-    if selected.is_empty() {
-        return truncate(text, max_length);
-    }
-
-    selected.sort_unstable();
-    selected
-        .into_iter()
-        .map(|i| sentences[i].clone())
-        .collect::<Vec<_>>()
-        .join(" ")
 }
 
 /// Extractive summary of `text` with optional structured enrichments.
@@ -586,23 +597,19 @@ impl Default for SummarizeOpts {
     }
 }
 
-/// Inner two-pool selection algorithm used by [`summarize_with_hints`].
+/// Index-returning inner two-pool selection algorithm.
 ///
-/// Preconditions (caller has validated):
-/// - `processed` is non-empty
-/// - `mode` is not `Mode::Legacy`
-/// - `hint_focus` is in `[0.0, 1.0]`
-/// - `text` is non-empty and `max_length >= MIN_BUDGET_FOR_SENTENCES`
-/// - `sentences.len() >= MIN_SENTENCES`
-fn two_pool_select(
-    text: &str,
+/// Returns the sorted selected indices (may be empty — caller handles
+/// truncation fallback). Preconditions same as [`two_pool_select`].
+fn two_pool_select_indices(
+    _text: &str,
     max_length: usize,
     mode: Mode,
     processed: &[HintWeight],
     hint_focus: f64,
     hint_mode: HintMode,
     sentences: &[String],
-) -> String {
+) -> Vec<usize> {
     // Compute plain scores.
     let plain_scores: Vec<f64> = if mode == Mode::Coverage {
         crate::coverage::composite_score_coverage_for_hints(sentences)
@@ -680,7 +687,7 @@ fn two_pool_select(
         }
     }
 
-    // Merge, sort, deduplicate, emit.
+    // Merge, sort, deduplicate.
     let mut selected: Vec<usize> = selected_hint
         .into_iter()
         .chain(selected_normal)
@@ -688,7 +695,29 @@ fn two_pool_select(
         .into_iter()
         .collect();
     selected.sort_unstable();
+    selected
+}
 
+/// Inner two-pool selection algorithm used by [`summarize_with_hints`].
+///
+/// Preconditions (caller has validated):
+/// - `processed` is non-empty
+/// - `mode` is not `Mode::Legacy`
+/// - `hint_focus` is in `[0.0, 1.0]`
+/// - `text` is non-empty and `max_length >= MIN_BUDGET_FOR_SENTENCES`
+/// - `sentences.len() >= MIN_SENTENCES`
+fn two_pool_select(
+    text: &str,
+    max_length: usize,
+    mode: Mode,
+    processed: &[HintWeight],
+    hint_focus: f64,
+    hint_mode: HintMode,
+    sentences: &[String],
+) -> String {
+    let selected = two_pool_select_indices(
+        text, max_length, mode, processed, hint_focus, hint_mode, sentences,
+    );
     if selected.is_empty() {
         truncate(text, max_length)
     } else {
@@ -698,6 +727,60 @@ fn two_pool_select(
             .collect::<Vec<_>>()
             .join(" ")
     }
+}
+
+/// Index-returning selector for the hint-biased path.
+///
+/// Returns `Some((sentences, selected_indices))` when the pipeline fires,
+/// `None` for empty text, insufficient budget, or too few sentences.
+fn select_with_hints_indices(
+    text: &str,
+    max_length: usize,
+    mode: Mode,
+    processed: &[HintWeight],
+    hint_focus: f64,
+    hint_mode: HintMode,
+) -> Option<(Vec<String>, Vec<usize>)> {
+    if text.is_empty() {
+        return None;
+    }
+    if max_length < MIN_BUDGET_FOR_SENTENCES {
+        return None;
+    }
+    let prepared = separate_heading_lines(text);
+    let sentences = crate::sentences::split_sentences(&prepared);
+    if sentences.len() < MIN_SENTENCES {
+        return None;
+    }
+    let selected = two_pool_select_indices(
+        text, max_length, mode, processed, hint_focus, hint_mode, &sentences,
+    );
+    if selected.is_empty() {
+        return None;
+    }
+    Some((sentences, selected))
+}
+
+/// Mode dispatcher — returns `(sentences, selected_indices)` for the
+/// appropriate selection algorithm.
+///
+/// Routes: non-empty hints → hints path; Coverage (no hints) → coverage
+/// path; Default/Legacy (no hints) → default path.
+fn select_for_mode(
+    text: &str,
+    max_length: usize,
+    mode: Mode,
+    processed: &[HintWeight],
+    hint_focus: f64,
+    hint_mode: HintMode,
+) -> Option<(Vec<String>, Vec<usize>)> {
+    if !processed.is_empty() {
+        return select_with_hints_indices(text, max_length, mode, processed, hint_focus, hint_mode);
+    }
+    if mode == Mode::Coverage {
+        return crate::coverage::select_coverage_indices(text, max_length);
+    }
+    select_default_indices(text, max_length)
 }
 
 /// Hint-biased extractive summary.
@@ -762,4 +845,80 @@ pub fn summarize_with_hints(
     );
 
     SummaryResult::bare(summary)
+}
+
+/// Options for heading/pin retention. All-default = no pinning.
+#[derive(Debug, Clone, Default)]
+pub struct PinOpts {
+    pub keep_headings: bool,
+    pub include_toc: bool,
+    pub pin: Vec<String>,
+}
+
+/// Extractive summary with optional heading/pin retention.
+///
+/// Mirrors Python `summarize(..., keep_headings=, include_toc=, pin=)`.
+/// All `PinOpts` defaults = byte-identical to [`summarize_with_hints`].
+///
+/// # Panics
+/// Panics if `PinOpts` is active and `mode == Mode::Legacy`.
+#[must_use]
+pub fn summarize_with_pins(
+    text: &str,
+    max_length: usize,
+    mode: Mode,
+    hint_opts: &SummarizeOpts,
+    pin_opts: &PinOpts,
+) -> SummaryResult {
+    let processed = crate::hints::preprocess_hints(&hint_opts.hints);
+    let pins_active = pin_opts.keep_headings || pin_opts.include_toc || !pin_opts.pin.is_empty();
+    if pins_active {
+        assert!(
+            mode != Mode::Legacy,
+            "keep_headings/include_toc/pin not supported in legacy mode"
+        );
+    }
+
+    // Base summary for the mode (handles empty hints → plain summarize internally).
+    let base = summarize_with_hints(text, max_length, mode, hint_opts);
+    let mut summary = base.summary;
+    let mut pinned_headings: Vec<String> = Vec::new();
+
+    if pins_active {
+        let pin_slice: Option<&[String]> = if pin_opts.pin.is_empty() {
+            None
+        } else {
+            Some(&pin_opts.pin)
+        };
+        let sel = if pin_opts.keep_headings {
+            select_for_mode(
+                text,
+                max_length,
+                mode,
+                &processed,
+                hint_opts.hint_focus,
+                hint_opts.hint_mode,
+            )
+        } else {
+            None
+        };
+        if let Some((sentences, selected)) = sel {
+            let (woven, pinned) = crate::pins::render_with_pins(
+                &sentences,
+                &selected,
+                true,
+                pin_opts.include_toc,
+                pin_slice,
+                text,
+            );
+            summary = woven;
+            pinned_headings = pinned;
+        } else if pin_opts.include_toc || pin_slice.is_some() {
+            summary = crate::pins::prepend_blocks(&summary, pin_opts.include_toc, pin_slice, text);
+        }
+    }
+
+    let mut result = SummaryResult::bare(summary);
+    result.pinned_headings = pinned_headings;
+    result
 }

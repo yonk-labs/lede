@@ -70,12 +70,16 @@ pub(crate) fn composite_score_coverage_for_hints(sentences: &[String]) -> Vec<f6
         .collect()
 }
 
-/// C2 coverage selector — paragraph-aware extractive summary.
+/// Index-returning selector for the C2 coverage mode.
+///
+/// Returns `Some((sentences, selected_indices))` when the pipeline fires,
+/// `None` when sentences is empty (caller decides fallback). Pure refactor
+/// of the selection body from `summarize_coverage`.
 #[must_use]
-pub fn summarize_coverage(text: &str, max_length: usize) -> String {
+pub fn select_coverage_indices(text: &str, max_length: usize) -> Option<(Vec<String>, Vec<usize>)> {
     let sentences = split_sentences(text);
     if sentences.is_empty() {
-        return text.to_string();
+        return None;
     }
     let parts = composite_score_parts(&sentences);
     let scores: Vec<f64> = parts
@@ -183,11 +187,22 @@ pub fn summarize_coverage(text: &str, max_length: usize) -> String {
     }
 
     selected.sort_unstable();
-    // Match default and legacy modes' separator (" "). Earlier coverage used
-    // "\n" which surprised callers diffing across modes — AAT-022.
-    selected
-        .into_iter()
-        .map(|i| sentences[i].clone())
-        .collect::<Vec<_>>()
-        .join(" ")
+    Some((sentences, selected))
+}
+
+/// C2 coverage selector — paragraph-aware extractive summary.
+#[must_use]
+pub fn summarize_coverage(text: &str, max_length: usize) -> String {
+    match select_coverage_indices(text, max_length) {
+        None => text.to_string(),
+        Some((sentences, selected)) => {
+            // Match default and legacy modes' separator (" "). Earlier coverage used
+            // "\n" which surprised callers diffing across modes — AAT-022.
+            selected
+                .into_iter()
+                .map(|i| sentences[i].clone())
+                .collect::<Vec<_>>()
+                .join(" ")
+        }
+    }
 }

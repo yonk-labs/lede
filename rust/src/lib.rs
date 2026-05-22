@@ -20,7 +20,10 @@ pub mod types;
 pub use brief::{BriefDict, BriefFormat, BriefOptions, BriefOutput, brief, brief_with_options};
 pub use clean::{clean_text, strip_think};
 pub use keyword::extract_keyword;
-pub use tfidf::{SummarizeOpts, summarize, summarize_with_attach, summarize_with_hints};
+pub use tfidf::{
+    PinOpts, SummarizeOpts, summarize, summarize_with_attach, summarize_with_hints,
+    summarize_with_pins,
+};
 pub use types::{AttachOpts, Mode, SummaryResult};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
