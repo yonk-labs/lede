@@ -382,44 +382,31 @@ def _summarize_with_hints(
     return " ".join(sentences[i] for i in selected)
 
 
-def _summarize_default(text: str, max_length: int = 500) -> str:
-    """v0.2 default scorer — mirrors _summarize_legacy with the default scorer.
-
-    Headings are dropped from candidates (score = -inf), cue-phrase sentences
-    are boosted by +2.0, digit-bearing sentences get +0.3, and sentences
-    under high-signal section headings have tfidf * 1.3.
-
-    Unlike legacy mode, default mode always runs the sentence pipeline when
-    the budget allows it (>= _MIN_BUDGET_FOR_SENTENCES) so headings are
-    filtered even when the raw input would otherwise fit.
-    """
+def _select_default(
+    text: str, max_length: int
+) -> tuple[list[str], list[int]] | None:
+    """Return (sentences, selected_indices_sorted) for default-mode
+    selection, or None when an early-return path applies (empty input,
+    sub-sentence budget, or fewer than _MIN_SENTENCES sentences, or an
+    empty selection)."""
     if not text:
-        return ""
-
+        return None
     if max_length < _MIN_BUDGET_FOR_SENTENCES:
-        return _truncate(text, max_length)
-
-    # Pre-split heading-only lines so they become standalone sentences
-    # and can be individually filtered by the heading detector.
+        return None
     prepared = _separate_heading_lines(text)
     sentences = split_sentences(prepared)
     if len(sentences) < _MIN_SENTENCES:
-        if len(text) <= max_length:
-            return text
-        return _truncate(text, max_length)
-
+        return None
     section_map = _build_section_map(sentences)
     scores = _composite_score_default(sentences, section_map)
     indices_by_score = sorted(
         range(len(sentences)),
         key=lambda i: (-scores[i], i),
     )
-
     selected: list[int] = []
     used = 0
     separator = " "
     for idx in indices_by_score:
-        # Skip headings / dropped candidates entirely.
         if scores[idx] == float("-inf"):
             continue
         sentence = sentences[idx]
@@ -427,12 +414,35 @@ def _summarize_default(text: str, max_length: int = 500) -> str:
         if used + needed <= max_length:
             selected.append(idx)
             used += needed
-
     if not selected:
-        return _truncate(text, max_length)
-
+        return None
     selected.sort()
-    return separator.join(sentences[i] for i in selected)
+    return sentences, selected
+
+
+def _summarize_default(text: str, max_length: int = 500) -> str:
+    """v0.2 default scorer — mirrors _summarize_legacy with the default scorer.
+
+    Headings are dropped from candidates (score = -inf), cue-phrase sentences
+    are boosted by +2.0, digit-bearing sentences get +0.3, and sentences
+    under high-signal section headings have tfidf * 1.3.
+    """
+    if not text:
+        return ""
+    if max_length < _MIN_BUDGET_FOR_SENTENCES:
+        return _truncate(text, max_length)
+    sel = _select_default(text, max_length)
+    if sel is None:
+        # Reproduce the original early-return semantics exactly: a short
+        # doc (fewer than _MIN_SENTENCES sentences) returns as-is when it
+        # fits the budget, else truncates; an empty selection truncates.
+        prepared = _separate_heading_lines(text)
+        sentences = split_sentences(prepared)
+        if len(sentences) < _MIN_SENTENCES and len(text) <= max_length:
+            return text
+        return _truncate(text, max_length)
+    sentences, selected = sel
+    return " ".join(sentences[i] for i in selected)
 
 
 _ATTACH_KEYS = {"stats", "outline", "metadata", "phrases", "correlated_facts"}
