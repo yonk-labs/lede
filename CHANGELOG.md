@@ -8,6 +8,45 @@ Entries below `## [0.2.2]` reference the project under its previous name,
 remain as `skimr` releases — they were real shipped artifacts under that
 name. See the v0.3.0 entry for the rename rationale.
 
+## [0.4.2] — 2026-05-22
+
+### Added
+
+- **`keep_headings`, `include_toc`, `pin` kwargs on `summarize`.** Optional
+  heading and line-pin retention for the extractive body.
+
+  - `keep_headings: bool` (default `False`) — auto-detects Markdown headings
+    in the input and re-inserts them at their original document positions in
+    the summary.  The document title (depth-1 heading) is always pinned at
+    the top; deeper headings interleave in document order.
+  - `include_toc: bool` (default `False`) — prepends a full table-of-contents
+    (depth ≥ 2 headings, indented) before the body.
+  - `pin: Sequence[str] | None` (default `None`) — caller-supplied lines
+    forced verbatim into the output.  Lines are prepended in given order
+    before the TOC and body.
+
+  Prepend order is: `pin` block → TOC block → extractive body with woven
+  headings.  All pinned content is additive — it does not consume the
+  `max_length` budget; `max_length` governs only the extractive body.
+
+  These kwargs work in default and coverage modes and compose with `hints`.
+  They are rejected in legacy mode with a `ValueError`.
+
+  Default-off: callers that pass none of the three kwargs get byte-identical
+  output to v0.4.1.
+
+- **`SummaryResult.pinned_headings: tuple[str, ...]`** — new field on the
+  return value of `summarize`.  Contains the auto-detected headings injected
+  by `keep_headings` (empty tuple otherwise).  `pin` lines and TOC entries
+  are not recorded here.
+
+- **`fixtures/v0_4_2_pins` parity walker** — new fixture set (10 corpora ×
+  multiple pin configurations) enforced by `rust/tests/fixtures.rs`.
+  Python↔Rust byte-identical output is a hard CI gate.
+
+- **`lede-spacy` 0.4.2** — fixes a crash in `expand_hints(kinds=("similar",))`
+  when the spaCy model has no word vectors.
+
 ## [0.4.1] — 2026-05-22
 
 ### Added

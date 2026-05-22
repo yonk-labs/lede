@@ -346,14 +346,18 @@ fn v0_4_hints_byte_identical() {
 
 #[test]
 fn v0_4_2_pins_byte_identical() {
-    use lede::hints::HintMode;
-    use lede::tfidf::{summarize_with_pins, PinOpts, SummarizeOpts};
     use lede::Mode;
+    use lede::hints::HintMode;
+    use lede::tfidf::{PinOpts, SummarizeOpts, summarize_with_pins};
     use serde_json::Value;
     use std::fs;
 
     let dir = fixtures_root().join("v0_4_2_pins");
-    assert!(dir.is_dir(), "missing fixtures directory: {}", dir.display());
+    assert!(
+        dir.is_dir(),
+        "missing fixtures directory: {}",
+        dir.display()
+    );
 
     let mut fixture_dirs: Vec<_> = fs::read_dir(&dir)
         .expect("read v0_4_2_pins dir")
@@ -407,7 +411,10 @@ fn v0_4_2_pins_byte_identical() {
         if actual.as_bytes() != expected.as_bytes() {
             failures.push(format!(
                 "{}: bytes differ\n  expected ({}): {:?}\n  actual ({}): {:?}",
-                fixture.file_name().and_then(|s| s.to_str()).unwrap_or("<?>"),
+                fixture
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("<?>"),
                 expected.len(),
                 expected,
                 actual.len(),
