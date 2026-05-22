@@ -8,6 +8,33 @@ Entries below `## [0.2.2]` reference the project under its previous name,
 remain as `skimr` releases — they were real shipped artifacts under that
 name. See the v0.3.0 entry for the rename rationale.
 
+## [0.4.1] — 2026-05-22
+
+### Added
+
+- **`extract.top_terms(..., with_scores=True)`.** Returns
+  `tuple[TermScore, ...]` instead of `tuple[str, ...]`, where `TermScore`
+  is a `NamedTuple` `(term, score, kind)` in the same unified ranked order.
+  `score` is the per-kind-normalized salience that drove the ranking (plus
+  the `hint_bonus` in soft-hint mode); `kind` is `"word"` or `"phrase"`.
+  Lets downstream consumers store real relevance scores and the word/phrase
+  distinction in a single call, without per-kind calls or merge heuristics.
+  Default `with_scores=False` returns the v0.4.0 `tuple[str]` byte-for-byte.
+- **`lede.extract.TermScore`** — the new `NamedTuple` return record.
+  Tuple-unpackable (`for term, score, kind in result`) and name-accessible
+  (`ts.term` / `ts.score` / `ts.kind`).
+
+### Notes
+
+- Scores are normalized **within each kind independently**, so a word at
+  `1.0` and a phrase at `1.0` are each top-of-their-kind, not equal on a
+  shared cross-kind scale. Treat them as per-kind salience, not a global
+  composite. See `lede.extract.TermScore` and `docs/REFERENCE.md`.
+- `lede-spacy` 0.4.1 and the `lede` Rust crate 0.4.1 are **version-lock
+  bumps with no functional change** — `top_terms` (and therefore
+  `with_scores`) remains Python-only; the Rust mirror is still deferred to
+  v0.5.
+
 ## [0.4.0] — 2026-05-21
 
 ### Added

@@ -140,6 +140,24 @@ terms = top_terms(text, n=10)
 
 `top_terms` combines single-word TF-IDF with multi-word phrase frequency into a unified ranked list. Use `kinds=("words",)` or `kinds=("phrases",)` to restrict. Accepts the same hint kwargs as the other primitives. Python-only in v0.4; Rust mirror lands in v0.5.
 
+**Scores + kind in one call (v0.4.1).** Pass `with_scores=True` to get `tuple[TermScore]` instead of bare strings — each `TermScore` is a `NamedTuple` `(term, score, kind)` in the same ranked order:
+
+```python
+from lede.extract import top_terms
+
+for term, score, kind in top_terms(text, n=10, with_scores=True):
+    print(f"{kind:6} {score:.3f}  {term}")
+# word   1.000  smith
+# phrase 0.833  cook county
+# ...
+
+# Or access by name:
+ts = top_terms(text, n=1, with_scores=True)[0]
+ts.term, ts.score, ts.kind
+```
+
+This is the recommended path for storing relevance scores downstream: one call gives the score and the word/phrase distinction, in lede's own ranked order — no per-kind calls or merge heuristics needed. **Caveat:** `score` is per-kind-normalized to `[0, 1]` (a word at 1.0 and a phrase at 1.0 are each top-of-their-kind, not equal on a shared scale); in soft-hint mode the hint bonus is added on top so it can exceed 1.0. Default `with_scores=False` returns the v0.4.0 `tuple[str]` unchanged.
+
 ## 6. Optional: expand hints with lemmas, synonyms, or similar words
 
 If you also install `lede-spacy`, you get an expansion helper:

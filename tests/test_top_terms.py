@@ -95,3 +95,94 @@ class TestTopTerms:
     def test_hint_mode_invalid(self):
         with pytest.raises(ValueError, match="hint_mode"):
             top_terms(SAMPLE, hints=["smith"], hint_mode="medium")
+
+
+class TestTopTermsWithScores:
+    def test_default_with_scores_false_returns_strings(self):
+        # Backward compat: default is bare strings.
+        out = top_terms(SAMPLE)
+        assert all(isinstance(t, str) for t in out)
+
+    def test_with_scores_returns_termscore(self):
+        from lede.extract import TermScore
+
+        out = top_terms(SAMPLE, with_scores=True)
+        assert isinstance(out, tuple)
+        assert all(isinstance(t, TermScore) for t in out)
+
+    def test_termscore_is_tuple_unpackable(self):
+        out = top_terms(SAMPLE, n=3, with_scores=True)
+        assert out  # non-empty
+        for term, score, kind in out:  # positional unpacking works
+            assert isinstance(term, str)
+            assert isinstance(score, float)
+            assert kind in ("word", "phrase")
+
+    def test_termscore_named_access(self):
+        out = top_terms(SAMPLE, n=1, with_scores=True)
+        ts = out[0]
+        assert ts.term == out[0][0]
+        assert ts.score == out[0][1]
+        assert ts.kind == out[0][2]
+
+    def test_terms_match_bare_ranking(self):
+        # with_scores=True must return the SAME terms in the SAME order as
+        # the bare-string call — it's the identical ranking, just richer.
+        bare = top_terms(SAMPLE, n=10)
+        scored = top_terms(SAMPLE, n=10, with_scores=True)
+        assert tuple(ts.term for ts in scored) == bare
+
+    def test_scores_descending(self):
+        out = top_terms(SAMPLE, n=10, with_scores=True)
+        scores = [ts.score for ts in out]
+        assert scores == sorted(scores, reverse=True)
+
+    def test_kind_word_for_single_token(self):
+        out = top_terms(SAMPLE, n=10, kinds=("words",), with_scores=True)
+        assert out
+        for ts in out:
+            assert ts.kind == "word"
+            assert " " not in ts.term
+
+    def test_kind_phrase_for_multi_word(self):
+        out = top_terms(SAMPLE, n=10, kinds=("phrases",), with_scores=True)
+        assert out
+        for ts in out:
+            assert ts.kind == "phrase"
+            assert " " in ts.term
+
+    def test_plain_scores_normalized_unit_range(self):
+        # No hints: per-kind normalized to [0, 1].
+        out = top_terms(SAMPLE, n=10, with_scores=True)
+        for ts in out:
+            assert 0.0 <= ts.score <= 1.0
+
+    def test_soft_hint_score_includes_bonus(self):
+        # Soft hints add hint_bonus on top, so a matching term can exceed 1.0.
+        scored = top_terms(
+            SAMPLE, n=10, kinds=("words",),
+            hints=["smith"], hint_mode="soft", with_scores=True,
+        )
+        smith = [ts for ts in scored if ts.term == "smith"]
+        assert smith, "expected 'smith' in word candidates"
+        # base normalized score <= 1.0, plus a positive bonus
+        assert smith[0].score > 0.0
+
+    def test_hard_hint_filters_but_keeps_scores_and_kinds(self):
+        out = top_terms(
+            SAMPLE, n=10,
+            hints=["smith"], hint_focus=1.0, hint_mode="hard", with_scores=True,
+        )
+        for ts in out:
+            assert "smith" in ts.term.lower()
+            assert ts.kind in ("word", "phrase")
+            assert isinstance(ts.score, float)
+
+    def test_empty_text_returns_empty_tuple(self):
+        assert top_terms("", with_scores=True) == ()
+
+    def test_mixed_kinds_have_both_word_and_phrase(self):
+        out = top_terms(SAMPLE, n=10, with_scores=True)
+        kinds = {ts.kind for ts in out}
+        # SAMPLE has repeated phrases ("john smith", "cook county") and words.
+        assert "word" in kinds

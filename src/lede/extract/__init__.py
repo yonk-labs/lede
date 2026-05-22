@@ -15,7 +15,7 @@ Or via summarize(attach=[...]):
 Stub primitives returning empty collections land in this task (T4).
 Real implementations land in T6-T11.
 """
-from .._types import Stat, Section, Metadata, PhraseFact
+from .._types import Stat, Section, Metadata, PhraseFact, TermScore
 from .stats import stats
 from .outline import outline, toc
 from .metadata import metadata
@@ -32,7 +32,7 @@ except ImportError:
     pass
 
 __all__ = [
-    "Stat", "Section", "Metadata", "PhraseFact",
+    "Stat", "Section", "Metadata", "PhraseFact", "TermScore",
     "stats", "outline", "toc", "metadata", "phrases", "correlate_facts",
     "key_facts", "top_terms",
 ]
