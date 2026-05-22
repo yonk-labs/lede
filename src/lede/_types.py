@@ -67,6 +67,7 @@ class SummaryResult:
     metadata: Metadata | None = None
     phrases: tuple[str, ...] | None = None
     correlated_facts: tuple[PhraseFact, ...] | None = None
+    pinned_headings: tuple[str, ...] = ()
 
     def __str__(self) -> str:
         return self.summary

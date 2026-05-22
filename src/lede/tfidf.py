@@ -14,10 +14,12 @@ docs/v0-2-design.md for the design contract.
 import math
 import re
 from collections import Counter
+from collections.abc import Sequence
 
 from lede.sentences import split_sentences
 from lede._headings import is_heading, heading_name
 from lede._types import SummaryResult
+from lede._pins import render_with_pins, prepend_blocks
 from lede._hints import (
     preprocess_hints,
     hint_bonus,
@@ -299,7 +301,7 @@ def _summarize_legacy(text: str, max_length: int = 500) -> str:
     return separator.join(sentences[i] for i in selected)
 
 
-def _summarize_with_hints(
+def _select_with_hints(
     text: str,
     max_length: int,
     *,
@@ -307,23 +309,22 @@ def _summarize_with_hints(
     hints: list[tuple[str, float]],
     hint_focus: float,
     hint_mode: str,
-) -> str:
-    """Two-pool selection: hint pool (bonus-augmented or hard-filtered) + plain pool."""
+) -> tuple[list[str], list[int]] | None:
+    """Two-pool hint selection returning (sentences, selected_sorted), or
+    None for early-return / empty-selection paths."""
     if not text:
-        return ""
+        return None
     if max_length < _MIN_BUDGET_FOR_SENTENCES:
-        return _truncate(text, max_length)
+        return None
 
     prepared = _separate_heading_lines(text)
     sentences = split_sentences(prepared)
     if len(sentences) < _MIN_SENTENCES:
-        if len(text) <= max_length:
-            return text
-        return _truncate(text, max_length)
+        return None
 
     section_map = _build_section_map(sentences)
     if mode == "coverage":
-        from lede.coverage import _composite_score_coverage_for_hints  # added in T5
+        from lede.coverage import _composite_score_coverage_for_hints
         plain_scores = _composite_score_coverage_for_hints(sentences)
     else:
         plain_scores = _composite_score_default(sentences, section_map)
@@ -378,8 +379,97 @@ def _summarize_with_hints(
 
     selected = sorted(selected_hint | selected_normal)
     if not selected:
+        return None
+    return sentences, selected
+
+
+def _summarize_with_hints(
+    text: str,
+    max_length: int,
+    *,
+    mode: str,
+    hints: list[tuple[str, float]],
+    hint_focus: float,
+    hint_mode: str,
+) -> str:
+    """Two-pool selection: hint pool (bonus-augmented or hard-filtered) + plain pool."""
+    if not text:
+        return ""
+    if max_length < _MIN_BUDGET_FOR_SENTENCES:
         return _truncate(text, max_length)
+    sel = _select_with_hints(
+        text, max_length, mode=mode, hints=hints,
+        hint_focus=hint_focus, hint_mode=hint_mode,
+    )
+    if sel is None:
+        prepared = _separate_heading_lines(text)
+        sentences = split_sentences(prepared)
+        if len(sentences) < _MIN_SENTENCES and len(text) <= max_length:
+            return text
+        return _truncate(text, max_length)
+    sentences, selected = sel
     return " ".join(sentences[i] for i in selected)
+
+
+def _select_default(
+    text: str, max_length: int
+) -> tuple[list[str], list[int]] | None:
+    """Return (sentences, selected_indices_sorted) for default-mode
+    selection, or None when an early-return path applies (empty input,
+    sub-sentence budget, or fewer than _MIN_SENTENCES sentences, or an
+    empty selection)."""
+    if not text:
+        return None
+    if max_length < _MIN_BUDGET_FOR_SENTENCES:
+        return None
+    prepared = _separate_heading_lines(text)
+    sentences = split_sentences(prepared)
+    if len(sentences) < _MIN_SENTENCES:
+        return None
+    section_map = _build_section_map(sentences)
+    scores = _composite_score_default(sentences, section_map)
+    indices_by_score = sorted(
+        range(len(sentences)),
+        key=lambda i: (-scores[i], i),
+    )
+    selected: list[int] = []
+    used = 0
+    separator = " "
+    for idx in indices_by_score:
+        if scores[idx] == float("-inf"):
+            continue
+        sentence = sentences[idx]
+        needed = len(sentence) + (len(separator) if selected else 0)
+        if used + needed <= max_length:
+            selected.append(idx)
+            used += needed
+    if not selected:
+        return None
+    selected.sort()
+    return sentences, selected
+
+
+def _select_for_mode(
+    text: str,
+    max_length: int,
+    mode: str,
+    processed_hints,
+    hint_focus: float,
+    hint_mode: str,
+) -> tuple[list[str], list[int]] | None:
+    """Dispatch to the mode-appropriate index-returning selector:
+    hint two-pool when hints are present, coverage when mode is
+    'coverage', else the default scorer. Returns None on early-return
+    paths, making keep_headings a safe no-op there."""
+    if processed_hints:
+        return _select_with_hints(
+            text, max_length, mode=mode, hints=processed_hints,
+            hint_focus=hint_focus, hint_mode=hint_mode,
+        )
+    if mode == "coverage":
+        from lede.coverage import select_coverage_indices
+        return select_coverage_indices(text, max_length)
+    return _select_default(text, max_length)
 
 
 def _summarize_default(text: str, max_length: int = 500) -> str:
@@ -388,51 +478,23 @@ def _summarize_default(text: str, max_length: int = 500) -> str:
     Headings are dropped from candidates (score = -inf), cue-phrase sentences
     are boosted by +2.0, digit-bearing sentences get +0.3, and sentences
     under high-signal section headings have tfidf * 1.3.
-
-    Unlike legacy mode, default mode always runs the sentence pipeline when
-    the budget allows it (>= _MIN_BUDGET_FOR_SENTENCES) so headings are
-    filtered even when the raw input would otherwise fit.
     """
     if not text:
         return ""
-
     if max_length < _MIN_BUDGET_FOR_SENTENCES:
         return _truncate(text, max_length)
-
-    # Pre-split heading-only lines so they become standalone sentences
-    # and can be individually filtered by the heading detector.
-    prepared = _separate_heading_lines(text)
-    sentences = split_sentences(prepared)
-    if len(sentences) < _MIN_SENTENCES:
-        if len(text) <= max_length:
+    sel = _select_default(text, max_length)
+    if sel is None:
+        # Reproduce the original early-return semantics exactly: a short
+        # doc (fewer than _MIN_SENTENCES sentences) returns as-is when it
+        # fits the budget, else truncates; an empty selection truncates.
+        prepared = _separate_heading_lines(text)
+        sentences = split_sentences(prepared)
+        if len(sentences) < _MIN_SENTENCES and len(text) <= max_length:
             return text
         return _truncate(text, max_length)
-
-    section_map = _build_section_map(sentences)
-    scores = _composite_score_default(sentences, section_map)
-    indices_by_score = sorted(
-        range(len(sentences)),
-        key=lambda i: (-scores[i], i),
-    )
-
-    selected: list[int] = []
-    used = 0
-    separator = " "
-    for idx in indices_by_score:
-        # Skip headings / dropped candidates entirely.
-        if scores[idx] == float("-inf"):
-            continue
-        sentence = sentences[idx]
-        needed = len(sentence) + (len(separator) if selected else 0)
-        if used + needed <= max_length:
-            selected.append(idx)
-            used += needed
-
-    if not selected:
-        return _truncate(text, max_length)
-
-    selected.sort()
-    return separator.join(sentences[i] for i in selected)
+    sentences, selected = sel
+    return " ".join(sentences[i] for i in selected)
 
 
 _ATTACH_KEYS = {"stats", "outline", "metadata", "phrases", "correlated_facts"}
@@ -447,12 +509,17 @@ def summarize(
     hints: list[str] | dict[str, float] | None = None,
     hint_focus: float = 0.7,
     hint_mode: str = "soft",
+    keep_headings: bool = False,
+    include_toc: bool = False,
+    pin: Sequence[str] | None = None,
 ) -> SummaryResult:
     """Extractive summary with configurable scoring mode and optional hints.
 
     Args:
         text: input document text.
-        max_length: character budget for the output summary. Default 500.
+        max_length: character budget for the extractive body. Default 500.
+            Pinned content (``pin``, TOC, injected headings) is added on
+            top of this budget, so total output may exceed ``max_length``.
         mode: scoring mode — ``"default"`` (TF-IDF + position + length,
             heading-filtered), ``"legacy"`` (pre-v0.2 byte-identical scorer),
             or ``"coverage"`` (paragraph-aware selection). Default
@@ -475,16 +542,33 @@ def summarize(
             ``"hard"`` restricts the hint pool to only sentences that match
             at least one hint; unmatched sentences can still appear in the
             plain-pool quota. Ignored when ``hints`` is None.
+        keep_headings: when ``True``, pins the document title (a depth-1
+            markdown heading at the document start, if present) and the
+            nearest enclosing section heading above each selected sentence.
+            Headings are deduplicated and interleaved into the body in
+            document order. Supported in ``"default"`` and ``"coverage"``
+            modes; composes with ``hints``. Default ``False``.
+        include_toc: when ``True``, prepends a full outline / table-of-
+            contents block (from ``lede.extract.outline``) before the body.
+            Default ``False``.
+        pin: sequence of caller-supplied lines forced verbatim into the
+            output. Lines are prepended as a block in the given order,
+            before any TOC or body content. Default ``None``.
 
     Returns:
         ``SummaryResult`` — a frozen dataclass with ``.summary: str`` plus
-        optional fields populated by ``attach``.  ``str(r)`` and ``f"{r}"``
-        evaluate to ``.summary`` so legacy string callers still work.
+        optional fields populated by ``attach``.  The ``.pinned_headings``
+        field lists the headings auto-detected and injected by
+        ``keep_headings`` (empty tuple otherwise; ``pin`` lines and TOC
+        entries are not listed there).  ``str(r)`` and ``f"{r}"`` evaluate
+        to ``.summary`` so legacy string callers still work.
 
     Raises:
         ValueError: on unknown ``mode``, on ``mode="legacy"`` with hints
-            (not supported), on ``hint_focus`` outside [0.0, 1.0], or on
-            unknown ``hint_mode``.
+            (not supported), on ``hint_focus`` outside [0.0, 1.0], on
+            unknown ``hint_mode``, or on ``mode="legacy"`` with any of
+            ``keep_headings=True``, ``include_toc=True``, or ``pin``
+            supplied (not supported in legacy mode).
 
     Hint biasing (v0.4):
         When ``hints`` is None (the default), no new code path executes and
@@ -506,9 +590,46 @@ def summarize(
             result = summarize(text, hints=["John Smith", "county"], hint_focus=0.7).summary
 
         See docs/REFERENCE.md "Hint biasing" for the full contract.
+
+    Heading & pin retention (v0.4.2):
+        All three kwargs default to off — when none are set, output is
+        byte-identical to v0.4.1. When any are active, block order in the
+        output is (top to bottom):
+
+        1. ``pin`` block — caller-supplied lines, verbatim, in given order.
+        2. TOC block — full outline when ``include_toc=True``.
+        3. Body — extractive sentences, with document title and the nearest
+           enclosing section heading above each sentence interleaved when
+           ``keep_headings=True``.
+
+        Pinned content is added **on top of** ``max_length``. The budget
+        governs only the extractive body, so pins always survive even if
+        ``max_length`` is tight. ``mode="legacy"`` rejects all three kwargs
+        (raises ``ValueError``).
+
+        The ``SummaryResult.pinned_headings`` field is a ``tuple[str, ...]``
+        listing the auto-detected headings injected by ``keep_headings``
+        (empty when ``keep_headings=False`` or no headings were found).
+        ``pin`` lines and TOC entries are not recorded there::
+
+            from lede import summarize
+
+            r = summarize(text, max_length=500, keep_headings=True, pin=["Figure 3: Q3 revenue"])
+            r.summary          # pinned lines + headings woven into the body
+            r.pinned_headings  # the auto-detected headings that were injected
+
+        Headings are detected via lede's structural heading detector (the
+        same one ``extract.outline`` uses): markdown ``#`` lines and
+        title-case bare lines. The short-sentence heuristic is not used.
+        See docs/REFERENCE.md "Heading & pin retention" for the full contract.
     """
     # Validate hint kwargs first (before any work).
     processed_hints = preprocess_hints(hints)
+    pins_active = bool(keep_headings) or bool(include_toc) or bool(pin)
+    if pins_active and mode == "legacy":
+        raise ValueError(
+            "keep_headings/include_toc/pin not supported in legacy mode"
+        )
     if processed_hints:
         if mode not in ("default", "coverage", "legacy"):
             raise ValueError(f"unknown mode: {mode!r}")
@@ -540,6 +661,32 @@ def summarize(
     else:
         raise ValueError(f"unknown mode: {mode!r}")
 
+    pinned_headings: tuple[str, ...] = ()
+    if pins_active:
+        sel = (
+            _select_for_mode(
+                text, max_length, mode, processed_hints, hint_focus, hint_mode
+            )
+            if keep_headings
+            else None
+        )
+        if sel is not None:
+            sentences, selected = sel
+            summary_text, pinned_headings = render_with_pins(
+                sentences,
+                selected,
+                keep_headings=True,
+                include_toc=include_toc,
+                pin=pin,
+                text=text,
+            )
+        elif include_toc or pin:
+            summary_text = prepend_blocks(
+                summary_text, include_toc=include_toc, pin=pin, text=text
+            )
+        # else: keep_headings requested but no selection available (early-return
+        # / no-op) — summary_text already equals the plain body; nothing to weave.
+
     kwargs: dict = {}
     if attach:
         unknown = set(attach) - _ATTACH_KEYS
@@ -560,4 +707,4 @@ def summarize(
             kwargs["phrases"] = tuple(_phrases(text))
         if "correlated_facts" in attach:
             kwargs["correlated_facts"] = tuple(_correlate(text))
-    return SummaryResult(summary=summary_text, **kwargs)
+    return SummaryResult(summary=summary_text, pinned_headings=pinned_headings, **kwargs)

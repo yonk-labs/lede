@@ -1,0 +1,17 @@
+Approximate nearest neighbor (ANN) search is a class of algorithms for finding points in a high-dimensional vector space that are close to a query point without guaranteeing that the returned results are the exact nearest neighbors. Unlike exact nearest neighbor search, which requires time proportional to the size of the dataset in high dimensions due to the curse of dimensionality, ANN methods trade a small amount of accuracy for dramatic improvements in query time and memory use. ANN is a foundational primitive in modern information retrieval, recommendation systems, and generative AI, where it is used to retrieve semantically similar items from embedding indexes containing millions to billions of vectors.
+
+History
+
+The curse of dimensionality was first described rigorously in the context of numerical analysis by Richard Bellman in the 1950s. Early ANN algorithms such as k-d trees, proposed by Bentley in 1975, worked well for low-dimensional data but degenerated to linear scan as the number of dimensions grew beyond roughly twenty. The first practical high-dimensional ANN method was locality-sensitive hashing (LSH), introduced by Indyk and Motwani in 1998, which uses random projections to assign similar points to the same hash buckets with high probability.
+
+Modern methods
+
+Graph-based indexes dominate current practice for dense vector search. The most widely deployed is Hierarchical Navigable Small Worlds (HNSW), introduced by Malkov and Yashunin in 2016, which constructs a multi-layer graph in which each layer is a proximity graph of a random sample of the full dataset. Queries descend the hierarchy from a sparse top layer to a dense bottom layer, achieving logarithmic query complexity in practice. HNSW is implemented in the FAISS library, the pgvector Postgres extension, and nearly every production vector database.
+
+Performance
+
+ANN methods are typically evaluated using two metrics: recall at k, which measures the fraction of true k nearest neighbors returned, and queries per second. The standard benchmark is the ANN-Benchmarks suite maintained by Aumüller, Bernhardsson, and Faithfull, which evaluates dozens of implementations across a fixed set of datasets including SIFT1M, GIST1M, and Deep1B. Recent work has shown that carefully tuned HNSW and IVF-PQ indexes can achieve 95 percent recall at over fifty thousand queries per second on commodity hardware.
+
+Applications
+
+ANN search is used in reverse image search, deduplication, and content moderation. In retrieval-augmented generation systems, large language models use ANN lookups over document embedding indexes to ground their outputs in source material.

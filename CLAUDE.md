@@ -7,11 +7,13 @@ config.
 
 ## Status
 
-`v0.4.0` — hint-biased extraction across the five ranking primitives
-+ a new `extract.top_terms` primitive + `lede_spacy.expand_hints()`
-companion. Backward-compatible (no hints = byte-identical to v0.3.0).
-All four CI workflows (`tests`, `zero-deps`, `rust`, `lede-spacy`)
-green on `main`.
+`v0.4.2` — optional heading/pin retention on `summarize`: new
+`keep_headings`, `include_toc`, and `pin` kwargs weave document
+structure into the extractive body; new `SummaryResult.pinned_headings`
+field. Default-off: byte-identical to v0.4.1 when unused. Also
+includes `extract.top_terms(with_scores=True)` (v0.4.1) and
+hint-biased extraction (v0.4.0). All four CI workflows green on
+`main`.
 
 ## Authoritative docs in priority order
 

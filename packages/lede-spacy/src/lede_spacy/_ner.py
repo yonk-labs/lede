@@ -2,25 +2,38 @@
 
 The spaCy model is loaded lazily on first call. `warmup()` pre-loads it
 to avoid a ~50ms surprise on the first real call.
+
+Model selection: `_nlp()` defaults to ``en_core_web_sm`` (entities, lemma —
+no vectors needed). Callers that need word vectors (``expand_hints(kinds=
+("similar",))``) pass a vector-capable model, e.g. ``_nlp("en_core_web_md")``.
+The default can be overridden with the ``LEDE_SPACY_MODEL`` env var. The cache
+is keyed by model name so several models can coexist loaded.
 """
 from __future__ import annotations
+import os
 from functools import lru_cache
 
 
 _WANTED_LABELS = frozenset({"PERSON", "ORG", "GPE", "LOC", "PRODUCT"})
 
+_DEFAULT_MODEL = "en_core_web_sm"
 
-@lru_cache(maxsize=1)
-def _nlp():
-    """Return the cached spaCy nlp object. Raises ImportError if missing."""
+
+@lru_cache(maxsize=4)
+def _nlp(model: str | None = None):
+    """Return a cached spaCy nlp object for ``model``.
+
+    ``model`` defaults to ``$LEDE_SPACY_MODEL`` or ``en_core_web_sm``. Raises
+    ImportError if the requested model is not installed.
+    """
     import spacy  # type: ignore[import-not-found]
+    name = model or os.environ.get("LEDE_SPACY_MODEL", _DEFAULT_MODEL)
     try:
-        return spacy.load("en_core_web_sm")
+        return spacy.load(name)
     except OSError as e:
         raise ImportError(
-            "spaCy is installed but en_core_web_sm is missing. "
-            "Reinstall lede-spacy to pull it in automatically, or run:\n"
-            "    python -m spacy download en_core_web_sm"
+            f"spaCy model {name!r} is missing. Install it with:\n"
+            f"    python -m spacy download {name}"
         ) from e
 
 

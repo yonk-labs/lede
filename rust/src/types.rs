@@ -20,6 +20,7 @@ pub struct SummaryResult {
     pub metadata: Option<Metadata>,
     pub phrases: Option<Vec<String>>,
     pub correlated_facts: Option<Vec<PhraseFact>>,
+    pub pinned_headings: Vec<String>,
 }
 
 impl std::fmt::Display for SummaryResult {
@@ -38,6 +39,7 @@ impl SummaryResult {
             metadata: None,
             phrases: None,
             correlated_facts: None,
+            pinned_headings: Vec::new(),
         }
     }
 }

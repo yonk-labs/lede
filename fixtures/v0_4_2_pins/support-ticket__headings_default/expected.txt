@@ -1,0 +1,4 @@
+Original message:
+Running under python 3.12 on ubuntu 22.04, pgvector 0.7. YAML config and logs attached.
+Reply from reporter (day 3):
+Resolution: Caused by default embedder precision change in 0.2.0 triggering a HuggingFace model download on a network-restricted batch node. Customer pre-seeding int8 weights on shared cache as a follow-up.

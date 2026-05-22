@@ -1,0 +1,5 @@
+PINNED A
+PINNED B
+
+Meeting: Platform Migration Planning
+Date: 2026-04-15 Sarah opened by reviewing the project charter and target go-live date. Unit tests are passing at 94 percent coverage. Marcus pushed back on the current deployment strategy. Sarah will circulate a follow-up note with answers by Wednesday.

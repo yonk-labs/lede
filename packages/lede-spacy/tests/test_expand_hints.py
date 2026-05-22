@@ -102,30 +102,33 @@ class TestSynonymExpansion:
 
 
 class TestSimilarExpansion:
-    def _has_vectors(self):
+    def _has_vector_model(self):
+        # similar now loads a vector model (en_core_web_md by default), not sm.
         from lede_spacy._ner import _nlp
-        nlp = _nlp()
-        # spaCy stores vector size; 0 means no vectors loaded.
+        try:
+            nlp = _nlp("en_core_web_md")
+        except ImportError:
+            return False
         return nlp.vocab.vectors_length > 0
 
-    def test_similar_requires_vector_model(self):
-        from lede_spacy._ner import _nlp
-        nlp = _nlp()
-        if nlp.vocab.vectors_length > 0:
-            pytest.skip("model has vectors; cannot test the no-vectors error")
-        with pytest.raises(RuntimeError, match="en_core_web_md"):
+    def test_similar_missing_vector_model_errors(self):
+        # When the vector model isn't installed, similar raises an actionable
+        # error naming the model + download command.
+        if self._has_vector_model():
+            pytest.skip("vector model installed; cannot test the missing-model error")
+        with pytest.raises((ImportError, RuntimeError), match="en_core_web_md"):
             expand_hints(["county"], kinds=("similar",))
 
     def test_similar_with_vectors(self):
-        if not self._has_vectors():
-            pytest.skip("loaded spaCy model has no vectors (need en_core_web_md or _lg)")
+        if not self._has_vector_model():
+            pytest.skip("no vector model (need en_core_web_md or _lg)")
         out = expand_hints(["county"], kinds=("similar",), top_k=3)
         assert "county" in out
         assert len(out) > 1
 
     def test_similar_multi_word_passthrough(self):
-        if not self._has_vectors():
-            pytest.skip("loaded spaCy model has no vectors")
+        if not self._has_vector_model():
+            pytest.skip("no vector model (need en_core_web_md or _lg)")
         out = expand_hints(["John Smith"], kinds=("similar",))
         # Multi-word hints pass through unchanged for similar.
         assert out == ["John Smith"]

@@ -1,0 +1,4 @@
+## Technical Deep-Dive: Johnson Education Co
+Detailed walkthrough of our Proxy capabilities with Johnson Education Co's engineering and business teams.
+### Commercial Concerns
+Original quote was $120K/year but procurement pushed back hard. We need to structure a phased rollout or they'll defer the decision. Decision expected within 30 days.
