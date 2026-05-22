@@ -133,11 +133,11 @@ it). 0.4.2 lets you force them back in.
 
 **API:** three default-off kwargs on `summarize`, plus a new result field.
 
-- `keep_headings: bool = False` — auto-detects structural (Markdown/title-case)
-  headings and weaves them into the output: the **document title** (depth-1
-  heading at the start) is pinned at the top; each selected sentence's
-  **nearest enclosing heading** is re-inserted above it, in document order,
-  deduped.
+- `keep_headings: bool = False` — auto-detects structural headings and weaves
+  them into the output: the **document title** (the first structural heading at
+  the start — any style, not just Markdown) is pinned at the top; each selected
+  sentence's **nearest enclosing heading** is re-inserted above it, in document
+  order, deduped. *Detection is best-effort — see the caveat below.*
 - `include_toc: bool = False` — prepends a full table of contents (indented by
   depth).
 - `pin: Sequence[str] | None = None` — caller-supplied lines forced **verbatim**
@@ -186,6 +186,28 @@ r = summarize(doc, max_length=300, pin=["Figure 3: Q3 revenue by region"])
 # Title + headings + a prepended TOC, biased toward "revenue"
 r = summarize(doc, max_length=300, keep_headings=True, include_toc=True, hints=["revenue"])
 ```
+
+### Heading detection is best-effort (important caveat)
+
+`keep_headings` / `include_toc` use lede's structural heading detector, which is
+**convention-bound, not a general parser**. It reliably catches Markdown `#`
+lines, ALL-CAPS lines, simple Title-Case lines, `N. Name` numbering, and
+trailing-colon labels. It **misses** headings with mid-line punctuation
+(`Results & Discussion`, `Cost-Benefit Analysis`, `Section 2: Scope`),
+dotted-decimal/roman numbering (`1.2 Scope`, `IV. Methods`), lowercase starts
+(`iOS Integration`), setext underlines (`====`), and many domain-specific
+caption-style headings.
+
+> Real-world example: on a corpus of SCOTUS opinions (caption-style headings),
+> `lede.toc()` returned empty for every document — the auto-detector simply
+> doesn't recognize those headings.
+
+A missed heading is treated as ordinary body text: it won't be pinned or
+positioned, and sentences beneath it may be grouped under the previous detected
+heading. **When auto-detection fails, or when you already know the heading text
+(e.g. it lives in chunk metadata), use `pin=[…]`** — it forces exact lines in
+verbatim, independent of detection. This is the robust path for non-Markdown
+sources.
 
 **Use cases:** RAG retrieval where the chunk heading/caption is the key signal
 (the originating use case — prepending the deduped heading to the summary

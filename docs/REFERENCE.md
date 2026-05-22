@@ -232,9 +232,31 @@ Pinned content is added **on top of** `max_length`. The `max_length` budget gove
 
 The returned `SummaryResult.pinned_headings: tuple[str, ...]` lists the headings auto-detected and injected by `keep_headings`. It is empty when `keep_headings=False` or when no headings were found in the text. `pin` lines and TOC entries are **not** recorded in `pinned_headings`.
 
-### Heading detection
+### Heading detection (best-effort)
 
-Headings are detected via lede's structural heading detector — the same one `extract.outline` uses. Detected patterns include markdown `#` lines and bare title-case lines without terminal punctuation. The short-sentence heuristic used by the sentence splitter is not used.
+`keep_headings` and `include_toc` rely on lede's structural heading detector
+(the same one `extract.outline` / `toc` use). It is **best-effort and
+convention-bound**, not a general heading parser.
+
+**Detected:** markdown `#…` lines; ALL-CAPS lines (letters/spaces, ≤80 chars);
+bare Title-Case lines (alphanumerics/spaces, ≤60 chars, no terminal/internal
+punctuation); `N. Section Name`; trailing-colon labels (`Summary:`, ≤30 chars);
+`Title — metadata` dash lines. Non-markdown titles still pin as the document
+title (`md_depth` defaults to 1 for them).
+
+**Not detected** (treated as body text): headings containing `& - , ( ) / :`
+mid-line (e.g. `Results & Discussion`, `Cost-Benefit Analysis`,
+`Section 2: Scope`); dotted-decimal (`1.2 Scope`) or roman-numeral (`IV.
+Methods`) numbering; lowercase-initial headings (`iOS Integration`); setext
+underlines (`====` / `----`); titles over the length caps; and many
+domain-specific *caption-style* headings (e.g. SCOTUS opinion captions).
+
+When a heading is missed, `keep_headings` cannot pin or position it (it is
+scored as an ordinary sentence), and sentences beneath it may be attributed to
+the previous detected heading. **For documents whose headings are not
+auto-detected — or when you already know the heading text (e.g. it lives in
+chunk metadata) — use `pin=[…]` to force the exact lines in verbatim.** `pin`
+is detection-independent and deterministic.
 
 ### Backward compatibility
 
