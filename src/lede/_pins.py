@@ -114,3 +114,25 @@ def render_with_pins(
     blocks.append(body)
     output = "\n\n".join(b for b in blocks if b)
     return output, tuple(pinned_headings)
+
+
+def prepend_blocks(
+    body: str,
+    *,
+    include_toc: bool,
+    pin: Sequence[str] | None,
+    text: str,
+) -> str:
+    """Prepend pin and TOC blocks (in that order) to an already-rendered
+    body string. Used when keep_headings is off but pin/include_toc are
+    on, so the body stays byte-identical to the non-pinned scorer."""
+    blocks: list[str] = []
+    if pin:
+        blocks.append("\n".join(pin))
+    if include_toc:
+        toc_text = render_toc(text)
+        if toc_text:
+            blocks.append(toc_text)
+    if body:
+        blocks.append(body)
+    return "\n\n".join(b for b in blocks if b)

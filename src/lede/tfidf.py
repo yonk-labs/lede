@@ -14,10 +14,12 @@ docs/v0-2-design.md for the design contract.
 import math
 import re
 from collections import Counter
+from collections.abc import Sequence
 
 from lede.sentences import split_sentences
 from lede._headings import is_heading, heading_name
 from lede._types import SummaryResult
+from lede._pins import render_with_pins, prepend_blocks
 from lede._hints import (
     preprocess_hints,
     hint_bonus,
@@ -420,6 +422,24 @@ def _select_default(
     return sentences, selected
 
 
+def _select_for_mode(
+    text: str,
+    max_length: int,
+    mode: str,
+    processed_hints,
+    hint_focus: float,
+    hint_mode: str,
+) -> tuple[list[str], list[int]] | None:
+    """Dispatch to the mode-appropriate index-returning selector.
+    Slice 1 implements default mode; coverage and hints land in a later
+    task (they return None here, making keep_headings a safe no-op)."""
+    if processed_hints:
+        return None
+    if mode == "coverage":
+        return None
+    return _select_default(text, max_length)
+
+
 def _summarize_default(text: str, max_length: int = 500) -> str:
     """v0.2 default scorer — mirrors _summarize_legacy with the default scorer.
 
@@ -457,6 +477,9 @@ def summarize(
     hints: list[str] | dict[str, float] | None = None,
     hint_focus: float = 0.7,
     hint_mode: str = "soft",
+    keep_headings: bool = False,
+    include_toc: bool = False,
+    pin: Sequence[str] | None = None,
 ) -> SummaryResult:
     """Extractive summary with configurable scoring mode and optional hints.
 
@@ -519,6 +542,11 @@ def summarize(
     """
     # Validate hint kwargs first (before any work).
     processed_hints = preprocess_hints(hints)
+    pins_active = bool(keep_headings) or bool(include_toc) or bool(pin)
+    if pins_active and mode == "legacy":
+        raise ValueError(
+            "keep_headings/include_toc/pin not supported in legacy mode"
+        )
     if processed_hints:
         if mode not in ("default", "coverage", "legacy"):
             raise ValueError(f"unknown mode: {mode!r}")
@@ -550,6 +578,32 @@ def summarize(
     else:
         raise ValueError(f"unknown mode: {mode!r}")
 
+    pinned_headings: tuple[str, ...] = ()
+    if pins_active:
+        sel = (
+            _select_for_mode(
+                text, max_length, mode, processed_hints, hint_focus, hint_mode
+            )
+            if keep_headings
+            else None
+        )
+        if sel is not None:
+            sentences, selected = sel
+            summary_text, pinned_headings = render_with_pins(
+                sentences,
+                selected,
+                keep_headings=True,
+                include_toc=include_toc,
+                pin=pin,
+                text=text,
+            )
+        elif include_toc or pin:
+            summary_text = prepend_blocks(
+                summary_text, include_toc=include_toc, pin=pin, text=text
+            )
+        # else: keep_headings requested but no selection available (early-return
+        # / no-op) — summary_text already equals the plain body; nothing to weave.
+
     kwargs: dict = {}
     if attach:
         unknown = set(attach) - _ATTACH_KEYS
@@ -570,4 +624,4 @@ def summarize(
             kwargs["phrases"] = tuple(_phrases(text))
         if "correlated_facts" in attach:
             kwargs["correlated_facts"] = tuple(_correlate(text))
-    return SummaryResult(summary=summary_text, **kwargs)
+    return SummaryResult(summary=summary_text, pinned_headings=pinned_headings, **kwargs)

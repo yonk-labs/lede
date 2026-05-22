@@ -108,3 +108,56 @@ def test_title_not_double_emitted_when_also_enclosing_heading():
     )
     assert pinned == ("# Quarterly Report",)
     assert body.count("# Quarterly Report") == 1
+
+
+import pytest
+from lede import summarize
+
+_DOC = (
+    "# Quarterly Report\n\n"
+    "Revenue rose sharply this quarter across every region we serve.\n\n"
+    "## Revenue\n\n"
+    "Revenue grew twelve percent year over year to record levels.\n"
+    "Operating costs stayed essentially flat across the whole period.\n\n"
+    "## Risks\n\n"
+    "Supply chain risk remains elevated heading into the next year.\n"
+)
+
+
+def test_default_off_is_unchanged():
+    assert (
+        summarize(_DOC, max_length=200).summary
+        == summarize(_DOC, max_length=200, keep_headings=False, pin=None).summary
+    )
+
+
+def test_keep_headings_pins_title_and_sections():
+    r = summarize(_DOC, max_length=200, keep_headings=True)
+    assert r.summary.startswith("# Quarterly Report")
+    assert "# Quarterly Report" in r.pinned_headings
+
+
+def test_keep_headings_added_on_top_of_budget():
+    base = summarize(_DOC, max_length=200, keep_headings=False).summary
+    pinned = summarize(_DOC, max_length=200, keep_headings=True).summary
+    assert len(pinned) >= len(base)
+
+
+def test_pin_lines_survive_verbatim():
+    r = summarize(_DOC, max_length=200, pin=["Figure 3: revenue by region"])
+    assert r.summary.startswith("Figure 3: revenue by region")
+
+
+def test_no_heading_doc_keep_headings_is_noop():
+    plain = "Alpha beta gamma delta epsilon zeta eta. " * 20
+    assert (
+        summarize(plain, max_length=150, keep_headings=True).summary
+        == summarize(plain, max_length=150).summary
+    )
+
+
+def test_legacy_mode_rejects_pin_kwargs():
+    with pytest.raises(ValueError, match="legacy"):
+        summarize(_DOC, max_length=200, mode="legacy", keep_headings=True)
+    with pytest.raises(ValueError, match="legacy"):
+        summarize(_DOC, max_length=200, mode="legacy", pin=["x"])
