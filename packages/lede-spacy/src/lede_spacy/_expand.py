@@ -37,9 +37,15 @@ def _expand_synonyms(term: str, *, top_k: int) -> list[str]:
 
 
 def _expand_similar(term: str, *, top_k: int) -> list[str]:
-    """Expand via spaCy word-vector similarity. Requires en_core_web_md or _lg."""
+    """Expand via spaCy word-vector similarity. Requires en_core_web_md or _lg.
+
+    Loads a vector-capable model (``$LEDE_SPACY_VECTOR_MODEL`` or en_core_web_md)
+    rather than the default sm, which has no vectors.
+    """
+    import os
     from ._similar import expand_similar
-    return expand_similar(_nlp(), term, top_k=top_k)
+    model = os.environ.get("LEDE_SPACY_VECTOR_MODEL", "en_core_web_md")
+    return expand_similar(_nlp(model), term, top_k=top_k)
 
 
 def expand_hints(
