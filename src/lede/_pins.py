@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from lede._headings import is_structural_heading, heading_name, md_depth
+from lede._headings import is_structural_heading, md_depth
 
 
 def nearest_heading_map(sentences: list[str]) -> list[int | None]:

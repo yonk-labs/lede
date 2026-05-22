@@ -324,7 +324,7 @@ def _select_with_hints(
 
     section_map = _build_section_map(sentences)
     if mode == "coverage":
-        from lede.coverage import _composite_score_coverage_for_hints  # added in T5
+        from lede.coverage import _composite_score_coverage_for_hints
         plain_scores = _composite_score_coverage_for_hints(sentences)
     else:
         plain_scores = _composite_score_default(sentences, section_map)
@@ -457,9 +457,10 @@ def _select_for_mode(
     hint_focus: float,
     hint_mode: str,
 ) -> tuple[list[str], list[int]] | None:
-    """Dispatch to the mode-appropriate index-returning selector.
-    Slice 1 implements default mode; coverage and hints land in a later
-    task (they return None here, making keep_headings a safe no-op)."""
+    """Dispatch to the mode-appropriate index-returning selector:
+    hint two-pool when hints are present, coverage when mode is
+    'coverage', else the default scorer. Returns None on early-return
+    paths, making keep_headings a safe no-op there."""
     if processed_hints:
         return _select_with_hints(
             text, max_length, mode=mode, hints=processed_hints,
