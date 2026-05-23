@@ -41,6 +41,7 @@ fn summarize_with_pins_pins_title_default_mode() {
         keep_headings: true,
         include_toc: false,
         pin: Vec::new(),
+        ..Default::default()
     };
     let r = summarize_with_pins(
         doc,
@@ -106,4 +107,34 @@ fn override_keep_headings_title_unmatched_and_interleave() {
         "Syllabus\nDissent\nThe Court held X.\nOpinion of the Court\nThe reasoning is Y. Costs were Z."
     );
     assert_eq!(pinned, vec!["Syllabus", "Dissent", "Opinion of the Court"]);
+}
+
+#[test]
+fn summarize_with_pins_headings_override() {
+    use lede::Mode;
+    use lede::tfidf::{PinOpts, SummarizeOpts, summarize_with_pins};
+
+    let doc = "Syllabus\n\nThe Court held that the statute is constitutional under precedent.\n\nOpinion of the Court\n\nThe reasoning rests on the commerce clause and prior rulings here.\n";
+    let pin_opts = PinOpts {
+        keep_headings: true,
+        include_toc: false,
+        pin: Vec::new(),
+        headings: ["Syllabus", "Opinion of the Court", "Dissent"]
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect(),
+    };
+    let r = summarize_with_pins(
+        doc,
+        300,
+        Mode::Default,
+        &SummarizeOpts::default(),
+        &pin_opts,
+    );
+    assert!(r.summary.starts_with("Syllabus"));
+    assert!(r.pinned_headings.contains(&"Dissent".to_string()));
+    assert!(
+        r.pinned_headings
+            .contains(&"Opinion of the Court".to_string())
+    );
 }

@@ -853,6 +853,12 @@ pub struct PinOpts {
     pub keep_headings: bool,
     pub include_toc: bool,
     pub pin: Vec<String>,
+    /// Caller-supplied heading list for `render_with_pins` / `prepend_blocks`.
+    /// When non-empty and `keep_headings` is true, overrides heading detection
+    /// in the rendered output. When `keep_headings` is false (and `include_toc`
+    /// is false and `pin` is empty), this field is a no-op — byte-identical to
+    /// an empty list. Mirrors Python `summarize(..., headings=...)`.
+    pub headings: Vec<String>,
 }
 
 /// Extractive summary with optional heading/pin retention.
@@ -871,7 +877,10 @@ pub fn summarize_with_pins(
     pin_opts: &PinOpts,
 ) -> SummaryResult {
     let processed = crate::hints::preprocess_hints(&hint_opts.hints);
-    let pins_active = pin_opts.keep_headings || pin_opts.include_toc || !pin_opts.pin.is_empty();
+    let pins_active = pin_opts.keep_headings
+        || pin_opts.include_toc
+        || !pin_opts.pin.is_empty()
+        || !pin_opts.headings.is_empty();
     if pins_active {
         assert!(
             mode != Mode::Legacy,
@@ -889,6 +898,11 @@ pub fn summarize_with_pins(
             None
         } else {
             Some(&pin_opts.pin)
+        };
+        let headings_slice: Option<&[String]> = if pin_opts.headings.is_empty() {
+            None
+        } else {
+            Some(pin_opts.headings.as_slice())
         };
         let sel = if pin_opts.keep_headings {
             select_for_mode(
@@ -910,13 +924,18 @@ pub fn summarize_with_pins(
                 pin_opts.include_toc,
                 pin_slice,
                 text,
-                None,
+                headings_slice,
             );
             summary = woven;
             pinned_headings = pinned;
         } else if pin_opts.include_toc || pin_slice.is_some() {
-            summary =
-                crate::pins::prepend_blocks(&summary, pin_opts.include_toc, pin_slice, text, None);
+            summary = crate::pins::prepend_blocks(
+                &summary,
+                pin_opts.include_toc,
+                pin_slice,
+                text,
+                headings_slice,
+            );
         }
     }
 

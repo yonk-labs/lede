@@ -406,6 +406,7 @@ fn v0_4_2_pins_byte_identical() {
             keep_headings: args["keep_headings"].as_bool().unwrap_or(false),
             include_toc: args["include_toc"].as_bool().unwrap_or(false),
             pin,
+            ..Default::default()
         };
         let actual = summarize_with_pins(&text, max_length, mode, &hint_opts, &pin_opts).summary;
         if actual.as_bytes() != expected.as_bytes() {
