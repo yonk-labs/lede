@@ -89,9 +89,14 @@ depth is unknown). Replaces the `outline()`-derived TOC.
    sentence, if its nearest preceding matched-heading position has not been
    emitted, emit that heading. Then emit the sentence. Consecutive body
    sentences in a section join with a single space; headings start new lines.
-6. `pinned_headings` = every heading actually emitted, in emission order
-   (title first, then unmatched block, then interleaved). All of `H` is
-   guaranteed present.
+6. **Survival pass:** after interleaving, any heading in `H` still not emitted
+   (it matched a body line, but that section had no selected sentence so the
+   interleave pass never reached it) is appended in `H` order. This makes the
+   guarantee in step 7 unconditional.
+7. `pinned_headings` = every heading actually emitted, in emission order
+   (title first, then unmatched block, then interleaved, then any survival
+   appends). **All of `H` is guaranteed present**, regardless of which
+   sentences were selected.
 
 Edge: if `H` is non-empty but `keep_headings=False` and `include_toc=False`,
 `headings` has no effect (documented no-op).

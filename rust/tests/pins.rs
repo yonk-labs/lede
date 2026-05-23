@@ -138,3 +138,29 @@ fn summarize_with_pins_headings_override() {
             .contains(&"Opinion of the Court".to_string())
     );
 }
+
+#[test]
+fn override_matched_but_unselected_heading_still_survives() {
+    // "Appendix" matches body index 2 but its section (index 3) is not
+    // selected, so interleave never reaches it. It must still appear
+    // (spec §4.3 step 6: every supplied heading is guaranteed present).
+    let sentences: Vec<String> = ["Section A", "body one here", "Appendix", "appendix detail"]
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect();
+    let headings: Vec<String> = ["Section A", "Appendix"]
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect();
+    let (body, pinned) = render_with_pins(
+        &sentences,
+        &[1],
+        true,
+        false,
+        None,
+        &sentences.join("\n"),
+        Some(&headings),
+    );
+    assert!(pinned.contains(&"Appendix".to_string()));
+    assert!(body.contains("Appendix"));
+}

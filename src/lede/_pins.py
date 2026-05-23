@@ -141,6 +141,15 @@ def _render_keep_headings_override(
         buf.append(sentences[s_idx])
     flush()
 
+    # Survival guarantee (§4.3 step 6): any supplied heading not yet emitted —
+    # i.e. it matched a body line but that section had no selected sentence —
+    # is appended so every heading in H is present in the output.
+    for h in H:
+        if h not in emitted_text:
+            out_lines.append(h)
+            pinned.append(h)
+            emitted_text.add(h)
+
     return "\n".join(out_lines), pinned
 
 

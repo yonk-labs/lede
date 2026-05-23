@@ -148,6 +148,17 @@ fn render_keep_headings_override(
         out_lines.push(buf.join(" "));
     }
 
+    // Survival guarantee (§4.3 step 6): any supplied heading not yet emitted —
+    // it matched a body line but that section had no selected sentence — is
+    // appended so every heading in H is present in the output.
+    for h in &h_list {
+        if !emitted_text.contains(h) {
+            out_lines.push(h.clone());
+            pinned.push(h.clone());
+            emitted_text.insert(h.clone());
+        }
+    }
+
     (out_lines.join("\n"), pinned)
 }
 

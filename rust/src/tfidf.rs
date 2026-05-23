@@ -884,7 +884,7 @@ pub fn summarize_with_pins(
     if pins_active {
         assert!(
             mode != Mode::Legacy,
-            "keep_headings/include_toc/pin not supported in legacy mode"
+            "keep_headings/include_toc/pin/headings not supported in legacy mode"
         );
     }
 

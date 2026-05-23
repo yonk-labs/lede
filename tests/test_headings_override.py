@@ -7,6 +7,27 @@ def test_render_toc_from_list_dedupes_preserves_order():
     assert render_toc_from_list(["A", "B", "A", "C"]) == "A\nB\nC"
 
 
+def test_override_matched_but_unselected_heading_still_survives():
+    # "Appendix" matches body line 2 but its section (sentence 3) is not
+    # selected, so the interleave pass never reaches it. It must still appear
+    # (spec §4.3 step 6: every supplied heading is guaranteed present).
+    sentences = ["Section A", "body one here", "Appendix", "appendix detail"]
+    selected = [1]
+    body, pinned = render_with_pins(
+        sentences, selected,
+        keep_headings=True, include_toc=False, pin=None,
+        text="\n".join(sentences),
+        headings=["Section A", "Appendix"],
+    )
+    assert "Appendix" in pinned
+    assert "Appendix" in body
+
+
+def test_legacy_rejects_headings_only():
+    with pytest.raises(ValueError, match="legacy"):
+        summarize("a b c d e f g.", max_length=300, mode="legacy", headings=["X"])
+
+
 def test_override_keep_headings_title_unmatched_and_interleave():
     sentences = [
         "Syllabus",

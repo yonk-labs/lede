@@ -660,7 +660,7 @@ def summarize(
     pins_active = bool(keep_headings) or bool(include_toc) or bool(pin) or bool(headings)
     if pins_active and mode == "legacy":
         raise ValueError(
-            "keep_headings/include_toc/pin not supported in legacy mode"
+            "keep_headings/include_toc/pin/headings not supported in legacy mode"
         )
     if processed_hints:
         if mode not in ("default", "coverage", "legacy"):
