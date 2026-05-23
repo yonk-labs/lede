@@ -1,3 +1,5 @@
+import pytest
+from lede import summarize
 from lede._pins import render_toc_from_list, render_with_pins
 
 
@@ -46,3 +48,40 @@ def test_override_none_falls_back_to_auto():
     a = render_with_pins(sentences, [1, 3], keep_headings=True, include_toc=False, pin=None, text="\n".join(sentences))
     b = render_with_pins(sentences, [1, 3], keep_headings=True, include_toc=False, pin=None, text="\n".join(sentences), headings=None)
     assert a == b
+
+
+_DOC = (
+    "Syllabus\n\n"
+    "The Court held that the statute is constitutional under precedent.\n\n"
+    "Opinion of the Court\n\n"
+    "The reasoning rests on the commerce clause and prior rulings here.\n"
+)
+
+
+def test_summarize_headings_override_keep_headings():
+    r = summarize(_DOC, max_length=300, keep_headings=True,
+                  headings=["Syllabus", "Opinion of the Court", "Dissent"])
+    assert r.summary.startswith("Syllabus")
+    assert "Dissent" in r.pinned_headings
+    assert "Opinion of the Court" in r.pinned_headings
+
+
+def test_summarize_headings_override_toc():
+    r = summarize(_DOC, max_length=300, include_toc=True,
+                  headings=["Syllabus", "Opinion", "Dissent"])
+    assert r.summary.startswith("Syllabus\nOpinion\nDissent\n\n")
+
+
+def test_headings_without_flags_is_noop():
+    base = summarize(_DOC, max_length=300).summary
+    assert summarize(_DOC, max_length=300, headings=["Syllabus"]).summary == base
+
+
+def test_headings_default_none_byte_identical():
+    assert summarize(_DOC, max_length=300, keep_headings=True).summary == \
+           summarize(_DOC, max_length=300, keep_headings=True, headings=None).summary
+
+
+def test_legacy_rejects_headings():
+    with pytest.raises(ValueError, match="legacy"):
+        summarize(_DOC, max_length=300, mode="legacy", headings=["X"], include_toc=True)

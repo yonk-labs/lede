@@ -512,6 +512,7 @@ def summarize(
     keep_headings: bool = False,
     include_toc: bool = False,
     pin: Sequence[str] | None = None,
+    headings: Sequence[str] | None = None,
 ) -> SummaryResult:
     """Extractive summary with configurable scoring mode and optional hints.
 
@@ -625,7 +626,7 @@ def summarize(
     """
     # Validate hint kwargs first (before any work).
     processed_hints = preprocess_hints(hints)
-    pins_active = bool(keep_headings) or bool(include_toc) or bool(pin)
+    pins_active = bool(keep_headings) or bool(include_toc) or bool(pin) or bool(headings)
     if pins_active and mode == "legacy":
         raise ValueError(
             "keep_headings/include_toc/pin not supported in legacy mode"
@@ -679,10 +680,11 @@ def summarize(
                 include_toc=include_toc,
                 pin=pin,
                 text=text,
+                headings=headings,
             )
         elif include_toc or pin:
             summary_text = prepend_blocks(
-                summary_text, include_toc=include_toc, pin=pin, text=text
+                summary_text, include_toc=include_toc, pin=pin, text=text, headings=headings,
             )
         # else: keep_headings requested but no selection available (early-return
         # / no-op) — summary_text already equals the plain body; nothing to weave.

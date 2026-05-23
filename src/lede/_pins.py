@@ -220,6 +220,7 @@ def prepend_blocks(
     include_toc: bool,
     pin: Sequence[str] | None,
     text: str,
+    headings: Sequence[str] | None = None,
 ) -> str:
     """Prepend pin and TOC blocks (in that order) to an already-rendered
     body string. Used when keep_headings is off but pin/include_toc are
@@ -228,7 +229,7 @@ def prepend_blocks(
     if pin:
         blocks.append("\n".join(pin))
     if include_toc:
-        toc_text = render_toc(text)
+        toc_text = render_toc_from_list(headings) if headings else render_toc(text)
         if toc_text:
             blocks.append(toc_text)
     if body:
