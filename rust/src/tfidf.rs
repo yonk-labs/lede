@@ -910,11 +910,13 @@ pub fn summarize_with_pins(
                 pin_opts.include_toc,
                 pin_slice,
                 text,
+                None,
             );
             summary = woven;
             pinned_headings = pinned;
         } else if pin_opts.include_toc || pin_slice.is_some() {
-            summary = crate::pins::prepend_blocks(&summary, pin_opts.include_toc, pin_slice, text);
+            summary =
+                crate::pins::prepend_blocks(&summary, pin_opts.include_toc, pin_slice, text, None);
         }
     }
 

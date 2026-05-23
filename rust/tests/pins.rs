@@ -1,5 +1,7 @@
 use lede::Mode;
-use lede::pins::{document_title_index, nearest_heading_map, render_with_pins};
+use lede::pins::{
+    document_title_index, nearest_heading_map, render_toc_from_list, render_with_pins,
+};
 use lede::tfidf::{PinOpts, SummarizeOpts, summarize_with_pins};
 
 fn sentences() -> Vec<String> {
@@ -57,10 +59,51 @@ fn summarize_with_pins_pins_title_default_mode() {
 #[test]
 fn render_keep_headings_interleaves() {
     let s = sentences();
-    let (body, pinned) = render_with_pins(&s, &[1, 3, 6], true, false, None, &s.join("\n"));
+    let (body, pinned) = render_with_pins(&s, &[1, 3, 6], true, false, None, &s.join("\n"), None);
     assert_eq!(pinned, vec!["# Quarterly Report", "## Revenue", "## Risks"]);
     assert_eq!(
         body,
         "# Quarterly Report\nRevenue rose sharply this quarter overall.\n## Revenue\nRevenue grew twelve percent year over year.\n## Risks\nSupply chain risk remains elevated this year."
     );
+}
+
+#[test]
+fn render_toc_from_list_dedupes_preserves_order() {
+    let h: Vec<String> = ["A", "B", "A", "C"]
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect();
+    assert_eq!(render_toc_from_list(&h), "A\nB\nC");
+}
+
+#[test]
+fn override_keep_headings_title_unmatched_and_interleave() {
+    let sentences: Vec<String> = [
+        "Syllabus",
+        "The Court held X.",
+        "Opinion of the Court",
+        "The reasoning is Y.",
+        "Costs were Z.",
+    ]
+    .iter()
+    .map(std::string::ToString::to_string)
+    .collect();
+    let headings: Vec<String> = ["Syllabus", "Opinion of the Court", "Dissent"]
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect();
+    let (body, pinned) = render_with_pins(
+        &sentences,
+        &[1, 3, 4],
+        true,
+        false,
+        None,
+        &sentences.join("\n"),
+        Some(&headings),
+    );
+    assert_eq!(
+        body,
+        "Syllabus\nDissent\nThe Court held X.\nOpinion of the Court\nThe reasoning is Y. Costs were Z."
+    );
+    assert_eq!(pinned, vec!["Syllabus", "Dissent", "Opinion of the Court"]);
 }
