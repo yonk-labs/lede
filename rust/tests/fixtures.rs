@@ -431,3 +431,111 @@ fn v0_4_2_pins_byte_identical() {
         failures.join("\n\n")
     );
 }
+
+// ----------------------------------------------------------------------------
+// v0.4.3 headings-override parity walker (H-T6)
+//
+// Layout: fixtures/v0_4_3_headings/<corpus>__<case>/{input.txt, args.json, expected.txt}
+// args.json encodes: max_length, mode, keep_headings, include_toc, pin (list|null),
+// headings (list|null), hints (list|null).
+// The walker runs lede::tfidf::summarize_with_pins with the configured
+// parameters (including the caller-supplied headings override) and byte-compares
+// against expected.txt (canonical Python output).
+//
+// Any mismatch is a real Python ↔ Rust parity failure — do NOT modify the
+// implementation to make this test pass; fix the Rust implementation instead.
+
+#[test]
+fn v0_4_3_headings_byte_identical() {
+    use lede::Mode;
+    use lede::hints::HintMode;
+    use lede::tfidf::{PinOpts, SummarizeOpts, summarize_with_pins};
+    use serde_json::Value;
+    use std::fs;
+
+    let dir = fixtures_root().join("v0_4_3_headings");
+    assert!(
+        dir.is_dir(),
+        "missing fixtures directory: {}",
+        dir.display()
+    );
+
+    let mut fixture_dirs: Vec<_> = fs::read_dir(&dir)
+        .expect("read v0_4_3_headings dir")
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .filter(|p| p.is_dir())
+        .collect();
+    fixture_dirs.sort();
+    assert!(!fixture_dirs.is_empty(), "no fixtures in {}", dir.display());
+
+    let mut failures = Vec::new();
+    for fixture in &fixture_dirs {
+        let text = fs::read_to_string(fixture.join("input.txt")).expect("input.txt");
+        let args: Value = serde_json::from_str(
+            &fs::read_to_string(fixture.join("args.json")).expect("args.json"),
+        )
+        .expect("parse args.json");
+        let expected = fs::read_to_string(fixture.join("expected.txt")).expect("expected.txt");
+
+        let max_length = args["max_length"].as_u64().expect("max_length") as usize;
+        let mode = match args["mode"].as_str().unwrap_or("default") {
+            "coverage" => Mode::Coverage,
+            "legacy" => Mode::Legacy,
+            _ => Mode::Default,
+        };
+        let hints: Vec<(String, f64)> = match &args["hints"] {
+            Value::Array(arr) => arr
+                .iter()
+                .filter_map(|v| v.as_str().map(|s| (s.to_string(), 1.0)))
+                .collect(),
+            _ => vec![],
+        };
+        let pin: Vec<String> = match &args["pin"] {
+            Value::Array(arr) => arr
+                .iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect(),
+            _ => vec![],
+        };
+        let headings: Vec<String> = match &args["headings"] {
+            Value::Array(arr) => arr
+                .iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect(),
+            _ => vec![],
+        };
+        let hint_opts = SummarizeOpts {
+            hints,
+            hint_focus: 0.7,
+            hint_mode: HintMode::Soft,
+        };
+        let pin_opts = PinOpts {
+            keep_headings: args["keep_headings"].as_bool().unwrap_or(false),
+            include_toc: args["include_toc"].as_bool().unwrap_or(false),
+            pin,
+            headings,
+        };
+        let actual = summarize_with_pins(&text, max_length, mode, &hint_opts, &pin_opts).summary;
+        if actual.as_bytes() != expected.as_bytes() {
+            failures.push(format!(
+                "{}: bytes differ\n  expected ({}): {:?}\n  actual ({}): {:?}",
+                fixture
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("<?>"),
+                expected.len(),
+                expected,
+                actual.len(),
+                actual,
+            ));
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "v0_4_3_headings parity FAILED ({} of {}):\n\n{}",
+        failures.len(),
+        fixture_dirs.len(),
+        failures.join("\n\n")
+    );
+}

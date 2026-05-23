@@ -1,0 +1,9 @@
+Introduction
+Summary
+Conclusion
+
+Introduction
+Summary
+Total aggregate error across the corpus was bounded by 4.8e-14 in absolute terms.
+Conclusion
+The root cause of observed divergence was the CPython 3.12 switch to compensated summation, which the Rust standard library does not match. The fix is trivial and has no performance cost.

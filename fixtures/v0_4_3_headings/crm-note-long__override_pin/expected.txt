@@ -1,0 +1,9 @@
+PIN A
+
+Introduction
+Summary
+Conclusion
+Original quote was $120K/year but procurement pushed back hard. Decision expected within 30 days. - Send technical migration playbook by Friday
+- Schedule follow-up with their SRE team next week
+- Prepare phased pricing proposal with CFO by Monday
+- Confirm Q3 deployment timeline in writing

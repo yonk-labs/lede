@@ -1,0 +1,8 @@
+Introduction
+Summary
+Conclusion
+
+Introduction
+Summary
+Conclusion
+The current pipeline was built three years ago for a load of 50,000 events per minute and has grown organically to handle nearly 800,000. It now accounts for 40 percent of our infrastructure bill and is the top source of on-call pages. Phase three ramps to 50 percent after a minimum of two weeks.

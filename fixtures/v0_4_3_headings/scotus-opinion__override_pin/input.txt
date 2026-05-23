@@ -1,0 +1,21 @@
+SUPREME COURT OF THE UNITED STATES
+
+No. 24-782
+
+NORTHERN PACIFIC MERCHANTS ASSOCIATION, Petitioner, v. UNITED STATES ENVIRONMENTAL PROTECTION AGENCY
+
+On Writ of Certiorari to the United States Court of Appeals for the Ninth Circuit
+
+Justice Ramirez delivered the opinion of the Court.
+
+This case presents the question whether Section 412(b) of the Clean Water Enforcement Act, 33 U.S.C. §1342, permits the Environmental Protection Agency to impose civil penalties on a facility operator whose permitted discharges exceed an effluent limit set by a subsequent rulemaking, when the operator's permit contains no express reservation allowing mid-term modification. The facts are undisputed. In 2019, petitioner's affiliate, Cascade Processing LLC, received a National Pollutant Discharge Elimination System permit authorizing the discharge of up to eighteen tons per year of dissolved metals into the Columbia River basin. In 2022, EPA promulgated a final rule establishing new basin-wide effluent limitations that reduced the allowable discharge to eleven tons per year. EPA then brought an enforcement action seeking civil penalties for each ton by which Cascade's 2022 and 2023 discharges exceeded the new limit, even though those discharges remained within the original permit's ceiling.
+
+The Ninth Circuit held that the Agency could enforce the new limit retroactively because the statute grants EPA continuing authority to revise effluent standards and because the permit itself recites the statute. Petitioner argues that this reading collapses the distinction between rulemaking authority and permit-term authority, and that the statute's plain text anchors enforcement to the permit as issued. We agree.
+
+Section 412(b) authorizes civil penalties only for violations of "the terms of a permit lawfully issued under this chapter." 33 U.S.C. §1342(b). Nothing in the text converts a subsequent rule into a retroactive permit term. Reading the statute to do so would render the permit's schedule-of-compliance provisions meaningless and would upset the settled expectations on which regulated parties rely when committing capital. Where Congress has intended continuing modification authority, it has said so expressly, as in the Clean Air Act's Title V program.
+
+The Government contends that denying retroactive enforcement will frustrate the Act's public-health purposes. That argument is properly addressed to Congress, not to this Court. Our task is to read the statute Congress wrote.
+
+Held: Section 412(b) does not authorize civil penalties for permitted discharges that comply with a facility's unmodified NPDES permit, even if those discharges exceed effluent limits adopted by subsequent rulemaking. The judgment of the Court of Appeals for the Ninth Circuit is reversed, and the case is remanded for further proceedings consistent with this opinion.
+
+It is so ordered.

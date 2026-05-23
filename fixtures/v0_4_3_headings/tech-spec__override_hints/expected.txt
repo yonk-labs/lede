@@ -1,0 +1,4 @@
+Introduction
+Summary
+Conclusion
+It now accounts for 40 percent of our infrastructure bill and is the top source of on-call pages. Storage growth is estimated at 2 terabytes per day, with a 90-day retention window. Phase three ramps to 50 percent after a minimum of two weeks. A formal risk review is scheduled for next month.

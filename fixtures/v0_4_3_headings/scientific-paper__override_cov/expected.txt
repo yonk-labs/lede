@@ -1,0 +1,3 @@
+Introduction
+Summary
+Title: Compensated Summation Reduces Floating-Point Error in Cross-Runtime Numerical Reproducibility We investigate the sources of floating-point divergence between CPython 3.12 and Rust stdlib numerical code in the context of deterministic text processing pipelines.

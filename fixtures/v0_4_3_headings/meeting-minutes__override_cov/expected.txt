@@ -1,0 +1,6 @@
+Introduction
+Summary
+Conclusion
+Meeting: Platform Migration Planning
+Date: 2026-04-15
+Attendees: Sarah (PM), Jon (Backend Lead), Priya (SRE), Marcus (Staff Eng) Sarah opened by reviewing the project charter and target go-live date. The new service layer is feature-complete and has been in staging for eight days without incident.

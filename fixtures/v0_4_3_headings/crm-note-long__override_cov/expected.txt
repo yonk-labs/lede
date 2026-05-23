@@ -1,0 +1,4 @@
+Introduction
+Summary
+Conclusion
+Detailed walkthrough of our Proxy capabilities with Johnson Education Co's engineering and business teams. Main focus was understanding how our Proxy handles data management challenges across their existing fleet. Their SRE team uses Prometheus and they expect first-class metrics.
