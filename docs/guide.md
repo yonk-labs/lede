@@ -38,7 +38,11 @@ python -c "import lede; print(lede.__version__)"
 # 0.3.0
 ```
 
-For Rust the equivalent is `cargo add lede` (library) or `cargo install lede` (CLI). The CLI binary lands on `$PATH` as `lede`. Throughout this guide, **every Python lesson works identically in Rust on the regex backend** unless explicitly noted as Python-only at the bottom of the lesson.
+For Rust the equivalent is `cargo add lede` (library) or `cargo install lede`
+(CLI). The Rust CLI binary lands on `$PATH` as `lede` and intentionally keeps a
+compact subset of the Python CLI. Throughout this guide, **library lessons work
+identically in Rust on the regex backend** unless explicitly noted as
+Python-only at the bottom of the lesson.
 
 For development from a checkout, see [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
@@ -171,6 +175,26 @@ r = summarize(text, max_length=400, attach=[
 Each new attachment costs <1 ms. The full set runs in ~2-4 ms p50 across the [10-corpus benchmark](../benchmarks/quality/matrix-2026-04-26.md).
 
 **🦀 Rust:** `summarize_with_attach(text, max_length, mode, &AttachOpts { stats: true, outline: true, ... })`.
+
+## Lesson 5.5 — emit Markdown or JSON
+
+`summarize()` still returns a `SummaryResult` object. When you need a report
+or a tool payload, render that object explicitly:
+
+```python
+r = summarize(text, max_length=400, attach=["stats", "metadata"])
+
+print(r.to_markdown())  # Markdown report
+print(r.to_json())      # JSON string
+payload = r.to_dict()   # JSON-serializable dict
+```
+
+The CLI uses the same output contract:
+
+```bash
+lede long_doc.md --attach stats,metadata --output markdown
+lede long_doc.md --attach all --output json
+```
 
 ## Lesson 6 — produce a paste-ready brief
 

@@ -9,6 +9,7 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 - [Extraction primitives](#extraction-primitives) — `outline`, `toc`, `stats`, `key_facts`, `metadata`, `phrases`, `correlate_facts`, `top_terms`
 - [Utilities](#utilities) — `clean_text`, `strip_think`, `extract_keyword`
 - [Backend selector](#backend-selector) — regex / spacy / auto
+- [Output formatting](#output-formatting) — JSON and Markdown helpers for API and CLI
 - [Optional extras](#optional-extras) — wordforms, yake, textrank, lede-spacy, lede-spacy[synonyms]
 - [Choosing the right primitive](#choosing-the-right-primitive)
 
@@ -28,6 +29,8 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 **Attach:** pass a list of primitive names to include structured extractions alongside the summary text, e.g. `attach=["stats", "outline"]`. Returns `SummaryResult` with fields populated.
 
 **Returns:** `SummaryResult` — a frozen dataclass with `.summary: str` plus optional `.stats`, `.outline`, `.metadata`, `.phrases`, `.correlated_facts` populated when the corresponding name appears in `attach=`. `str(r)` and `f"{r}"` evaluate to `.summary` so legacy callers expecting a string still work.
+
+**Output helpers:** `SummaryResult` also has `to_dict()`, `to_json(indent=2)`, and `to_markdown()` for API callers that need machine-readable or renderable output.
 
 **When to use:** you have too much text and need less of it. The output preserves reading flow.
 
@@ -526,6 +529,46 @@ Primitives that support multiple backends (`metadata`, `phrases`, `correlate_fac
 
 ---
 
+## Output formatting
+
+lede's core APIs remain data-first. `summarize()` returns `SummaryResult`;
+extract primitives return dataclasses, tuples, or strings. Formatting helpers
+make the same data available as JSON or Markdown without changing the default
+return contract.
+
+```python
+from lede import summarize, to_data, to_json, format_result, format_extract
+from lede.extract import key_facts
+
+r = summarize(text, attach=["stats", "metadata"])
+
+r.summary         # plain text summary
+r.to_dict()       # JSON-serializable dict
+r.to_json()       # JSON string
+r.to_markdown()   # Markdown report
+
+to_data(r)        # generic conversion helper
+to_json(r)        # generic JSON helper
+format_result(r, output="markdown")
+
+facts = key_facts(text)
+format_extract("key_facts", facts, output="json")
+format_extract("key_facts", facts, output="markdown")
+```
+
+CLI equivalents:
+
+```bash
+lede doc.md --output markdown
+lede doc.md --output json --attach stats,metadata
+lede doc.md --mode key_facts --output json
+```
+
+Use JSON for tool-to-tool/agent pipelines and Markdown for user-visible
+reports. Text remains the default for backwards-compatible shell use.
+
+---
+
 ## Optional extras
 
 Install with `pip install lede[EXTRA]`:
@@ -560,7 +603,7 @@ v0.1 surface). Optional extras are intentionally asymmetric:
 | **`yake`** — statistical key-phrase extractor | `[yake]` extra | ❌ not available | No maintained Rust port of YAKE today. The algorithm is statistical (not ML), so a port is feasible but non-trivial. Open an issue if you'd consume one. |
 | **spaCy NER** — entity extraction | `lede-spacy` companion package | ❌ not available, by design | Pure-Rust transformer NER requires shipping model weights and a heavy ML runtime (`rust-bert`/`tch-rs` are ONNX/torch-backed). That contradicts lede's "stdlib + regex only" Rust contract. Rust returns `Metadata.entities` as an empty `Vec` under the regex backend; callers needing NER from a Rust service should call out to a separate NER endpoint (Python lede-spacy or a hosted service). |
 | Backend registry / `set_default_backend()` | ✅ | ❌ | Rust ships only the regex backend — no plug-in dispatch. |
-| CLI binary | ✅ `lede` | ✅ `lede` | Same flags. UTF-8 reads on both. BrokenPipe handled. |
+| CLI binary | ✅ `lede` full surface (`--output`, extraction modes, hints, spaCy backend) | ✅ `lede` compact subset (`tfidf`, `keyword`, `clean_text`, `strip_think`) | Both read UTF-8 and handle BrokenPipe. Use Python CLI for first-class structured output and optional backends. |
 
 Bottom line: if your callers use only the regex backend, the two ports
 are equivalent. Feature requests for Rust ports of textrank or yake
@@ -642,7 +685,7 @@ For documents > 100 KB:
 
 ## Versioning
 
-Current: `0.4.1` (Python) / `0.4.1` (Rust SemVer). v0.4 adds hint-biased extraction, the `top_terms` primitive, and `lede_spacy.expand_hints`. v0.4.1 adds `top_terms(with_scores=True)` returning `TermScore` records. See `CHANGELOG.md` for the full entry.
+Current: `0.4.3` (Python) / `0.4.3` (Rust SemVer). v0.4 adds hint-biased extraction, the `top_terms` primitive, and `lede_spacy.expand_hints`. v0.4.1 adds `top_terms(with_scores=True)` returning `TermScore` records. v0.4.2 adds heading/pin retention. v0.4.3 adds caller-supplied headings for heading retention and TOC. See `CHANGELOG.md` for the full entry.
 
 **v0.3.0** renamed `skimr` → `lede` (no behavior changes). **v0.2.0** added extraction primitives, backend selector, lede-spacy companion, and optional extras. v0.1.0 conceptually exists as "the TF-IDF summarizer that passed SC-A" but was never tagged.
 
@@ -653,5 +696,7 @@ Current: `0.4.1` (Python) / `0.4.1` (Rust SemVer). v0.4 adds hint-biased extract
 - **Spec** — [`docs/v0-2-design.md`](v0-2-design.md)
 - **Gold-labeling protocol** — `docs/extraction-gold-labeling.md`
 - **spaCy integration policy** — [`docs/lede-spacy-integration.md`](lede-spacy-integration.md)
+- **CLI reference** — [`docs/cli.md`](cli.md)
+- **LLM/agent reference** — [`docs/llms-agents-reference.md`](llms-agents-reference.md)
 - **Benchmarks** — `benchmarks/corpus/` (10 source docs) + `fixtures/extract/` (gold labels) + `benchmarks/quality/extraction-*.md` (latest eval)
 - **Changelog** — [`../CHANGELOG.md`](../CHANGELOG.md)

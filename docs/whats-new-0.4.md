@@ -1,4 +1,4 @@
-# What's New in lede 0.4.0 → 0.4.2
+# What's New in lede 0.4.0 → 0.4.3
 
 `lede` is a **deterministic, zero-dependency extractive summarizer** (Python
 stdlib + a byte-identical Rust mirror). No LLM calls, no network, same input →
@@ -14,17 +14,22 @@ hint-integration deep dive see
 ## Install
 
 ```bash
-pip install "lede==0.4.2"                 # core, zero-dep
-pip install "lede-spacy==0.4.2"           # optional spaCy companion (hint expansion)
-pip install "lede-spacy[synonyms]==0.4.2" # adds WordNet/nltk for synonym expansion
-# Rust: lede = "0.4.2" on crates.io
+pip install "lede==0.4.3"                 # core, zero-dep
+pip install "lede-spacy==0.4.3"           # optional spaCy companion (hint expansion)
+pip install "lede-spacy[synonyms]==0.4.3" # adds WordNet/nltk for synonym expansion
+# Rust: lede = "0.4.3" on crates.io
 ```
 
-## The three pillars
+## The 0.4 line
 
 1. **0.4.0 — Hint-biased extraction**: steer selection toward terms you care about.
 2. **0.4.1 — Scored `top_terms`**: get salient words/phrases *with* relevance scores.
 3. **0.4.2 — Heading & pin retention**: force document structure (titles, headings, captions) to survive extraction.
+4. **0.4.3 — Caller-supplied headings**: pass known headings directly when auto-detection misses domain-specific structure.
+
+The current CLI also exposes the 0.4 surface as a first-class interface:
+`--hint`, `--keep-headings`, extraction modes, `--backend spacy`, and
+`--output text|markdown|json`.
 
 ---
 
@@ -204,10 +209,8 @@ caption-style headings.
 
 A missed heading is treated as ordinary body text: it won't be pinned or
 positioned, and sentences beneath it may be grouped under the previous detected
-heading. **When auto-detection fails, or when you already know the heading text
-(e.g. it lives in chunk metadata), use `pin=[…]`** — it forces exact lines in
-verbatim, independent of detection. This is the robust path for non-Markdown
-sources.
+heading. In 0.4.3, use `headings=[...]` when you already know the heading text;
+use `pin=[...]` for arbitrary exact lines that should always appear.
 
 **Use cases:** RAG retrieval where the chunk heading/caption is the key signal
 (the originating use case — prepending the deduped heading to the summary
@@ -215,6 +218,47 @@ lifted fact retention ~0.36 → 0.72 in testing); doc-structure-preserving
 previews; summaries that need a title or section context to be intelligible;
 pinning a known label (figure caption, ticket ID, doc title) that must never be
 dropped.
+
+---
+
+## 4. Caller-supplied headings and output formats (0.4.3)
+
+**Caller-supplied headings:** pass `headings=[...]` to replace auto heading
+detection for `keep_headings` and `include_toc`.
+
+```python
+r = summarize(
+    text,
+    max_length=500,
+    keep_headings=True,
+    include_toc=True,
+    headings=["OPINION OF THE COURT", "HELD"],
+)
+```
+
+The CLI equivalent:
+
+```bash
+lede opinion.txt --keep-headings --include-toc \
+  --heading "OPINION OF THE COURT" --heading "HELD"
+```
+
+**Output formats:** API callers can render summaries directly:
+
+```python
+r = summarize(text, attach=["stats", "metadata"])
+r.to_markdown()
+r.to_json()
+r.to_dict()
+```
+
+The Python CLI has matching output modes:
+
+```bash
+lede doc.md --output markdown --attach all
+lede doc.md --output json --attach stats,metadata
+lede doc.md --mode metadata --backend spacy --output json
+```
 
 ---
 

@@ -1,6 +1,7 @@
 """SummaryResult + attach=... plumbing tests."""
+import json
 import pytest
-from lede import summarize, SummaryResult
+from lede import format_extract, summarize, SummaryResult
 from lede.extract import Stat, Section, Metadata, PhraseFact
 
 
@@ -68,6 +69,37 @@ def test_attach_all_populates_everything():
 def test_attach_rejects_unknown_key():
     with pytest.raises(ValueError, match="unknown attach"):
         summarize("text", max_length=50, attach=["nonexistent"])
+
+
+def test_summaryresult_to_dict_json_and_markdown():
+    r = summarize(
+        "Revenue grew 23 percent in 2026. Costs were flat. Margins improved.",
+        max_length=150,
+        attach=["stats", "metadata"],
+    )
+    data = r.to_dict()
+    assert data["summary"] == r.summary
+    assert isinstance(data["stats"], list)
+    assert data["metadata"]["dates"] == ["2026"]
+
+    parsed = json.loads(r.to_json())
+    assert parsed == data
+
+    md = r.to_markdown()
+    assert md.startswith("## Summary")
+    assert "## Stats" in md
+    assert "## Metadata" in md
+
+
+def test_format_extract_for_primitive_results():
+    from lede.extract import key_facts, metadata
+
+    facts = key_facts("Revenue grew 23 percent. Costs were flat. Margins improved.")
+    assert json.loads(format_extract("key_facts", facts, output="json")) == list(facts)
+    assert format_extract("key_facts", facts, output="markdown").startswith("## Key Facts")
+
+    m = metadata("Launch was on 2026-05-23.")
+    assert "2026-05-23" in format_extract("metadata", m, output="markdown")
 
 
 def test_dataclasses_are_frozen():

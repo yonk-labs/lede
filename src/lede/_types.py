@@ -71,3 +71,21 @@ class SummaryResult:
 
     def __str__(self) -> str:
         return self.summary
+
+    def to_dict(self) -> dict:
+        """Return a JSON-serializable dict representation."""
+        from .format import to_data
+
+        return to_data(self)
+
+    def to_json(self, *, indent: int | None = 2) -> str:
+        """Return a JSON string representation."""
+        from .format import to_json
+
+        return to_json(self, indent=indent)
+
+    def to_markdown(self) -> str:
+        """Return a Markdown rendering of the summary and attachments."""
+        from .format import summary_markdown
+
+        return summary_markdown(self)

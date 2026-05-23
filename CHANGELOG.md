@@ -54,6 +54,22 @@ name. See the v0.3.0 entry for the rename rationale.
   `rust/tests/fixtures.rs`.  Python↔Rust byte-identical output is a hard CI
   gate.
 
+- **First-class Python CLI surface.** The `lede` Python command now exposes
+  current library features: summary modes, `brief`, extraction primitives
+  (`stats`, `key_facts`, `metadata`, `outline`, `toc`, `phrases`,
+  `correlate_facts`, `top_terms`), hints, heading retention, caller-supplied
+  headings, `pin`, backend selection, spaCy registration/warmup, and
+  `--output text|markdown|json`.
+
+- **API output helpers.** `SummaryResult` now has `to_dict()`, `to_json()`,
+  and `to_markdown()`. Generic helpers `lede.to_data`, `lede.to_json`, and
+  `lede.format_result` are exported for callers that want consistent
+  JSON/Markdown rendering without going through the CLI.
+
+- **CLI and agent docs.** Added `docs/cli.md` and
+  `docs/llms-agents-reference.md`, plus refreshed active docs for current CLI,
+  spaCy, output-format, and version guidance.
+
 ### Notes
 
 - `is_structural_heading` (the auto-detection heuristic) is **not modified**

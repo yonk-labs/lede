@@ -24,6 +24,9 @@ cd lede
 | [`07_wordforms_numbers.py`](07_wordforms_numbers.py) | Optional `[wordforms]` extra — `"five thousand documents"` surfaces as a `Stat`. | `pip install "lede[wordforms]"` |
 | [`08_hints.py`](08_hints.py) | v0.4 hints: bias summarize, brief, key_facts, and phrases toward specific terms. Demos soft vs. hard hint modes. | none |
 | [`09_top_terms.py`](09_top_terms.py) | v0.4 `extract.top_terms` primitive — return top-N salient single words and phrases, with optional hint-biased reranking. | none |
+| [`10_keep_headings.py`](10_keep_headings.py) | Keep headings, include a TOC, and pin exact lines into summaries. | none |
+| [`11_headings_override.py`](11_headings_override.py) | Supply known heading lines when auto-detection is not enough. | none |
+| [`12_output_formats.py`](12_output_formats.py) | API-level `SummaryResult.to_markdown()`, `.to_json()`, and `.to_dict()`. | none |
 
 ## Running
 

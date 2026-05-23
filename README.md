@@ -43,6 +43,17 @@ r.metadata.dates    # ('1969', '1961')
 
 **Time: ~0.3 ms** with both attachments (Python). For comparison: Sumy LexRank takes ~12 ms for the same kind of summary; an LLM API takes 500–5000 ms and costs money. See [`docs/comparison.md`](docs/comparison.md) for side-by-side worked examples on real corpora.
 
+Need a renderable artifact instead of Python objects?
+
+```python
+r.to_markdown()     # Markdown summary + any attachments
+r.to_json()         # JSON string
+r.to_dict()         # JSON-serializable dict
+
+from lede import format_extract
+format_extract("stats", r.stats or (), output="json")  # standalone primitive results too
+```
+
 ## Why this matters
 
 Modern AI apps push more text through more LLM calls than is healthy. Every long prompt, every chunk-embed, every tool result that gets re-summarized — that's tokens spent and latency burned. The 2026 enterprise narrative is that preprocessing/compression in front of the model is a 40–94% cost lever ([Maxim](https://www.getmaxim.ai/articles/reduce-llm-cost-and-latency-a-comprehensive-guide-for-2026/), [Morph](https://www.morphllm.com/llm-cost-optimization)) — but the libraries that do that preprocessing are mostly:
@@ -220,8 +231,23 @@ visible = strip_think(raw)
 # Summarize a file (TF-IDF default, 500-char budget)
 lede long_doc.md
 
+# Markdown or JSON output
+lede long_doc.md --output markdown
+lede long_doc.md --output json --attach stats,metadata
+
 # Query-driven extractive
 lede long_doc.md --mode keyword --keywords "pricing budget" --top 3
+
+# Targeted summary with hints
+lede long_doc.md --hint "pricing" --hint "competitor" --hint-mode soft
+
+# Structured extraction
+lede long_doc.md --mode stats --output markdown
+lede long_doc.md --mode key_facts --max-facts 5 --output json
+lede long_doc.md --mode top_terms --scores --top 20
+
+# spaCy-backed entities, phrases, and correlations
+lede long_doc.md --mode metadata --backend spacy --output json
 
 # Pipe stdin
 cat long_doc.md | lede --mode tfidf --max-chars 1000
@@ -276,7 +302,9 @@ let focused = extract_keyword("demo notes...", "pricing budget", 3);
 
 ### Rust CLI
 
-Same flags as the Python CLI:
+The Rust binary keeps the small parity-friendly subset (`tfidf`, `keyword`,
+`clean_text`, `strip_think`). Use the Python CLI when you need JSON/Markdown,
+structured extraction modes, hints, or spaCy backends.
 
 ```bash
 ./target/release/lede long_doc.md --mode tfidf --max-chars 500
@@ -289,7 +317,9 @@ Dependencies: `regex` crate only. No other runtime deps.
 
 | Mode | When to use | Where | Deps |
 |---|---|---|---|
-| `tfidf` (default) | "Give me the most important N chars of this document" | CLI + library | stdlib only |
+| `tfidf` / `coverage` / `legacy` | "Give me the most important N chars of this document" | CLI + library | stdlib only |
+| `brief` | Overview + key facts + section list | CLI + library | stdlib only |
+| `stats`, `metadata`, `outline`, `toc`, `key_facts`, `phrases`, `correlate_facts`, `top_terms` | Structured extraction without a summary | CLI + library | stdlib only; spaCy optional for selected backends |
 | `keyword` | "Give me sentences relevant to these keywords" | CLI + library | stdlib only |
 | `clean_text` | Strip markdown, filler, CRM boilerplate | CLI + library | stdlib only |
 | `strip_think` | Remove `<think>…</think>` from reasoning-model output | CLI + library | stdlib only |
@@ -314,6 +344,9 @@ Deeper material:
 - [`docs/REFERENCE.md`](docs/REFERENCE.md) — full primitive catalog
   with type signatures + the [runtime parity matrix](docs/REFERENCE.md#runtime-parity)
   (Python vs Rust per feature).
+- [`docs/llms-agents-reference.md`](docs/llms-agents-reference.md) —
+  compact reference for agents choosing lede modes, knobs, and output shapes.
+- [`docs/cli.md`](docs/cli.md) — first-class CLI reference with examples.
 - [`docs/comparison.md`](docs/comparison.md) — worked side-by-side
   examples vs Sumy + LLM APIs with measured timings.
 - [`docs/v0-2-design.md`](docs/v0-2-design.md) — v0.2 design contract.

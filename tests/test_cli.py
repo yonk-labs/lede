@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import json
 from pathlib import Path
 
 
@@ -73,3 +74,63 @@ def test_cli_reads_utf8_stdin_regardless_of_locale(monkeypatch):
     rc, out, err = _run(["--mode", "clean_text"], stdin="Café résumé.")
     assert rc == 0, err
     assert "café" in out and "résumé" in out
+
+
+def test_cli_summary_json_with_attachments():
+    rc, out, err = _run(
+        ["--mode", "tfidf", "--output", "json", "--attach", "stats,metadata"],
+        stdin="Revenue grew 23 percent in 2026. Costs fell. Margins improved.",
+    )
+    assert rc == 0, err
+    data = json.loads(out)
+    assert "summary" in data
+    assert isinstance(data["stats"], list)
+    assert data["metadata"]["dates"] == ["2026"]
+
+
+def test_cli_summary_markdown():
+    rc, out, err = _run(
+        ["--mode", "tfidf", "--output", "markdown"],
+        stdin="Revenue grew. Costs fell. Margins improved by 5 points.",
+    )
+    assert rc == 0, err
+    assert out.startswith("## Summary")
+
+
+def test_cli_key_facts_json_with_hints():
+    rc, out, err = _run(
+        [
+            "--mode", "key_facts",
+            "--output", "json",
+            "--hint", "latency",
+            "--max-facts", "2",
+        ],
+        stdin=(
+            "Revenue grew 23 percent. "
+            "Latency fell by 40 percent after cache rollout. "
+            "Costs were flat."
+        ),
+    )
+    assert rc == 0, err
+    data = json.loads(out)
+    assert any("Latency" in row for row in data)
+
+
+def test_cli_metadata_auto_backend_falls_back_to_regex():
+    rc, out, err = _run(
+        ["--mode", "metadata", "--backend", "auto", "--output", "json"],
+        stdin="Launch was on 2026-05-23. Budget was $50K.",
+    )
+    assert rc == 0, err
+    data = json.loads(out)
+    assert data["dates"] == ["2026-05-23"]
+    assert data["amounts"] == ["$50K"]
+
+
+def test_cli_top_terms_scores_text():
+    rc, out, err = _run(
+        ["--mode", "top_terms", "--scores", "--top", "3"],
+        stdin="Cache latency dropped. Cache latency matters. Revenue grew.",
+    )
+    assert rc == 0, err
+    assert "\t" in out
