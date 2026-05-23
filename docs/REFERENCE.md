@@ -16,7 +16,7 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 
 ## Top-level APIs
 
-### `lede.summarize(text, max_length=500, *, mode="default", attach=None, hints=None, hint_focus=0.7, hint_mode="soft", keep_headings=False, include_toc=False, pin=None) -> SummaryResult`
+### `lede.summarize(text, max_length=500, *, mode="default", attach=None, hints=None, hint_focus=0.7, hint_mode="soft", keep_headings=False, include_toc=False, pin=None, headings=None) -> SummaryResult`
 
 **Purpose:** compress a document to a character budget while preserving the most informative sentences. Think "minify" — the output is a shorter version of the source, suitable for LLM pre-processing, previews, or dense archival.
 
@@ -215,6 +215,7 @@ r.pinned_headings  # the auto-detected headings that were injected
 | `keep_headings` | `bool` | `False` | Pins the document title (depth-1 `#` heading at the doc start, if present) plus the nearest enclosing section heading above each *selected* sentence. Headings are deduplicated and interleaved in document order. |
 | `include_toc` | `bool` | `False` | Prepends a full outline/table-of-contents block (from `lede.extract.outline`) before the body. |
 | `pin` | `Sequence[str] \| None` | `None` | Caller-supplied lines forced verbatim into the output, prepended in given order before any TOC or body content. |
+| `headings` | `Sequence[str] \| None` | `None` | Caller-supplied heading lines. When non-empty, **replaces** auto-detection for `keep_headings` and `include_toc`. No effect when both flags are off. Rejected in `mode="legacy"`. See [Caller-supplied headings](#caller-supplied-headings-headings) below. |
 
 ### Block ordering
 
@@ -255,8 +256,53 @@ When a heading is missed, `keep_headings` cannot pin or position it (it is
 scored as an ordinary sentence), and sentences beneath it may be attributed to
 the previous detected heading. **For documents whose headings are not
 auto-detected — or when you already know the heading text (e.g. it lives in
-chunk metadata) — use `pin=[…]` to force the exact lines in verbatim.** `pin`
-is detection-independent and deterministic.
+chunk metadata) — use `headings=[…]` to supply the exact lines directly.**
+`headings` is detection-independent and deterministic. (`pin=[…]` also works
+for verbatim lines, but does not interleave into the body or drive the TOC.)
+
+### Caller-supplied headings (`headings=`)
+
+When `headings` is non-empty, it **replaces** auto-detection entirely for
+both `keep_headings` and `include_toc`. The heading detector is not run.
+
+**TOC block** (`include_toc=True`): the supplied headings, deduped (first
+occurrence wins), in given order, one per line, no indentation. Depth is
+unknown when headings are caller-supplied, so no hierarchical indentation is
+applied.
+
+**Body placement** (`keep_headings=True`): lede scans each body line for an
+exact string match (stripped) against the supplied headings list.
+
+1. The **first supplied heading** is pinned as the document title at the top.
+2. **Unmatched headings** (no body line equals the heading text) are emitted
+   as a leading block immediately below the title, so they survive even when
+   the body does not contain those lines verbatim.
+3. **Matched headings** interleave before the first selected sentence in their
+   section (the body line that matched), preserving document order.
+
+`SummaryResult.pinned_headings` lists all injected headings.
+
+**Recommended for:** SCOTUS opinions, caption-style chapter labels, documents
+whose headings live in chunk metadata, or any source where auto-detection
+returns an empty TOC (`lede.toc(text) == ()`).
+
+```python
+from lede import summarize
+
+r = summarize(
+    text,
+    max_length=500,
+    keep_headings=True,
+    include_toc=True,
+    headings=["OPINION OF THE COURT", "HELD"],
+)
+r.summary          # TOC + title pinned + headings interleaved into body
+r.pinned_headings  # ("OPINION OF THE COURT", "HELD")
+```
+
+`headings` with both `keep_headings=False` and `include_toc=False` is a
+no-op. `mode="legacy"` raises `ValueError` (consistent with the other pin
+kwargs).
 
 ### Backward compatibility
 
@@ -281,6 +327,7 @@ All three kwargs default to off. When none are set, output is byte-identical to 
 | `mode="legacy"` with `keep_headings=True` | `ValueError` |
 | `mode="legacy"` with `include_toc=True` | `ValueError` |
 | `mode="legacy"` with `pin` supplied | `ValueError` |
+| `mode="legacy"` with `headings` supplied | `ValueError` |
 
 ---
 

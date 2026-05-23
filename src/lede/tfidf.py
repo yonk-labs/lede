@@ -555,6 +555,13 @@ def summarize(
         pin: sequence of caller-supplied lines forced verbatim into the
             output. Lines are prepended as a block in the given order,
             before any TOC or body content. Default ``None``.
+        headings: caller-supplied heading lines (e.g. from chunk metadata).
+            When non-empty, replaces auto-detection for ``keep_headings``
+            and ``include_toc``: the heading detector is not run, and these
+            lines are used verbatim instead. Has no effect when both
+            ``keep_headings`` and ``include_toc`` are ``False``. Rejected
+            in ``mode="legacy"`` (raises ``ValueError``). Default ``None``
+            (auto-detection, v0.4.2 behavior).
 
     Returns:
         ``SummaryResult`` — a frozen dataclass with ``.summary: str`` plus
@@ -623,6 +630,30 @@ def summarize(
         same one ``extract.outline`` uses): markdown ``#`` lines and
         title-case bare lines. The short-sentence heuristic is not used.
         See docs/REFERENCE.md "Heading & pin retention" for the full contract.
+
+        Caller-supplied headings override (v0.4.3):
+            When ``headings`` is non-empty, it **replaces** auto-detection
+            entirely. TOC block = the supplied headings, deduped (first
+            occurrence wins), one per line, flat (depth unknown). Body
+            placement: the first supplied heading is pinned as the document
+            title at the top; unmatched headings (no body line equals the
+            heading, stripped) are emitted as a leading block so they still
+            survive; matched headings interleave before their section's
+            selected sentences. ``SummaryResult.pinned_headings`` lists all
+            injected headings. Use this path when the heading text lives in
+            chunk metadata or when auto-detection misses domain-specific
+            heading styles (e.g. SCOTUS opinion captions, caption-style
+            chapter labels)::
+
+                from lede import summarize
+
+                r = summarize(
+                    text,
+                    max_length=500,
+                    keep_headings=True,
+                    headings=["OPINION OF THE COURT", "HELD"],
+                )
+                r.pinned_headings  # ("OPINION OF THE COURT", "HELD")
     """
     # Validate hint kwargs first (before any work).
     processed_hints = preprocess_hints(hints)
