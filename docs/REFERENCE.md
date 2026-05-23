@@ -3,7 +3,7 @@
 Deterministic, zero-dependency extractive primitives for text. Every primitive is pure, side-effect-free, and produces identical output from the Python and Rust implementations (regex backend only).
 
 **Jump to:**
-- [Top-level APIs](#top-level-apis) — `summarize`, `brief`
+- [Top-level APIs](#top-level-apis) — `summarize`, `brief`, `readable_report`
 - [Hint biasing](#hint-biasing-v04) — `hints`, `hint_focus`, `hint_mode` on all ranking primitives (v0.4)
 - [Heading & pin retention](#heading--pin-retention-v042) — `keep_headings`, `include_toc`, `pin` on `summarize` (v0.4.2)
 - [Extraction primitives](#extraction-primitives) — `outline`, `toc`, `stats`, `key_facts`, `metadata`, `phrases`, `correlate_facts`, `top_terms`
@@ -56,6 +56,45 @@ Deterministic, zero-dependency extractive primitives for text. Every primitive i
 **When to use:** caller wants to understand a document's shape without reading it. Email digest, file browser preview, document ingest pipeline.
 
 **Design policy:** agnostic of document type. No heuristics for "this is a scientific paper so use the Abstract." The primitive just composes extraction results; callers can override any piece.
+
+---
+
+### `lede.readable_report(text, *, max_length=2000, max_facts=40, backend="regex", keep_headings=True, include_toc=True, ...) -> ReadableReport`
+
+**Purpose:** produce a readable combined report for humans or agents: a classic
+lede extractive summary with headings/TOC retained plus a "Facts and Important
+Details" section combining lede facts and optional spaCy-backed details.
+
+**Composition:**
+- `summary`: `summarize(max_length=2000, keep_headings=True, include_toc=True)`
+- `key_facts`: lede `extract.key_facts(max_facts=40)`
+- `stats`: lede numeric/date facts
+- `metadata`: lede regex metadata
+- `spacy_metadata`: spaCy entities when `backend="spacy"` or `"auto"`
+- `spacy_facts`: spaCy entity-number links when spaCy is requested
+- `spacy_phrases`: spaCy noun phrases when spaCy is requested
+
+**Output helpers:** `ReadableReport.to_text()`, `.to_markdown()`,
+`.to_json()`, and `.to_dict()`.
+
+```python
+from lede import readable_report
+
+r = readable_report(text, max_length=2000, max_facts=40)
+print(r.to_markdown())
+payload = r.to_dict()
+
+with_spacy = readable_report(text, backend="spacy", max_length=2000, max_facts=40)
+```
+
+CLI:
+
+```bash
+lede doc.md --mode report --output markdown
+lede doc.md --mode report --backend spacy --output markdown
+```
+
+Use `backend="spacy"` or `backend="auto"` when you want the spaCy sections.
 
 ---
 
@@ -685,7 +724,7 @@ For documents > 100 KB:
 
 ## Versioning
 
-Current: `0.4.3` (Python) / `0.4.3` (Rust SemVer). v0.4 adds hint-biased extraction, the `top_terms` primitive, and `lede_spacy.expand_hints`. v0.4.1 adds `top_terms(with_scores=True)` returning `TermScore` records. v0.4.2 adds heading/pin retention. v0.4.3 adds caller-supplied headings for heading retention and TOC. See `CHANGELOG.md` for the full entry.
+Current: `0.4.4` (Python) / `0.4.4` (Rust SemVer). v0.4 adds hint-biased extraction, the `top_terms` primitive, and `lede_spacy.expand_hints`. v0.4.1 adds `top_terms(with_scores=True)` returning `TermScore` records. v0.4.2 adds heading/pin retention. v0.4.3 adds caller-supplied headings for heading retention and TOC. v0.4.4 adds first-class CLI/API output formats, readable reports, and the spaCy correlation de-duplication fix. See `CHANGELOG.md` for the full entry.
 
 **v0.3.0** renamed `skimr` → `lede` (no behavior changes). **v0.2.0** added extraction primitives, backend selector, lede-spacy companion, and optional extras. v0.1.0 conceptually exists as "the TF-IDF summarizer that passed SC-A" but was never tagged.
 

@@ -107,16 +107,44 @@ def outline_markdown(rows) -> str:
 
 
 def correlate_text(rows) -> str:
-    """Render ``extract.correlate_facts`` rows as tab-separated text."""
-    return "\n".join(f"{r.entity}\t{r.number}\t{r.polarity}\t{r.sentence}" for r in rows)
+    """Render ``extract.correlate_facts`` rows as grouped plain text.
+
+    JSON keeps the row-oriented shape for machines. Plain text groups by
+    source sentence so long structured-document blocks are not repeated once
+    per entity-number pair.
+    """
+    if not rows:
+        return ""
+    grouped: dict[str, list[str]] = {}
+    for r in rows:
+        grouped.setdefault(r.sentence, []).append(
+            f"{r.entity}\t{r.number}\t{r.polarity}"
+        )
+
+    parts: list[str] = []
+    for sentence, facts in grouped.items():
+        parts.append(sentence)
+        parts.extend(f"  {fact}" for fact in facts)
+        parts.append("")
+    return "\n".join(parts).rstrip()
 
 
 def correlate_markdown(rows) -> str:
     """Render ``extract.correlate_facts`` rows as Markdown bullets."""
-    return markdown_list(
-        "Correlated Facts",
-        [f"**{r.entity}**: {r.number} ({r.polarity}) - {r.sentence}" for r in rows],
-    )
+    if not rows:
+        return "## Correlated Facts\n"
+    grouped: dict[str, list[str]] = {}
+    for r in rows:
+        grouped.setdefault(r.sentence, []).append(
+            f"`{r.entity}` -> `{r.number}` ({r.polarity})"
+        )
+
+    lines = ["## Correlated Facts"]
+    for sentence, facts in grouped.items():
+        lines.extend(["", f"- {sentence}"])
+        for fact in facts:
+            lines.append(f"  - {fact}")
+    return "\n".join(lines)
 
 
 def summary_markdown(result) -> str:
@@ -133,6 +161,109 @@ def summary_markdown(result) -> str:
     if result.correlated_facts:
         lines.extend(["", correlate_markdown(result.correlated_facts)])
     return "\n".join(lines)
+
+
+def _stat_brief(row) -> str:
+    unit = f" {row.unit}" if row.unit and row.unit != row.stat_type else ""
+    return f"{row.stat_type}: {row.value}{unit} - {_brief_context(row.context_sentence)}"
+
+
+def _brief_context(text: str, *, max_chars: int = 280) -> str:
+    """Return a single-line context snippet for human-readable reports."""
+    one_line = " ".join(str(text).split())
+    if len(one_line) <= max_chars:
+        return one_line
+    return one_line[: max_chars - 1].rstrip() + "..."
+
+
+def report_text(report) -> str:
+    """Render a combined ``ReadableReport`` as plain text."""
+    parts: list[str] = ["Summary", "=======", report.summary.summary.rstrip()]
+
+    parts.extend(["", "Facts and Important Details", "==========================="])
+
+    if report.key_facts:
+        parts.extend(["", "Lede key facts:"])
+        parts.extend(f"- {_brief_context(fact, max_chars=360)}" for fact in report.key_facts)
+
+    if report.stats:
+        parts.extend(["", "Lede numeric/date facts:"])
+        parts.extend(f"- {_stat_brief(stat)}" for stat in report.stats)
+
+    if report.metadata and (report.metadata.dates or report.metadata.amounts or report.metadata.urls):
+        parts.extend(["", "Lede metadata:"])
+        if report.metadata.dates:
+            parts.append("  Dates: " + ", ".join(report.metadata.dates))
+        if report.metadata.amounts:
+            parts.append("  Amounts: " + ", ".join(report.metadata.amounts))
+        if report.metadata.urls:
+            parts.append("  URLs: " + ", ".join(report.metadata.urls))
+
+    if report.spacy_metadata and report.spacy_metadata.entities:
+        parts.extend(["", "spaCy entities:"])
+        parts.extend(f"- {entity}" for entity in report.spacy_metadata.entities)
+
+    if report.spacy_phrases:
+        parts.extend(["", "spaCy noun phrases:"])
+        parts.extend(f"- {phrase}" for phrase in report.spacy_phrases)
+
+    if report.spacy_facts:
+        parts.extend(["", "spaCy entity-fact links:"])
+        grouped: dict[str, list[str]] = {}
+        for fact in report.spacy_facts:
+            grouped.setdefault(fact.sentence, []).append(
+                f"{fact.entity}\t{fact.number}\t{fact.polarity}"
+            )
+        for sentence, facts in grouped.items():
+            parts.append(_brief_context(sentence))
+            parts.extend(f"  {fact}" for fact in facts)
+            parts.append("")
+
+    return "\n".join(parts).rstrip()
+
+
+def report_markdown(report) -> str:
+    """Render a combined ``ReadableReport`` as Markdown."""
+    lines: list[str] = ["## Summary", "", report.summary.summary.rstrip()]
+    lines.extend(["", "## Facts and Important Details"])
+
+    if report.key_facts:
+        lines.extend(["", "### Lede Key Facts", ""])
+        lines.extend(f"- {_brief_context(fact, max_chars=360)}" for fact in report.key_facts)
+
+    if report.stats:
+        lines.extend(["", "### Lede Numeric/Date Facts", ""])
+        lines.extend(f"- {_stat_brief(stat)}" for stat in report.stats)
+
+    if report.metadata and (report.metadata.dates or report.metadata.amounts or report.metadata.urls):
+        lines.extend(["", "### Lede Metadata", ""])
+        if report.metadata.dates:
+            lines.append("- **Dates:** " + ", ".join(report.metadata.dates))
+        if report.metadata.amounts:
+            lines.append("- **Amounts:** " + ", ".join(report.metadata.amounts))
+        if report.metadata.urls:
+            lines.append("- **URLs:** " + ", ".join(report.metadata.urls))
+
+    if report.spacy_metadata and report.spacy_metadata.entities:
+        lines.extend(["", "### spaCy Entities", ""])
+        lines.extend(f"- {entity}" for entity in report.spacy_metadata.entities)
+
+    if report.spacy_phrases:
+        lines.extend(["", "### spaCy Noun Phrases", ""])
+        lines.extend(f"- {phrase}" for phrase in report.spacy_phrases)
+
+    if report.spacy_facts:
+        lines.extend(["", "### spaCy Entity-Fact Links", ""])
+        grouped: dict[str, list[str]] = {}
+        for fact in report.spacy_facts:
+            grouped.setdefault(fact.sentence, []).append(
+                f"`{fact.entity}` -> `{fact.number}` ({fact.polarity})"
+            )
+        for sentence, facts in grouped.items():
+            lines.append(f"- {_brief_context(sentence)}")
+            lines.extend(f"  - {fact}" for fact in facts)
+
+    return "\n".join(lines).rstrip()
 
 
 def format_extract(
@@ -196,6 +327,8 @@ def format_result(value: Any, *, output: str = "text") -> str:
         return to_json(value)
     if output == "markdown" and hasattr(value, "to_markdown"):
         return value.to_markdown()
+    if output == "text" and hasattr(value, "to_text"):
+        return value.to_text()
     if output == "text":
         return str(value)
     if output == "markdown":

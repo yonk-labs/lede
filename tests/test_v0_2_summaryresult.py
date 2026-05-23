@@ -1,7 +1,7 @@
 """SummaryResult + attach=... plumbing tests."""
 import json
 import pytest
-from lede import format_extract, summarize, SummaryResult
+from lede import format_extract, readable_report, summarize, ReadableReport, SummaryResult
 from lede.extract import Stat, Section, Metadata, PhraseFact
 
 
@@ -100,6 +100,66 @@ def test_format_extract_for_primitive_results():
 
     m = metadata("Launch was on 2026-05-23.")
     assert "2026-05-23" in format_extract("metadata", m, output="markdown")
+
+
+def test_format_extract_correlate_markdown_groups_sentence_once():
+    rows = (
+        PhraseFact("acme", "10", "growth", "Acme grew 10 percent and 20 users."),
+        PhraseFact("acme", "20 users", "growth", "Acme grew 10 percent and 20 users."),
+    )
+    md = format_extract("correlate_facts", rows, output="markdown")
+    assert md.count("Acme grew 10 percent and 20 users.") == 1
+    assert "`acme` -> `10`" in md
+    assert "`acme` -> `20 users`" in md
+
+
+def test_format_extract_correlate_text_groups_sentence_once():
+    rows = (
+        PhraseFact("acme", "10", "growth", "Acme grew 10 percent and 20 users."),
+        PhraseFact("acme", "20 users", "growth", "Acme grew 10 percent and 20 users."),
+    )
+    out = format_extract("correlate_facts", rows, output="text")
+    assert out.count("Acme grew 10 percent and 20 users.") == 1
+    assert "acme\t10\tgrowth" in out
+    assert "acme\t20 users\tgrowth" in out
+
+
+def test_readable_report_api_text_markdown_json():
+    r = readable_report(
+        "Revenue grew 23 percent. Costs fell 5 percent. Acme Corp paid $10.",
+        max_length=2000,
+        max_facts=5,
+    )
+    assert isinstance(r, ReadableReport)
+    assert "Revenue grew" in r.summary.summary
+    assert r.key_facts
+    assert r.stats
+
+    text = r.to_text()
+    assert "Facts and Important Details" in text
+    assert "Lede key facts:" in text
+
+    md = r.to_markdown()
+    assert md.startswith("## Summary")
+    assert "## Facts and Important Details" in md
+    assert "spaCy" not in md
+
+    data = json.loads(r.to_json())
+    assert "summary" in data
+    assert "key_facts" in data
+
+
+def test_readable_report_compacts_long_spacy_contexts():
+    long_context = " ".join(["structured markdown context"] * 40)
+    r = ReadableReport(
+        summary=SummaryResult("Short summary."),
+        spacy_facts=(PhraseFact("context", "40", "absolute", long_context),),
+    )
+
+    md = r.to_markdown()
+    assert "### spaCy Entity-Fact Links" in md
+    assert len(md) < len(long_context)
+    assert "..." in md
 
 
 def test_dataclasses_are_frozen():

@@ -8,6 +8,44 @@ Entries below `## [0.2.2]` reference the project under its previous name,
 remain as `skimr` releases — they were real shipped artifacts under that
 name. See the v0.3.0 entry for the rename rationale.
 
+## [0.4.4] — 2026-05-23
+
+### Added
+
+- **First-class Python CLI surface.** The `lede` Python command now exposes
+  current library features: summary modes, `brief`, extraction primitives
+  (`stats`, `key_facts`, `metadata`, `outline`, `toc`, `phrases`,
+  `correlate_facts`, `top_terms`), hints, heading retention, caller-supplied
+  headings, `pin`, backend selection, spaCy registration/warmup, and
+  `--output text|markdown|json`.
+
+- **API output helpers.** `SummaryResult` now has `to_dict()`, `to_json()`,
+  and `to_markdown()`. Generic helpers `lede.to_data`, `lede.to_json`, and
+  `lede.format_result` are exported for callers that want consistent
+  JSON/Markdown rendering without going through the CLI.
+
+- **Readable combined reports.** New `lede.readable_report(...)` API and
+  `lede --mode report` CLI produce a 2000-character heading-aware lede summary
+  plus a "Facts and Important Details" section combining lede key facts,
+  stats, and metadata. spaCy entities / noun phrases / entity-fact links are
+  included only when requested with `backend="spacy"` / `--backend spacy` or
+  `backend="auto"` / `--backend auto`.
+
+- **CLI and agent docs.** Added `docs/cli.md` and
+  `docs/llms-agents-reference.md`, plus refreshed active docs for current CLI,
+  spaCy, output-format, report-mode, and version guidance.
+
+### Fixed
+
+- **spaCy fact-correlation duplication.** The spaCy backend no longer emits
+  every entity × every number in a sentence. It pairs each number with the
+  nearest admitted entity span, and text/Markdown renderers group by source
+  sentence so long Markdown blocks are not repeated.
+
+### Notes
+
+- `lede-spacy` 0.4.4 and the `lede` Rust crate 0.4.4 are version-lock bumps.
+
 ## [0.4.3] — 2026-05-23
 
 ### Added
@@ -53,22 +91,6 @@ name. See the v0.3.0 entry for the rename rationale.
   multiple corpora × headings configurations, enforced by
   `rust/tests/fixtures.rs`.  Python↔Rust byte-identical output is a hard CI
   gate.
-
-- **First-class Python CLI surface.** The `lede` Python command now exposes
-  current library features: summary modes, `brief`, extraction primitives
-  (`stats`, `key_facts`, `metadata`, `outline`, `toc`, `phrases`,
-  `correlate_facts`, `top_terms`), hints, heading retention, caller-supplied
-  headings, `pin`, backend selection, spaCy registration/warmup, and
-  `--output text|markdown|json`.
-
-- **API output helpers.** `SummaryResult` now has `to_dict()`, `to_json()`,
-  and `to_markdown()`. Generic helpers `lede.to_data`, `lede.to_json`, and
-  `lede.format_result` are exported for callers that want consistent
-  JSON/Markdown rendering without going through the CLI.
-
-- **CLI and agent docs.** Added `docs/cli.md` and
-  `docs/llms-agents-reference.md`, plus refreshed active docs for current CLI,
-  spaCy, output-format, and version guidance.
 
 ### Notes
 

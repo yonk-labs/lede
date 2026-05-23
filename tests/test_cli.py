@@ -134,3 +134,39 @@ def test_cli_top_terms_scores_text():
     )
     assert rc == 0, err
     assert "\t" in out
+
+
+def test_cli_report_markdown_regex_backend():
+    rc, out, err = _run(
+        ["--mode", "report", "--backend", "regex", "--output", "markdown"],
+        stdin="Revenue grew 23 percent. Costs fell 5 percent. Acme Corp paid $10.",
+    )
+    assert rc == 0, err
+    assert out.startswith("## Summary")
+    assert "## Facts and Important Details" in out
+    assert "### Lede Key Facts" in out
+    assert "spaCy" not in out
+
+
+def test_cli_report_defaults_to_lede_only():
+    rc, out, err = _run(
+        ["--mode", "report", "--output", "markdown"],
+        stdin="Revenue grew 23 percent. Costs fell 5 percent. Acme Corp paid $10.",
+    )
+    assert rc == 0, err
+    assert out.startswith("## Summary")
+    assert "## Facts and Important Details" in out
+    assert "### Lede Key Facts" in out
+    assert "spaCy" not in out
+
+
+def test_cli_report_json_regex_backend():
+    rc, out, err = _run(
+        ["--mode", "report", "--backend", "regex", "--output", "json"],
+        stdin="Revenue grew 23 percent. Costs fell 5 percent. Acme Corp paid $10.",
+    )
+    assert rc == 0, err
+    data = json.loads(out)
+    assert "summary" in data
+    assert "key_facts" in data
+    assert "stats" in data

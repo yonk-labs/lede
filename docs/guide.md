@@ -220,6 +220,35 @@ Other formats: `format="string"` (plain-text with `Overview:` / `Key facts:` lab
 
 **🦀 Rust:** `lede::brief(text)` for the default; `lede::brief_with_options(text, BriefOptions { format: BriefFormat::Markdown, .. })` to pick a format.
 
+## Lesson 6.5 — produce a combined readable report
+
+Use `readable_report()` when you want one artifact that combines a longer lede
+summary with headings plus lede fact extraction. Add `backend="spacy"` when
+you also want spaCy entities, noun phrases, and entity-fact links.
+
+```python
+from lede import readable_report
+
+r = readable_report(text, max_length=2000, max_facts=40)
+print(r.to_markdown())
+```
+
+The report includes:
+
+- a 2000-character summary by default,
+- headings and a table of contents,
+- lede key facts, numeric/date facts, and metadata,
+- optional spaCy entities, noun phrases, and entity-fact links.
+
+CLI:
+
+```bash
+lede long_doc.md --mode report --output markdown
+lede long_doc.md --mode report --backend spacy --output markdown
+```
+
+Use `--backend spacy` or `backend="spacy"` only when you want spaCy sections.
+
 ## Lesson 7 — call any primitive standalone
 
 If you only want the section names, the dates, or the key facts — skip `summarize` and call the primitive directly.

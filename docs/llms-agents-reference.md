@@ -11,6 +11,7 @@ call an LLM. Output is source-grounded text plus optional structured fields.
 | Shorten text while preserving source wording | `summarize(text, max_length=500)` | `lede doc.md --max-chars 500` |
 | Preserve paragraph coverage | `summarize(text, mode="coverage")` | `lede doc.md --mode coverage` |
 | Produce a reader brief | `brief(text, format="markdown")` | `lede doc.md --mode brief --output markdown` |
+| Produce a readable summary + fact report | `readable_report(text)` | `lede doc.md --mode report --output markdown` |
 | Extract numeric/date facts | `stats(text)` or `key_facts(text)` | `lede doc.md --mode stats` / `--mode key_facts` |
 | Extract dates, amounts, URLs, entities | `metadata(text, backend="regex"|"spacy")` | `lede doc.md --mode metadata --backend spacy --output json` |
 | Extract section names | `toc(text)` / `outline(text)` | `lede doc.md --mode toc` / `--mode outline` |
@@ -41,6 +42,26 @@ from lede.extract import key_facts
 facts = key_facts(text)
 format_extract("key_facts", facts, output="json")
 format_extract("key_facts", facts, output="markdown")
+```
+
+Combined report:
+
+```python
+from lede import readable_report
+
+r = readable_report(text, max_length=2000, max_facts=40)
+r.to_markdown()  # readable report
+r.to_text()      # readable plain text
+r.to_json()      # structured payload
+
+with_spacy = readable_report(text, max_length=2000, max_facts=40, backend="spacy")
+```
+
+CLI:
+
+```bash
+lede doc.md --mode report --output markdown
+lede doc.md --mode report --backend spacy --output markdown
 ```
 
 ```bash

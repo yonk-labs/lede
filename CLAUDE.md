@@ -7,7 +7,10 @@ config.
 
 ## Status
 
-`v0.4.3` — caller-supplied `headings=` override on `summarize`: when
+`v0.4.4` — first-class CLI/API output formats and readable report mode.
+`lede --mode report` / `readable_report()` default to lede-only facts;
+spaCy sections are opt-in with `--backend spacy` / `backend="spacy"`.
+Also includes caller-supplied `headings=` override on `summarize`: when
 non-empty, replaces auto heading-detection for `keep_headings` and
 `include_toc`; enables structured output on non-Markdown documents
 (e.g. SCOTUS opinions where `toc()` returns empty). Default `None` =

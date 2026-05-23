@@ -210,7 +210,7 @@ def _extract_pairings(doc) -> list[PhraseFact]:
 
     out: list[PhraseFact] = []
     for sent in doc.sents:
-        sent_entities = []
+        sent_entities: list[tuple[str, int, int]] = []
         for e in entities:
             if not (e.start >= sent.start and e.end <= sent.end):
                 continue
@@ -218,7 +218,7 @@ def _extract_pairings(doc) -> list[PhraseFact]:
             if canon is None:
                 continue
             if canon in allowed_canonicals:
-                sent_entities.append(canon)
+                sent_entities.append((canon, e.start, e.end))
         if not sent_entities:
             continue
         nums = [t for t in sent if _is_number_token(t)]
@@ -229,20 +229,33 @@ def _extract_pairings(doc) -> list[PhraseFact]:
         sent_text = sent.text.strip()
 
         seen_keys: set[tuple[str, str, str]] = set()
-        for canon in sent_entities:
-            for num_tok in nums:
-                num_phrase = _number_phrase(num_tok)
-                for polarity in polarities:
-                    key = (canon, num_phrase, polarity)
-                    if key in seen_keys:
-                        continue
-                    seen_keys.add(key)
-                    out.append(PhraseFact(
-                        entity=canon,
-                        number=num_phrase,
-                        polarity=polarity,
-                        sentence=sent_text,
-                    ))
+        for num_tok in nums:
+            # Do not cross-product every entity with every number in the
+            # sentence. That explodes on structured docs where a Markdown
+            # heading/header block is parsed as one spaCy sentence. Pair each
+            # number with the nearest admitted entity span in the sentence.
+            canon, _start, _end = min(
+                sent_entities,
+                key=lambda item: (
+                    0
+                    if item[1] <= num_tok.i < item[2]
+                    else min(abs(num_tok.i - item[1]), abs(num_tok.i - (item[2] - 1))),
+                    item[1],
+                    item[0],
+                ),
+            )
+            num_phrase = _number_phrase(num_tok)
+            for polarity in polarities:
+                key = (canon, num_phrase, polarity)
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                out.append(PhraseFact(
+                    entity=canon,
+                    number=num_phrase,
+                    polarity=polarity,
+                    sentence=sent_text,
+                ))
     return out
 
 

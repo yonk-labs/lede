@@ -82,6 +82,43 @@ lede doc.md --mode brief --output json --include-phrases --max-facts 5
 `brief` composes summary + key facts + table of contents. JSON maps to the
 library's `brief(format="dict")`.
 
+## Report mode
+
+`report` is the human-readable combined mode. It produces:
+
+- a 2000-character lede summary by default,
+- headings and TOC retained,
+- lede key facts, stats, and metadata,
+- spaCy entities, noun phrases, and entity-fact links only when requested with `--backend spacy` or `--backend auto`.
+
+```bash
+lede doc.md --mode report --output markdown
+lede doc.md --mode report --backend spacy --output markdown
+lede doc.md --mode report --backend spacy --output text
+lede doc.md --mode report --backend spacy --output json
+```
+
+Useful knobs:
+
+```bash
+lede doc.md --mode report --max-chars 3000 --max-facts 60
+lede doc.md --mode report --backend regex      # explicit lede-only report
+lede doc.md --mode report --heading "OPINION OF THE COURT"
+```
+
+API equivalent:
+
+```python
+from lede import readable_report
+
+r = readable_report(text, max_length=2000, max_facts=40)
+r.to_markdown()
+r.to_text()
+r.to_json()
+
+with_spacy = readable_report(text, max_length=2000, max_facts=40, backend="spacy")
+```
+
 ## Extraction modes
 
 ```bash

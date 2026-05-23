@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from lede import brief, clean_text, extract_keyword, set_default_backend, strip_think, summarize
+from lede import brief, clean_text, extract_keyword, readable_report, set_default_backend, strip_think, summarize
 from lede.extract import (
     correlate_facts,
     key_facts,
@@ -45,6 +45,7 @@ _ALL_MODES = sorted(
     set(_SUMMARY_MODES)
     | {
         "brief",
+        "report",
         "keyword",
         "clean_text",
         "strip_think",
@@ -183,7 +184,7 @@ def _render_extract(mode: str, text: str, args: argparse.Namespace, hints) -> An
     if mode in ("facts", "key_facts"):
         return key_facts(
             text,
-            max_facts=args.max_facts,
+            max_facts=args.max_facts or 10,
             convert_word_names=args.convert_word_names,
             hints=hints,
             hint_focus=args.hint_focus,
@@ -250,14 +251,14 @@ def main(argv: list[str] | None = None) -> int:
             "Operation to run. Summary aliases: tfidf, summarize, default, "
             "coverage, legacy. Extraction modes: stats, facts/key_facts, "
             "metadata, outline, toc, phrases, correlate_facts, top_terms. "
-            "Other modes: brief, keyword, clean_text, strip_think."
+            "Other modes: report, brief, keyword, clean_text, strip_think."
         ),
     )
     parser.add_argument(
         "--max-chars",
         type=int,
         default=500,
-        help="Character budget for summary modes (default: 500).",
+        help="Character budget for summary modes (default: 500; report defaults to 2000 unless set).",
     )
     parser.add_argument(
         "--output",
@@ -287,8 +288,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--max-facts",
         type=int,
-        default=10,
-        help="Maximum facts for brief/key_facts mode (default: 10).",
+        default=None,
+        help="Maximum facts for brief/key_facts/report mode (defaults: 10, report: 40).",
     )
     parser.add_argument(
         "--format",
@@ -453,7 +454,7 @@ def main(argv: list[str] | None = None) -> int:
             fmt = "dict" if args.output == "json" else ("markdown" if args.output == "markdown" else "string")
         value = brief(
             text,
-            max_facts=args.max_facts,
+            max_facts=args.max_facts or 10,
             include_phrases=args.include_phrases,
             convert_word_names=args.convert_word_names,
             format=fmt,
@@ -462,6 +463,37 @@ def main(argv: list[str] | None = None) -> int:
             hint_mode=args.hint_mode,
         )
         output = _emit(value, "json") if args.output == "json" else str(value)
+    elif args.mode == "report":
+        headings = list(args.heading or [])
+        if args.headings_file:
+            headings.extend(
+                line.strip()
+                for line in Path(args.headings_file).read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            )
+        try:
+            value = readable_report(
+                text,
+                max_length=args.max_chars if args.max_chars != 500 else 2000,
+                max_facts=args.max_facts or 40,
+                backend=args.backend or "regex",
+                keep_headings=True if not args.keep_headings else args.keep_headings,
+                include_toc=True if not args.include_toc else args.include_toc,
+                headings=headings or None,
+                pin=args.pin,
+                hints=hints,
+                hint_focus=args.hint_focus,
+                hint_mode=args.hint_mode,
+                convert_word_names=args.convert_word_names,
+            )
+        except (ImportError, TypeError, ValueError, RuntimeError) as e:
+            parser.error(str(e))
+        if args.output == "json":
+            output = value.to_json()
+        elif args.output == "markdown":
+            output = value.to_markdown()
+        else:
+            output = value.to_text()
     elif args.mode == "keyword":
         if not args.keywords:
             parser.error("--mode keyword requires --keywords")
@@ -479,9 +511,12 @@ def main(argv: list[str] | None = None) -> int:
     else:  # pragma: no cover
         parser.error(f"unknown mode: {args.mode}")
 
-    sys.stdout.write(output)
-    if not output.endswith("\n"):
-        sys.stdout.write("\n")
+    try:
+        sys.stdout.write(output)
+        if not output.endswith("\n"):
+            sys.stdout.write("\n")
+    except BrokenPipeError:
+        return 0
     return 0
 
 

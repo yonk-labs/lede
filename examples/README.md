@@ -27,6 +27,7 @@ cd lede
 | [`10_keep_headings.py`](10_keep_headings.py) | Keep headings, include a TOC, and pin exact lines into summaries. | none |
 | [`11_headings_override.py`](11_headings_override.py) | Supply known heading lines when auto-detection is not enough. | none |
 | [`12_output_formats.py`](12_output_formats.py) | API-level `SummaryResult.to_markdown()`, `.to_json()`, and `.to_dict()`. | none |
+| [`13_readable_report.py`](13_readable_report.py) | Combined readable report: 2000-char heading-aware summary plus lede facts; spaCy details are opt-in. | none by default; `lede-spacy` for `backend="spacy"` details |
 
 ## Running
 

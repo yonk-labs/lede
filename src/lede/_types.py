@@ -89,3 +89,40 @@ class SummaryResult:
         from .format import summary_markdown
 
         return summary_markdown(self)
+
+
+@dataclass(frozen=True)
+class ReadableReport:
+    """Combined human-readable lede + spaCy report."""
+
+    summary: SummaryResult
+    key_facts: tuple[str, ...] = ()
+    stats: tuple[Stat, ...] = ()
+    metadata: Metadata = Metadata()
+    spacy_metadata: Metadata | None = None
+    spacy_facts: tuple[PhraseFact, ...] = ()
+    spacy_phrases: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict:
+        """Return a JSON-serializable dict representation."""
+        from .format import to_data
+
+        return to_data(self)
+
+    def to_json(self, *, indent: int | None = 2) -> str:
+        """Return a JSON string representation."""
+        from .format import to_json
+
+        return to_json(self, indent=indent)
+
+    def to_text(self) -> str:
+        """Return a readable plain-text rendering."""
+        from .format import report_text
+
+        return report_text(self)
+
+    def to_markdown(self) -> str:
+        """Return a readable Markdown rendering."""
+        from .format import report_markdown
+
+        return report_markdown(self)

@@ -246,6 +246,12 @@ lede long_doc.md --mode stats --output markdown
 lede long_doc.md --mode key_facts --max-facts 5 --output json
 lede long_doc.md --mode top_terms --scores --top 20
 
+# Combined readable report: 2000-char lede summary with headings + lede facts
+lede long_doc.md --mode report --output markdown
+
+# Add spaCy entities, noun phrases, and fact links to the report
+lede long_doc.md --mode report --backend spacy --output markdown
+
 # spaCy-backed entities, phrases, and correlations
 lede long_doc.md --mode metadata --backend spacy --output json
 
@@ -319,6 +325,7 @@ Dependencies: `regex` crate only. No other runtime deps.
 |---|---|---|---|
 | `tfidf` / `coverage` / `legacy` | "Give me the most important N chars of this document" | CLI + library | stdlib only |
 | `brief` | Overview + key facts + section list | CLI + library | stdlib only |
+| `report` | 2000-char heading-aware summary + lede facts + spaCy entities/fact links | CLI + library (`readable_report`) | stdlib core; spaCy optional |
 | `stats`, `metadata`, `outline`, `toc`, `key_facts`, `phrases`, `correlate_facts`, `top_terms` | Structured extraction without a summary | CLI + library | stdlib only; spaCy optional for selected backends |
 | `keyword` | "Give me sentences relevant to these keywords" | CLI + library | stdlib only |
 | `clean_text` | Strip markdown, filler, CRM boilerplate | CLI + library | stdlib only |

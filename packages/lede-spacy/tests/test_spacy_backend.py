@@ -194,3 +194,24 @@ def test_correlate_facts_spacy_deterministic():
     a = correlate_facts(text, backend="spacy")
     b = correlate_facts(text, backend="spacy")
     assert a == b
+
+
+def test_correlate_facts_spacy_avoids_entity_number_cross_product():
+    """One sentence with multiple entities/numbers should not emit every entity × number."""
+    text = (
+        "Acme Cloud grew 14 percent while Beta Inc fell 3 percent. "
+        "Acme Cloud rose 20 percent while Beta Inc dropped 5 percent."
+    )
+    pairings = correlate_facts(text, backend="spacy")
+    first_sentence = [
+        p for p in pairings
+        if p.sentence.startswith("Acme Cloud grew 14 percent")
+    ]
+    # Before the nearest-entity pairing guard, this shape produced four
+    # first-sentence pairings: Acme×14, Acme×3, Beta×14, Beta×3.
+    # The sentence has one growth and one decline cue, so each nearest
+    # entity-number pair can appear with both polarities. The important guard
+    # is that wrong cross-pairs are gone.
+    assert len(first_sentence) <= 4
+    assert not any(p.entity == "acme cloud" and p.number == "3" for p in first_sentence)
+    assert not any(p.entity == "beta inc" and p.number == "14" for p in first_sentence)
