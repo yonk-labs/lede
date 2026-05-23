@@ -7,13 +7,14 @@ config.
 
 ## Status
 
-`v0.4.2` — optional heading/pin retention on `summarize`: new
-`keep_headings`, `include_toc`, and `pin` kwargs weave document
-structure into the extractive body; new `SummaryResult.pinned_headings`
-field. Default-off: byte-identical to v0.4.1 when unused. Also
-includes `extract.top_terms(with_scores=True)` (v0.4.1) and
-hint-biased extraction (v0.4.0). All four CI workflows green on
-`main`.
+`v0.4.3` — caller-supplied `headings=` override on `summarize`: when
+non-empty, replaces auto heading-detection for `keep_headings` and
+`include_toc`; enables structured output on non-Markdown documents
+(e.g. SCOTUS opinions where `toc()` returns empty). Default `None` =
+byte-identical to v0.4.2. Also includes optional heading/pin retention
+(`keep_headings`, `include_toc`, `pin`, v0.4.2), `extract.top_terms
+(with_scores=True)` (v0.4.1), and hint-biased extraction (v0.4.0).
+All four CI workflows green on `main`.
 
 ## Authoritative docs in priority order
 

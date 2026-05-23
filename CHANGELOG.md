@@ -8,6 +8,62 @@ Entries below `## [0.2.2]` reference the project under its previous name,
 remain as `skimr` releases — they were real shipped artifacts under that
 name. See the v0.3.0 entry for the rename rationale.
 
+## [0.4.3] — 2026-05-23
+
+### Added
+
+- **`headings: Sequence[str] | None` kwarg on `summarize`.** Caller-supplied
+  heading lines that replace auto heading-detection when non-empty.
+
+  Motivation: the auto-detector recognises Markdown-style headings (`#`, `##`,
+  …).  Documents such as SCOTUS opinions, regulatory filings, and transcripts
+  use caption-style labels (`BACKGROUND`, `I.`, `FINDINGS`) that
+  `lede.extract.toc()` returns empty for.  Callers can supply the known heading
+  lines — from chunk metadata, a prior `toc()` call, or a document index — and
+  get fully structured output without touching the heading-detection heuristics.
+
+  Behaviour when `headings` is non-empty:
+
+  - **`keep_headings=True`** — headings are matched against the sentence list
+    verbatim (stripped).  The first heading in the list is always emitted at
+    the top of the body as the document title.  Unmatched headings (e.g.
+    `"CONCLUSION"` when the word doesn't appear in the body) survive as a
+    leading block immediately after the title.  Matched headings interleave at
+    their body position in document order.  `SummaryResult.pinned_headings`
+    lists every heading emitted, in emission order.
+
+  - **`include_toc=True`** — a flat TOC is rendered from the supplied list
+    (deduplicated, original order) instead of running `extract.outline` on the
+    text.
+
+  - Both `keep_headings` and `include_toc` can be combined; the TOC block
+    prepends the structured body in the usual order.
+
+  - Has no effect when both `keep_headings` and `include_toc` are `False`.
+
+  - Rejected in `mode="legacy"` with a `ValueError` (same restriction as the
+    other v0.4 structural kwargs).
+
+  - Composes with `hints`, `hint_focus`, `hint_mode`, and `pin`.
+
+  - Default `None` — auto-detection runs as before; output is byte-identical
+    to v0.4.2.
+
+- **`fixtures/v0_4_3_headings` parity walker** — new fixture set covering
+  multiple corpora × headings configurations, enforced by
+  `rust/tests/fixtures.rs`.  Python↔Rust byte-identical output is a hard CI
+  gate.
+
+### Notes
+
+- `is_structural_heading` (the auto-detection heuristic) is **not modified**
+  in this release.  Broadening auto-detection to cover caption-style patterns
+  is deferred — the `headings=` override is the explicit opt-in path for
+  non-Markdown documents.
+
+- `lede-spacy` 0.4.3 and the `lede` Rust crate 0.4.3 are version-lock bumps
+  with no functional change.
+
 ## [0.4.2] — 2026-05-22
 
 ### Added
