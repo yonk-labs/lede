@@ -248,6 +248,7 @@ lede long_doc.md --mode top_terms --scores --top 20
 
 # Combined readable report: 2000-char lede summary with headings + lede facts
 lede long_doc.md --mode report --output markdown
+lede long_doc.md --mode report --output json     # includes attributes + promotion candidates
 
 # Add spaCy entities, noun phrases, and fact links to the report
 lede long_doc.md --mode report --backend spacy --output markdown
@@ -264,6 +265,14 @@ lede raw_note.txt --mode clean_text
 # Strip reasoning blocks
 echo "<think>...</think>Real answer." | lede --mode strip_think
 ```
+
+Report output has two surfaces:
+
+- `--output text` / `--output markdown`: compact human output with the summary,
+  key facts, short numeric/date facts, structured metadata candidates, and
+  important detail records.
+- `--output json`: full machine payload for ingest, including `attributes`,
+  `fact_records`, `promotion_candidates`, and `search_text`.
 
 ## Rust
 
@@ -325,7 +334,7 @@ Dependencies: `regex` crate only. No other runtime deps.
 |---|---|---|---|
 | `tfidf` / `coverage` / `legacy` | "Give me the most important N chars of this document" | CLI + library | stdlib only |
 | `brief` | Overview + key facts + section list | CLI + library | stdlib only |
-| `report` | 2000-char heading-aware summary + lede facts + spaCy entities/fact links | CLI + library (`readable_report`) | stdlib core; spaCy optional |
+| `report` | 2000-char heading-aware summary + compact facts/details; JSON also carries attributes, fact records, promotion candidates, and search text | CLI + library (`readable_report`) | stdlib core; spaCy optional |
 | `stats`, `metadata`, `outline`, `toc`, `key_facts`, `phrases`, `correlate_facts`, `top_terms` | Structured extraction without a summary | CLI + library | stdlib only; spaCy optional for selected backends |
 | `keyword` | "Give me sentences relevant to these keywords" | CLI + library | stdlib only |
 | `clean_text` | Strip markdown, filler, CRM boilerplate | CLI + library | stdlib only |

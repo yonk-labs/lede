@@ -57,6 +57,22 @@ r.to_json()      # structured payload
 with_spacy = readable_report(text, max_length=2000, max_facts=40, backend="spacy")
 ```
 
+Typed report objects are exported for library users:
+
+```python
+from lede import FactRecord, PromotionCandidate, ReadableReport, ReportAttribute
+```
+
+For ingest, prefer the JSON fields built for promotion:
+
+- `attributes`: normalized key/value metadata from obvious document structure.
+- `fact_records`: typed records with `subject`, `predicate`, `object`, evidence, and confidence.
+- `promotion_candidates`: stable JSON paths such as `lede_report.attributes.term.value`.
+- `search_text`: flattened report text for FTS or embedding enrichment.
+
+Text and Markdown reports include compact facts/details for humans. Use JSON
+when an agent or pipeline needs the full machine-readable payload.
+
 CLI:
 
 ```bash

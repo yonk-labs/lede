@@ -238,6 +238,10 @@ The report includes:
 - a 2000-character summary by default,
 - headings and a table of contents,
 - lede key facts, numeric/date facts, and metadata,
+- structured `attributes` from obvious `Label: value` fields,
+- compact important detail records in text/Markdown,
+- JSON-only `promotion_candidates` with stable paths for database metadata columns,
+- JSON-only `search_text` for FTS or embedding enrichment,
 - optional spaCy entities, noun phrases, and entity-fact links.
 
 CLI:

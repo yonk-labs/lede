@@ -1,4 +1,4 @@
-# What's New in lede 0.4.0 → 0.4.4
+# What's New in lede 0.4.0 → 0.4.5
 
 `lede` is a **deterministic, zero-dependency extractive summarizer** (Python
 stdlib + a byte-identical Rust mirror). No LLM calls, no network, same input →
@@ -14,10 +14,10 @@ hint-integration deep dive see
 ## Install
 
 ```bash
-pip install "lede==0.4.4"                 # core, zero-dep
-pip install "lede-spacy==0.4.4"           # optional spaCy companion (hint expansion)
-pip install "lede-spacy[synonyms]==0.4.4" # adds WordNet/nltk for synonym expansion
-# Rust: lede = "0.4.4" on crates.io
+pip install "lede==0.4.5"                 # core, zero-dep
+pip install "lede-spacy==0.4.5"           # optional spaCy companion (hint expansion)
+pip install "lede-spacy[synonyms]==0.4.5" # adds WordNet/nltk for synonym expansion
+# Rust: lede = "0.4.5" on crates.io
 ```
 
 ## The 0.4 line
@@ -27,6 +27,7 @@ pip install "lede-spacy[synonyms]==0.4.4" # adds WordNet/nltk for synonym expans
 3. **0.4.2 — Heading & pin retention**: force document structure (titles, headings, captions) to survive extraction.
 4. **0.4.3 — Caller-supplied headings**: pass known headings directly when auto-detection misses domain-specific structure.
 5. **0.4.4 — First-class CLI/report output**: render text, Markdown, or JSON reports, with spaCy sections opt-in.
+6. **0.4.5 — Structured report metadata**: promote obvious document facts from report JSON while keeping text/Markdown compact.
 
 The current CLI also exposes the 0.4 surface as a first-class interface:
 `--hint`, `--keep-headings`, extraction modes, `--backend spacy`, and

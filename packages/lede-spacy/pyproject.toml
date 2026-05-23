@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lede-spacy"
-version = "0.4.4"
+version = "0.4.5"
 description = "spaCy-powered enrichment backend for lede — PERSON/ORG/GPE entity extraction via en_core_web_sm."
 readme = "README.md"
 requires-python = ">=3.10"

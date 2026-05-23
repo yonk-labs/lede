@@ -70,12 +70,26 @@ Details" section combining lede facts and optional spaCy-backed details.
 - `key_facts`: lede `extract.key_facts(max_facts=40)`
 - `stats`: lede numeric/date facts
 - `metadata`: lede regex metadata
+- `attributes`: normalized key/value fields discovered from obvious document
+  structure such as `**Term:** 2023` or `Docket Number: 23-108`
+- `fact_records`: typed subject/predicate/object-ish records derived from
+  attributes, numeric facts, and optional spaCy entity-number links
+- `promotion_candidates`: stable JSON paths that ingestion systems can promote
+  into first-class metadata columns
+- `search_text`: flattened summary/facts/attributes/entities for FTS or
+  embedding enrichment
 - `spacy_metadata`: spaCy entities when `backend="spacy"` or `"auto"`
 - `spacy_facts`: spaCy entity-number links when spaCy is requested
 - `spacy_phrases`: spaCy noun phrases when spaCy is requested
 
 **Output helpers:** `ReadableReport.to_text()`, `.to_markdown()`,
-`.to_json()`, and `.to_dict()`.
+`.to_json()`, and `.to_dict()`. Text and Markdown include compact facts and
+details for humans; JSON carries the full `fact_records`,
+`promotion_candidates`, and `search_text` payload for ingest pipelines.
+
+**Public return types:** `ReadableReport`, `ReportAttribute`, `FactRecord`, and
+`PromotionCandidate` are exported from `lede` for callers that want typed
+access before serializing.
 
 ```python
 from lede import readable_report
@@ -87,6 +101,30 @@ payload = r.to_dict()
 with_spacy = readable_report(text, backend="spacy", max_length=2000, max_facts=40)
 ```
 
+JSON shape for metadata promotion:
+
+```json
+{
+  "attributes": {
+    "term": {
+      "label": "Term",
+      "value": "2023",
+      "type": "year",
+      "source": "header_kv",
+      "confidence": 0.99
+    }
+  },
+  "promotion_candidates": [
+    {
+      "path": "lede_report.attributes.term.value",
+      "key": "term",
+      "value_type": "year",
+      "promote": true
+    }
+  ]
+}
+```
+
 CLI:
 
 ```bash
@@ -95,6 +133,14 @@ lede doc.md --mode report --backend spacy --output markdown
 ```
 
 Use `backend="spacy"` or `backend="auto"` when you want the spaCy sections.
+
+Human rendering policy:
+
+- Text/Markdown keep token use low: summary, key facts, short numeric/date
+  rows, structured metadata candidates, compact important detail records, and
+  optional spaCy sections.
+- JSON is the lossless ingest shape: full dataclasses, evidence snippets,
+  promotion paths, and `search_text`.
 
 ---
 
@@ -724,7 +770,7 @@ For documents > 100 KB:
 
 ## Versioning
 
-Current: `0.4.4` (Python) / `0.4.4` (Rust SemVer). v0.4 adds hint-biased extraction, the `top_terms` primitive, and `lede_spacy.expand_hints`. v0.4.1 adds `top_terms(with_scores=True)` returning `TermScore` records. v0.4.2 adds heading/pin retention. v0.4.3 adds caller-supplied headings for heading retention and TOC. v0.4.4 adds first-class CLI/API output formats, readable reports, and the spaCy correlation de-duplication fix. See `CHANGELOG.md` for the full entry.
+Current: `0.4.5` (Python) / `0.4.5` (Rust SemVer). v0.4 adds hint-biased extraction, the `top_terms` primitive, and `lede_spacy.expand_hints`. v0.4.1 adds `top_terms(with_scores=True)` returning `TermScore` records. v0.4.2 adds heading/pin retention. v0.4.3 adds caller-supplied headings for heading retention and TOC. v0.4.4 adds first-class CLI/API output formats, readable reports, and the spaCy correlation de-duplication fix. v0.4.5 adds structured report metadata for ingest promotion while keeping text/Markdown reports compact. See `CHANGELOG.md` for the full entry.
 
 **v0.3.0** renamed `skimr` → `lede` (no behavior changes). **v0.2.0** added extraction primitives, backend selector, lede-spacy companion, and optional extras. v0.1.0 conceptually exists as "the TF-IDF summarizer that passed SC-A" but was never tagged.
 

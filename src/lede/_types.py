@@ -60,6 +60,36 @@ class PhraseFact:
 
 
 @dataclass(frozen=True)
+class ReportAttribute:
+    key: str
+    label: str
+    value: str
+    value_type: str
+    source: str
+    evidence: str
+    confidence: float = 1.0
+
+
+@dataclass(frozen=True)
+class FactRecord:
+    subject: str
+    predicate: str
+    object: str
+    fact_type: str
+    evidence: str
+    confidence: float = 1.0
+
+
+@dataclass(frozen=True)
+class PromotionCandidate:
+    path: str
+    key: str
+    value_type: str
+    promote: bool = True
+    confidence: float = 1.0
+
+
+@dataclass(frozen=True)
 class SummaryResult:
     summary: str
     stats: tuple[Stat, ...] | None = None
@@ -102,12 +132,28 @@ class ReadableReport:
     spacy_metadata: Metadata | None = None
     spacy_facts: tuple[PhraseFact, ...] = ()
     spacy_phrases: tuple[str, ...] = ()
+    attributes: tuple[ReportAttribute, ...] = ()
+    fact_records: tuple[FactRecord, ...] = ()
+    promotion_candidates: tuple[PromotionCandidate, ...] = ()
+    search_text: str = ""
 
     def to_dict(self) -> dict:
         """Return a JSON-serializable dict representation."""
         from .format import to_data
 
-        return to_data(self)
+        data = to_data(self)
+        data["attributes"] = {
+            attr.key: {
+                "label": attr.label,
+                "value": attr.value,
+                "type": attr.value_type,
+                "source": attr.source,
+                "evidence": attr.evidence,
+                "confidence": attr.confidence,
+            }
+            for attr in self.attributes
+        }
+        return data
 
     def to_json(self, *, indent: int | None = 2) -> str:
         """Return a JSON string representation."""

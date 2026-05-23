@@ -11,6 +11,10 @@ from lede import readable_report
 
 DOC = """# City Contract Review
 
+Case Name: City of Acme
+Term: 2024
+Docket Number: 24-101
+
 Acme Infrastructure won a $13,000 street-services contract in 2024.
 Mayor Jane Snyder approved the purchase after two committee meetings.
 Acme Infrastructure later sent a $1,000 thank-you payment.

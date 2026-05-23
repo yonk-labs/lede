@@ -123,7 +123,7 @@ If you want a single reproducible install, pin the model wheel from
 `requirements.txt`:
 
 ```
-lede-spacy==0.4.4
+lede-spacy==0.4.5
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 ```
 

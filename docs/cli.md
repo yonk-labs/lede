@@ -89,6 +89,9 @@ library's `brief(format="dict")`.
 - a 2000-character lede summary by default,
 - headings and TOC retained,
 - lede key facts, stats, and metadata,
+- structured metadata candidates from obvious `Label: value` fields,
+- compact important detail records in text/Markdown,
+- promotion candidates with stable JSON paths in JSON output,
 - spaCy entities, noun phrases, and entity-fact links only when requested with `--backend spacy` or `--backend auto`.
 
 ```bash
@@ -97,6 +100,19 @@ lede doc.md --mode report --backend spacy --output markdown
 lede doc.md --mode report --backend spacy --output text
 lede doc.md --mode report --backend spacy --output json
 ```
+
+For metadata-aware ingest, prefer JSON. Text and Markdown include compact
+facts/details for humans, while JSON keeps verbose machine-only fields such as
+full `fact_records` and `promotion_candidates`.
+
+```bash
+lede doc.md --mode report --output json
+```
+
+The JSON includes `attributes`, `fact_records`, `promotion_candidates`, and
+`search_text`. For example, `**Term:** 2023` becomes
+`attributes.term.value == "2023"` and a promotion candidate at
+`lede_report.attributes.term.value`.
 
 Useful knobs:
 

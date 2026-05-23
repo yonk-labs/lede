@@ -7,7 +7,10 @@ config.
 
 ## Status
 
-`v0.4.4` — first-class CLI/API output formats and readable report mode.
+`v0.4.5` — structured report metadata for ingest promotion. Report JSON
+includes `attributes`, `fact_records`, `promotion_candidates`, and
+`search_text`; text/Markdown keep compact facts/details for low token use.
+Also includes v0.4.4 first-class CLI/API output formats and readable report mode.
 `lede --mode report` / `readable_report()` default to lede-only facts;
 spaCy sections are opt-in with `--backend spacy` / `backend="spacy"`.
 Also includes caller-supplied `headings=` override on `summarize`: when

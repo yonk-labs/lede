@@ -125,6 +125,12 @@ def test_format_extract_correlate_text_groups_sentence_once():
 
 
 def test_readable_report_api_text_markdown_json():
+    from lede import FactRecord, PromotionCandidate, ReportAttribute
+
+    assert ReportAttribute.__name__ == "ReportAttribute"
+    assert FactRecord.__name__ == "FactRecord"
+    assert PromotionCandidate.__name__ == "PromotionCandidate"
+
     r = readable_report(
         "Revenue grew 23 percent. Costs fell 5 percent. Acme Corp paid $10.",
         max_length=2000,
@@ -147,6 +153,62 @@ def test_readable_report_api_text_markdown_json():
     data = json.loads(r.to_json())
     assert "summary" in data
     assert "key_facts" in data
+    assert "attributes" in data
+    assert "fact_records" in data
+    assert "promotion_candidates" in data
+    assert "search_text" in data
+
+
+def test_readable_report_extracts_structured_attribute_candidates():
+    text = """# Snyder v. United States
+
+**Docket Number:** 23-108
+**Citation:** 603 U.S. ___ (2024)
+**Term:** 2023
+**Petitioner:** James E. Snyder
+**Respondent:** United States of America
+
+Justice Ketanji Brown Jackson authored a dissenting opinion.
+"""
+    r = readable_report(text, max_length=2000, max_facts=5)
+    data = json.loads(r.to_json())
+
+    assert data["attributes"]["docket_number"]["value"] == "23-108"
+    assert data["attributes"]["docket_number"]["type"] == "identifier"
+    assert data["attributes"]["citation"]["value"] == "603 U.S. ___ (2024)"
+    assert data["attributes"]["citation"]["type"] == "citation"
+    assert data["attributes"]["term"]["value"] == "2023"
+    assert data["attributes"]["term"]["type"] == "year"
+    assert data["attributes"]["petitioner"]["value"] == "James E. Snyder"
+    assert {
+        "path": "lede_report.attributes.term.value",
+        "key": "term",
+        "value_type": "year",
+        "promote": True,
+        "confidence": 0.99,
+    } in data["promotion_candidates"]
+    assert any(row["predicate"] == "term" and row["object"] == "2023" for row in data["fact_records"])
+    assert "Term: 2023" in data["search_text"]
+
+    md = r.to_markdown()
+    assert "### Structured Metadata Candidates" in md
+    assert "### Important Detail Records" in md
+    assert "### Promotion Candidates" not in md
+    assert "### Fact Records" not in md
+    assert "lede_report.attributes.term.value" not in md
+
+
+def test_readable_report_spacy_backend_adds_entity_fact_records():
+    pytest.importorskip("lede_spacy")
+    r = readable_report(
+        "Acme Corp paid $10 in 2024. Revenue grew 23 percent.",
+        backend="spacy",
+        max_length=2000,
+        max_facts=5,
+    )
+    assert r.spacy_metadata is not None
+    assert "Acme Corp" in r.spacy_metadata.entities
+    assert any(row.fact_type == "entity_number" for row in r.fact_records)
 
 
 def test_readable_report_compacts_long_spacy_contexts():

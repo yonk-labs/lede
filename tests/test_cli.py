@@ -163,10 +163,17 @@ def test_cli_report_defaults_to_lede_only():
 def test_cli_report_json_regex_backend():
     rc, out, err = _run(
         ["--mode", "report", "--backend", "regex", "--output", "json"],
-        stdin="Revenue grew 23 percent. Costs fell 5 percent. Acme Corp paid $10.",
+        stdin=(
+            "**Docket Number:** 23-108\n"
+            "**Term:** 2023\n"
+            "Revenue grew 23 percent. Costs fell 5 percent. Acme Corp paid $10."
+        ),
     )
     assert rc == 0, err
     data = json.loads(out)
     assert "summary" in data
     assert "key_facts" in data
     assert "stats" in data
+    assert data["attributes"]["docket_number"]["value"] == "23-108"
+    assert data["attributes"]["term"]["value"] == "2023"
+    assert data["promotion_candidates"][0]["path"].startswith("lede_report.attributes.")

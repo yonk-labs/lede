@@ -8,6 +8,22 @@ Entries below `## [0.2.2]` reference the project under its previous name,
 remain as `skimr` releases — they were real shipped artifacts under that
 name. See the v0.3.0 entry for the rename rationale.
 
+## [0.4.5] — 2026-05-23
+
+### Added
+
+- `readable_report()` now emits structured `attributes`, `fact_records`,
+  `promotion_candidates`, and `search_text` so ingestion systems can promote
+  obvious document metadata into queryable fields without adding
+  corpus-specific logic to lede.
+
+- Text and Markdown report renderers keep token use low while retaining useful
+  facts/details. JSON remains the full ingest payload.
+
+### Notes
+
+- `lede-spacy` 0.4.5 and the `lede` Rust crate 0.4.5 are version-lock bumps.
+
 ## [0.4.4] — 2026-05-23
 
 ### Added

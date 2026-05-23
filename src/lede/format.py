@@ -27,6 +27,8 @@ def to_data(value: Any) -> Any:
 
 def to_json(value: Any, *, indent: int | None = 2) -> str:
     """Serialize lede data to JSON with UTF-8 characters preserved."""
+    if hasattr(value, "to_dict"):
+        return json.dumps(value.to_dict(), ensure_ascii=False, indent=indent)
     return json.dumps(to_data(value), ensure_ascii=False, indent=indent)
 
 
@@ -165,7 +167,7 @@ def summary_markdown(result) -> str:
 
 def _stat_brief(row) -> str:
     unit = f" {row.unit}" if row.unit and row.unit != row.stat_type else ""
-    return f"{row.stat_type}: {row.value}{unit} - {_brief_context(row.context_sentence)}"
+    return f"{row.stat_type}: {row.value}{unit} - {_brief_context(row.context_sentence, max_chars=140)}"
 
 
 def _brief_context(text: str, *, max_chars: int = 280) -> str:
@@ -174,6 +176,26 @@ def _brief_context(text: str, *, max_chars: int = 280) -> str:
     if len(one_line) <= max_chars:
         return one_line
     return one_line[: max_chars - 1].rstrip() + "..."
+
+
+def _compact_fact_records(report, *, limit: int = 12):
+    """Return non-duplicative fact records for compact human report output."""
+    rows = []
+    seen: set[tuple[str, str, str, str]] = set()
+    attribute_keys = {attr.key for attr in report.attributes}
+    for fact in report.fact_records:
+        if fact.fact_type == "attribute":
+            continue
+        if fact.fact_type == "numeric" and fact.predicate in attribute_keys and fact.object:
+            continue
+        key = (fact.subject, fact.predicate, fact.object, fact.fact_type)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(fact)
+        if len(rows) >= limit:
+            break
+    return rows
 
 
 def report_text(report) -> str:
@@ -198,6 +220,23 @@ def report_text(report) -> str:
             parts.append("  Amounts: " + ", ".join(report.metadata.amounts))
         if report.metadata.urls:
             parts.append("  URLs: " + ", ".join(report.metadata.urls))
+
+    if report.attributes:
+        parts.extend(["", "Structured metadata candidates:"])
+        for attr in report.attributes:
+            parts.append(
+                f"- {attr.key}: {attr.value} "
+                f"({attr.value_type}, {attr.source}, {attr.confidence:.2f})"
+            )
+
+    compact_facts = _compact_fact_records(report)
+    if compact_facts:
+        parts.extend(["", "Important detail records:"])
+        for fact in compact_facts:
+            parts.append(
+                f"- {fact.subject}: {fact.predicate} = {fact.object} "
+                f"({fact.fact_type})"
+            )
 
     if report.spacy_metadata and report.spacy_metadata.entities:
         parts.extend(["", "spaCy entities:"])
@@ -243,6 +282,23 @@ def report_markdown(report) -> str:
             lines.append("- **Amounts:** " + ", ".join(report.metadata.amounts))
         if report.metadata.urls:
             lines.append("- **URLs:** " + ", ".join(report.metadata.urls))
+
+    if report.attributes:
+        lines.extend(["", "### Structured Metadata Candidates", ""])
+        for attr in report.attributes:
+            lines.append(
+                f"- **{attr.key}:** {attr.value} "
+                f"({attr.value_type}, {attr.source}, confidence {attr.confidence:.2f})"
+            )
+
+    compact_facts = _compact_fact_records(report)
+    if compact_facts:
+        lines.extend(["", "### Important Detail Records", ""])
+        for fact in compact_facts:
+            lines.append(
+                f"- **{fact.subject}:** {fact.predicate} = {fact.object} "
+                f"({fact.fact_type})"
+            )
 
     if report.spacy_metadata and report.spacy_metadata.entities:
         lines.extend(["", "### spaCy Entities", ""])
