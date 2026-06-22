@@ -52,3 +52,36 @@ fn dedups_first_appearance_order() {
     let got = extract_entities("France beat Brazil. Brazil then beat France.");
     assert_eq!(got, vec!["France".to_string(), "Brazil".to_string()]);
 }
+
+#[test]
+fn drops_capitalized_common_nouns_and_possessives() {
+    // #12: "Company"/"Product"/"Launch"/"Spring" are common nouns; "Our Team"
+    // loses its possessive and "Team" is a common noun — none are entities.
+    let got = extract_entities(
+        "The Company released a new Product. Our Team celebrated the Launch in Spring.",
+    );
+    assert!(got.is_empty(), "expected no entities, got: {got:?}");
+}
+
+#[test]
+fn strips_corporate_titles_keeps_people_and_places() {
+    // #12: "CEO"/"President" strip like "Dr." → consistent person extraction.
+    let got =
+        extract_entities("Dr. Jane Doe met CEO Bob Smith and President Lincoln in Washington.");
+    assert_eq!(
+        got,
+        vec![
+            "Jane Doe".to_string(),
+            "Bob Smith".to_string(),
+            "Lincoln".to_string(),
+            "Washington".to_string(),
+        ]
+    );
+}
+
+#[test]
+fn drops_bare_currency_code() {
+    // #12: "EUR" is part of an amount, not a named entity.
+    let got = extract_entities("We spent EUR on travel.");
+    assert!(!got.iter().any(|e| e == "EUR"), "got: {got:?}");
+}

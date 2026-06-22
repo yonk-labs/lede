@@ -40,6 +40,25 @@ pub const TITLES: &[&str] = &[
     "lt",
     "col",
     "rev",
+    // Corporate / formal titles — stripped from the surface form like
+    // honorifics so "CEO Bob Smith" -> "Bob Smith" (consistent with
+    // "Dr."/"President"). Found inconsistent via chunkshop probes (#12).
+    "ceo",
+    "cfo",
+    "cto",
+    "coo",
+    "cmo",
+    "vp",
+    "chair",
+    "chairman",
+    "chairwoman",
+    "director",
+    "founder",
+    "officer",
+    "secretary",
+    "minister",
+    "ambassador",
+    "chief",
 ];
 
 /// Common sentence-initial capitalized words that are NOT entities. A run that
@@ -300,6 +319,25 @@ pub const CALENDAR: &[&str] = &[
     "friday",
     "saturday",
     "sunday",
+];
+
+/// Possessive determiners stripped when they lead an entity run ("Our Team"
+/// -> "Team"). Not entities themselves.
+pub const POSSESSIVES: &[&str] = &["our", "my", "your", "his", "her", "its", "their", "whose"];
+
+/// Frequently Title-Cased common nouns that are not named entities. A run that
+/// reduces to exactly one of these is dropped — cuts gazetteer false positives
+/// like "Company"/"Product"/"Launch"/"Spring" (found via chunkshop probes, #12).
+pub const COMMON_NOUNS: &[&str] = &[
+    "company", "product", "launch", "team", "project", "service", "platform", "release", "feature",
+    "update", "meeting", "report", "spring", "summer", "autumn", "fall", "winter",
+];
+
+/// ISO currency codes — a bare code like "EUR"/"USD" is part of an amount, not
+/// a named entity (#12).
+pub const CURRENCY_CODES: &[&str] = &[
+    "usd", "eur", "gbp", "jpy", "cad", "aud", "chf", "cny", "inr", "krw", "brl", "mxn", "rub",
+    "sek", "nok", "nzd", "sgd", "hkd", "zar",
 ];
 
 /// Case-insensitive (ASCII) membership test against a lowercased list.
