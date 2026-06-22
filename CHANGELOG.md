@@ -8,6 +8,37 @@ Entries below `## [0.2.2]` reference the project under its previous name,
 remain as `skimr` releases — they were real shipped artifacts under that
 name. See the v0.3.0 entry for the rename rationale.
 
+## [0.5.0] — 2026-06-22
+
+### Added
+
+- `extract.top_terms` now has a **byte-identical Rust mirror** in the core crate
+  (`lede::extract::top_terms`): top-N salient words + phrases, with optional
+  `with_scores`/`TermScore` and hint biasing. Reuses the existing TF-IDF and
+  phrases internals, so output matches Python bit-for-bit across the parity
+  walker (all 10 corpora). Unblocks Rust consumers (chunkshop-rs `lede_top_terms`).
+
+- New term-level **textrank** keyphrase backend in the Rust core
+  (`lede::extract::textrank::textrank_terms`): pure-Rust weighted PageRank over a
+  token co-occurrence graph, zero dependencies. Capability-parity only
+  (deterministic within Rust; no byte-identical promise, consistent with the
+  optional-backend policy) — off the fixture walker.
+
+### Fixed
+
+- `correlate_facts` (regex backend) was **nondeterministic across processes**: it
+  iterated a `set()` of candidate phrases, so when a sentence held two repeated
+  phrases the chosen entity depended on `PYTHONHASHSEED`. It now iterates
+  `phrases()` in insertion order, matching the Rust implementation — restoring
+  Python↔Rust parity and the determinism contract. Adds a cross-hash-seed
+  regression test. No output change for single-phrase sentences.
+
+### Notes
+
+- `lede-spacy` 0.5.0 and the `lede` Rust crate 0.5.0 are version-lock bumps.
+- The renamed Rust enrichment companion `lede-enrich` (formerly `lede-spacy-rs`)
+  ships separately at `0.1.0`.
+
 ## [0.4.5] — 2026-05-23
 
 ### Added
