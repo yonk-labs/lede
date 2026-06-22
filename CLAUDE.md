@@ -27,7 +27,8 @@ non-empty, replaces auto heading-detection for `keep_headings` and
 byte-identical to v0.4.2. Also includes optional heading/pin retention
 (`keep_headings`, `include_toc`, `pin`, v0.4.2), `extract.top_terms
 (with_scores=True)` (v0.4.1), and hint-biased extraction (v0.4.0).
-All four CI workflows green on `main`.
+Core CI (test, rust, zero-deps, lede-spacy) green on `main`; crates.io + PyPI
+publishing is automated on `v*` tags, and lede-enrich on `lede-enrich-v*`.
 
 ## Authoritative docs in priority order
 
@@ -47,8 +48,9 @@ All four CI workflows green on `main`.
 
 | Path | Role |
 |---|---|
-| `src/lede/` | Python core. Public surface: `summarize(attach=…)`, `brief()`, `clean_text`, `strip_think`, `extract_keyword`, plus `lede.extract.{outline, toc, stats, key_facts, metadata, phrases, correlate_facts}`. Default install is zero-dep; `[ner]`, `[wordforms]`, `[yake]`, `[textrank]` are opt-in extras. |
-| `rust/src/` | Rust mirror. `Mode::{Default, Legacy, Coverage}` selects the scorer. Optional `wordforms` cargo feature binds to the same `text2num` crate as Python's `[wordforms]` extra → byte-identical parity. |
+| `src/lede/` | Python core. Public surface: `summarize(attach=…)`, `brief()`, `clean_text`, `strip_think`, `extract_keyword`, plus `lede.extract.{outline, toc, stats, key_facts, metadata, phrases, correlate_facts, top_terms}`. Default install is zero-dep; `[ner]`, `[wordforms]`, `[yake]`, `[textrank]` are opt-in extras. |
+| `rust/src/` | Rust mirror. `Mode::{Default, Legacy, Coverage}` selects the scorer. Includes `extract::top_terms` (byte-identical, v0.5.0) and `extract::textrank` (term-level PageRank keyphrase backend, capability-parity, v0.5.0). Optional `wordforms` cargo feature binds to the same `text2num` crate as Python's `[wordforms]` extra → byte-identical parity. |
+| `lede-enrich/` | Rust enrichment companion (formerly `lede-spacy-rs`; on crates.io v0.1.0). Classical, license-clean NER + facts: `extract_entities`, `metadata`, `correlate_facts`, `lemma`; opt-in `pos` feature. No spaCy/transformers; deterministic, no Python↔Rust byte-parity promise. |
 | `packages/lede-spacy/` | Python companion package. Provides `extract_entities`, `spacy_metadata`, `spacy_phrases`, `spacy_correlate_facts`. Importing it registers backends as a side effect. |
 | `fixtures/` | Language-agnostic input/output corpus. **Every change to a primitive must keep the parity walker green** (`rust/tests/fixtures.rs`). Two test gates: `every_fixture_byte_identical` (v0.1 surface) and `v0_2_extract_primitives_byte_identical` (v0.2 surface, regenerated via `python benchmarks/gen_parity_fixtures.py`). |
 | `tests/` + `rust/tests/` | Python and Rust test suites. ~230 Python core + 17 lede-spacy + 117 Rust default + 125 Rust `--features wordforms`. Run any of them locally; CI runs all four on every push. |

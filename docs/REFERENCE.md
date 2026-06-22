@@ -267,7 +267,9 @@ walker (10 corpora × 14 hint configurations = 140 fixtures).
 - `phrases(backend='yake')` with hints — YAKE backend does not accept hints.
 - `correlate_facts(backend='spacy')` with hints — spaCy backend does not
   accept hints.
-- `top_terms` — Python-only in v0.4; Rust mirror deferred to v0.5.
+- `top_terms` — **resolved in v0.5.0**: the Rust mirror shipped and is
+  byte-identical (including hints and `with_scores`) on the parity walker, so
+  this is no longer a parity gap.
 - `lede_spacy.expand_hints` — Python-only by policy.
 
 ### Cross-runtime determinism note
@@ -576,7 +578,9 @@ class TermScore(NamedTuple):
 
 **Hint biasing:** soft mode adds `hint_bonus` to each candidate's score before ranking. Hard mode removes non-matching candidates entirely. `hint_focus` is validated but has no two-pool budget effect (no count cap before `n` truncation).
 
-**Parity:** Python-only in v0.4/v0.4.1. Rust mirror (including `with_scores`) deferred to v0.5.
+**Parity:** Python-only in v0.4/v0.4.1; the Rust mirror (including `with_scores`) **shipped in v0.5.0** and is byte-identical to Python on the parity walker across all 10 corpora.
+
+**Rust textrank backend (v0.5.0):** `lede::extract::textrank::textrank_terms` adds term-level keyphrase ranking via pure-Rust PageRank over a token co-occurrence graph (zero deps). It is **capability-parity only** — deterministic within Rust, not byte-identical to any Python reference (off the fixture walker), consistent with the optional-backend policy. Rust-only; no Python twin. (The existing Python `lede.textrank.summarize_textrank` is a different, sentence-level variant.)
 
 **When to use:** quick tag cloud, keyword index, topic snapshot that combines important single words with key phrases in one pass. Use `with_scores=True` when a downstream consumer needs the relevance score and word/phrase distinction per term. Use `extract.phrases` when you want only multi-word phrases, or `summarize()`'s TF-IDF machinery when you're building a summary rather than a term list.
 

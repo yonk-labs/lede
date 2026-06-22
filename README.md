@@ -185,7 +185,7 @@ pip install lede-spacy
 python -m spacy download en_core_web_sm
 ```
 
-Importing `lede_spacy` registers itself as a backend; `extract.metadata(text, backend="spacy")` then populates `entities`. The Rust port does not ship NER by design — `entities` stays empty under the regex backend in either runtime.
+Importing `lede_spacy` registers itself as a backend; `extract.metadata(text, backend="spacy")` then populates `entities`. The **core** Rust crate does not ship NER by design — `entities` stays empty under the regex backend in either runtime. For NER + facts on the Rust path, use the [`lede-enrich`](https://crates.io/crates/lede-enrich) companion crate (classical gazetteer/rules stack — deterministic, license-clean, no spaCy or transformers).
 
 ### Known v0.2 gates
 
