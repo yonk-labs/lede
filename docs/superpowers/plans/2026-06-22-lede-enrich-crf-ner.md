@@ -576,20 +576,23 @@ git commit -m "feat(lede-enrich): crf tokenizer + char-span->BIO projection (gol
 
 **Interfaces:**
 - Consumes: spaCy `en_core_web_sm`, a manifest of article texts.
-- Produces: `silver.jsonl` — one JSON object per sentence: `{"text": "<sentence>", "ents": [{"start": int, "end": int, "label": str}]}` where `start`/`end` are **sentence-relative character offsets** and `label` is one of the 11 lexical types. Tokenization happens in Rust (Task 8). Consumed by Task 8.
+- Produces: `silver.jsonl` — one JSON object per sentence: `{"text": "<sentence>", "ents": [{"start": int, "end": int, "label": str}]}` where `start`/`end` are **sentence-relative UTF-8 byte offsets** (converted from spaCy's character offsets — Rust tokens are byte-indexed, so this conversion is required for non-ASCII text) and `label` is one of the 11 lexical types. Tokenization happens in Rust (Task 8). Consumed by Task 8.
 
 - [ ] **Step 1: Write the harness**
 
 Create `distill/label_corpus.py`:
 
 ```python
-"""Distillation harness: spaCy en_core_web_sm -> silver entity char-spans.
+"""Distillation harness: spaCy en_core_web_sm -> silver entity BYTE-spans.
 
 Reads articles (one JSON per line: {"id": int, "text": str}) from --input,
 runs spaCy, keeps only the 11 lexical entity types, emits one JSON per sentence
 to --output: {"text": "<sentence>", "ents": [{"start", "end", "label"}]} with
-sentence-relative CHAR offsets. Rust owns tokenization (golden-span design), so
-we deliberately do NOT emit tokens here.
+sentence-relative UTF-8 BYTE offsets. Rust owns tokenization (golden-span design)
+and works in byte offsets (Rust string slicing is byte-based), so we convert
+spaCy's CHARACTER offsets to byte offsets here — otherwise any non-ASCII text
+(accents, em-dashes, non-Latin scripts — pervasive in Wikipedia) would misalign
+labels against Rust's byte-offset tokens. We deliberately do NOT emit tokens.
 
 We never redistribute the source text — only these spans feed the Rust trainer.
 """
@@ -622,17 +625,23 @@ def main() -> int:
             text = json.loads(line)["text"]
             doc = nlp(text)
             for sent in doc.sents:
+                stext = sent.text
                 base = sent.start_char
+
+                def to_byte(char_rel: int) -> int:
+                    # char offset (sentence-relative) -> utf-8 byte offset
+                    return len(stext[:char_rel].encode("utf-8"))
+
                 ents = [
                     {
-                        "start": ent.start_char - base,
-                        "end": ent.end_char - base,
+                        "start": to_byte(ent.start_char - base),
+                        "end": to_byte(ent.end_char - base),
                         "label": ent.label_,
                     }
                     for ent in sent.ents
                     if ent.label_ in LEXICAL
                 ]
-                fout.write(json.dumps({"text": sent.text, "ents": ents}) + "\n")
+                fout.write(json.dumps({"text": stext, "ents": ents}) + "\n")
                 n_sents += 1
     print(f"wrote {n_sents} sentences to {args.output}", file=sys.stderr)
     return 0
@@ -650,7 +659,7 @@ printf '%s\n' '{"id": 1, "text": "Amazon was founded by Jeff Bezos in Seattle."}
 ../../.venv/bin/python label_corpus.py --input tiny.jsonl --output tiny.silver.jsonl
 cat tiny.silver.jsonl
 ```
-Expected: one JSON line with `"text"` = the sentence and `"ents"` containing spans for `Amazon` (ORG), `Jeff Bezos` (PERSON), `Seattle` (GPE) — verify `sentence_text[start:end]` equals the entity surface. If spaCy/model is missing: `../../.venv/bin/python -m spacy download en_core_web_sm`.
+Expected: one JSON line with `"text"` = the sentence and `"ents"` containing spans for `Amazon` (ORG), `Jeff Bezos` (PERSON), `Seattle` (GPE). Verify a span slices back correctly with BYTE indexing: `sentence_text.encode("utf-8")[start:end].decode("utf-8")` equals the entity surface (for this ASCII sentence byte==char, but use the byte form so the check stays correct for non-ASCII). Also add a tiny non-ASCII sanity line (e.g. `{"id":2,"text":"Beyoncé met Pelé in São Paulo."}`) and confirm the byte slice still recovers `Beyoncé`/`Pelé`/`São Paulo`. If spaCy/model is missing: `../../.venv/bin/python -m spacy download en_core_web_sm`.
 
 - [ ] **Step 3: Document and clean up**
 

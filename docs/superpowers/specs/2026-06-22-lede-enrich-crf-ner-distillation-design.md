@@ -65,7 +65,7 @@ one `features.rs`, called from both sides.
 
 | Path | Role |
 |---|---|
-| `distill/label_corpus.py` | Loads pinned Wikipedia snapshot per `corpus_manifest.json`, runs spaCy, writes `silver.jsonl` of `{"text": "<sentence>", "ents": [{"start","end","label"}]}` (sentence-relative char spans; lexical types only). Deterministic. Rust does the tokenization. |
+| `distill/label_corpus.py` | Loads pinned Wikipedia snapshot per `corpus_manifest.json`, runs spaCy, writes `silver.jsonl` of `{"text": "<sentence>", "ents": [{"start","end","label"}]}` (sentence-relative UTF-8 byte spans; lexical types only). Deterministic. Rust does the tokenization. |
 | `src/crf/tokenize.rs` | `tokenize()` (byte-offset tokens) + `project_bio()` (char-spans → BIO over those tokens). Shared by trainer and inference. |
 | `distill/corpus_manifest.json` | Committed list of selected article IDs per domain bucket. The reproducibility anchor (§5). |
 | `src/crf/features.rs` | The shared feature function. Unit-tested in isolation. |
@@ -89,10 +89,13 @@ one `features.rs`, called from both sides.
   PRODUCT, EVENT, WORK_OF_ART, LAW, LANGUAGE. (`B-`/`I-` each + `O`.) Numeric/
   temporal types are dropped (handled by lede core).
 - **Tokenization (golden-span — Rust owns it for both train and infer):** Python
-  emits only **entity character spans** (`ent.start_char`/`end_char`, relative to
-  the sentence) — tokenizer-independent labels. **Rust tokenizes the raw text for
-  both training and inference** with the same `tokenize()`, and projects the
-  char-spans onto its own tokens to derive BIO. This makes spaCy-vs-Rust
+  emits only **entity spans as UTF-8 byte offsets** (converted from spaCy's
+  `ent.start_char`/`end_char`, relative to the sentence) — tokenizer-independent
+  labels. Byte (not character) offsets because Rust string slicing and the
+  `tokenize()` offsets are byte-based; converting in Python keeps non-ASCII text
+  (accents, em-dashes, non-Latin scripts — pervasive in Wikipedia) aligned. **Rust
+  tokenizes the raw text for both training and inference** with the same
+  `tokenize()`, and projects the byte-spans onto its own tokens to derive BIO. This makes spaCy-vs-Rust
   *alignment drift* (different token boundaries desyncing labels) structurally
   impossible — the same "Rust owns the contract" principle as the shared feature
   function (§3), extended to tokenization. No spaCy-tokenizer matching or Unicode

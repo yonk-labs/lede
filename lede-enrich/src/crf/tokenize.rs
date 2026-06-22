@@ -82,7 +82,9 @@ mod tests {
     fn project_bio_labels_tokens_from_char_spans() {
         let text = "Acme Corp hired Jeff Bezos.";
         let toks = tokenize(text);
-        // entity char-spans (sentence-relative), as emitted by spaCy:
+        // entity byte-spans (sentence-relative); the harness converts spaCy's
+        // char offsets to UTF-8 byte offsets so they align with our byte tokens.
+        // (ASCII here, so byte==char.)
         let ents = vec![
             (0usize, 9usize, "ORG".to_string()),    // "Acme Corp"
             (16usize, 26usize, "PERSON".to_string()), // "Jeff Bezos"
