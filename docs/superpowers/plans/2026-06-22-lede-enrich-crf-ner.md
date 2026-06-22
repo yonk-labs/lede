@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn shape_maps_classes() {
-        assert_eq!(shape("Amazon"), "Xxxxx");
+        assert_eq!(shape("Amazon"), "Xxxxxx");
         assert_eq!(shape("IBM"), "XXX");
         assert_eq!(shape("iPhone15"), "xXxxxxdd");
         assert_eq!(shape("3M"), "dX");
@@ -201,7 +201,7 @@ Add inside the `tests` module in `features.rs`:
 fn token_features_cover_affix_flags_and_gazetteer() {
     let f = token_features("Amazon", None);
     assert!(f.contains(&"w.lower=amazon".to_string()));
-    assert!(f.contains(&"shape=Xxxxx".to_string()));
+    assert!(f.contains(&"shape=Xxxxxx".to_string()));
     assert!(f.contains(&"suf3=zon".to_string()));
     assert!(f.contains(&"pre2=Am".to_string()));
     assert!(f.contains(&"is_title".to_string()));
