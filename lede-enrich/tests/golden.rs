@@ -1,7 +1,7 @@
 //! Golden snapshots for the rule-based NER. These pin observed behavior; they
 //! are NOT a parity promise against Python lede-spacy (which uses spaCy).
 
-use lede_spacy_rs::extract_entities;
+use lede_enrich::extract_entities;
 
 #[test]
 fn person_with_title_and_place() {

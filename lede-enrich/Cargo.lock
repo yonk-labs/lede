@@ -13,13 +13,13 @@ dependencies = [
 
 [[package]]
 name = "lede"
-version = "0.4.5"
+version = "0.5.0"
 dependencies = [
  "regex",
 ]
 
 [[package]]
-name = "lede-spacy-rs"
+name = "lede-enrich"
 version = "0.1.0"
 dependencies = [
  "lede",

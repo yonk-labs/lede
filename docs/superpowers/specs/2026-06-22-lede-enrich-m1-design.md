@@ -1,4 +1,4 @@
-# lede-spacy-rs — Milestone 1 design spec
+# lede-enrich — Milestone 1 design spec
 
 **Status:** draft for review
 **Date:** 2026-06-22
@@ -37,10 +37,10 @@ with no PTB/LDC-derived artifact in the crate.
 - `gline-rs` — opt-in GPU-only feature flag, never the default.
 
 **Explicitly out of scope (this repo):**
-- Wiring lede-spacy-rs into chunkshop-rs — that lives in the chunkshop repo
+- Wiring lede-enrich into chunkshop-rs — that lives in the chunkshop repo
   (`/home/yonk/yonk-tools/chunkshop/`), a separate PR. This spec delivers the
   crate + its API; the consumer un-stubs against it downstream.
-- Python ↔ Rust **byte parity**. Like the Python spaCy backend, lede-spacy-rs
+- Python ↔ Rust **byte parity**. Like the Python spaCy backend, lede-enrich
   makes **no cross-language parity promise** — it is spaCy-`sm`-*class*, not
   byte-identical to Python lede-spacy. It stays **off the fixture walker.**
 
@@ -53,8 +53,8 @@ sibling crate at the repo root**, depending on `lede` by path — **zero changes
 any core file**, zero CI coupling.
 
 ```
-lede-spacy-rs/
-  Cargo.toml        # name = "lede-spacy-rs"; deps: lede = { path = "../rust" }
+lede-enrich/
+  Cargo.toml        # name = "lede-enrich"; deps: lede = { path = "../rust" }
   src/
     lib.rs          # public API: extract_entities, metadata, correlate_facts, lemma
     ner.rs          # gazetteer + capitalization/shape-rule entity recognition
@@ -200,7 +200,7 @@ table (avoids murky-license data dumps). Good enough for "sm is also lookup-base
 - **OPT-IN (feature-flagged):** `postagger` perceptron and/or CRF NER, where the
   build/first-run step **downloads a pinned, SHA-checksummed weights artifact**
   from a host — mirroring NLTK, so the **user** accepts upstream terms. Determinism
-  holds because the artifact is checksum-pinned (and lede-spacy-rs makes no
+  holds because the artifact is checksum-pinned (and lede-enrich makes no
   Python↔Rust parity promise; the bar is Rust-internal reproducibility).
 - **NEVER:** ship PTB/CoNLL/OntoNotes-derived weights inside the repo or crate.
 
@@ -229,7 +229,7 @@ embedded text — behind an opt-in feature flag, keeping the core lean.
 - **No float reductions anywhere** in the default path (the property that killed
   gline). The deferred `finalfusion` path is the only place floats would enter —
   another reason it stays out of M1.
-- **No fixture-walker entry.** lede-spacy-rs is off the Python↔Rust byte-parity
+- **No fixture-walker entry.** lede-enrich is off the Python↔Rust byte-parity
   gate by policy, matching the Python spaCy backend. The bar is **Rust-internal
   reproducibility** (same input → same bytes across runs/platforms), not
   cross-language byte-parity.

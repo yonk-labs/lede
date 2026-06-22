@@ -1,5 +1,6 @@
-//! lede-spacy-rs — deterministic, license-clean spaCy-`sm`-class NER + numeric
-//! facts for the lede Rust path. Companion to the Python `lede-spacy` package.
+//! lede-enrich — deterministic, license-clean classical NLP enrichment (NER +
+//! numeric facts) for the lede Rust path. Reaches spaCy-`sm`-*class* quality
+//! with no spaCy and no transformers. Rust sibling of the Python `lede-spacy`.
 //!
 //! M1 default path bundles **no trained weights**: gazetteer + capitalization/
 //! shape-rule NER, the core's regex date/money/url metadata, and (slice 2) regex
@@ -9,7 +10,7 @@
 //! No cross-language byte-parity with Python `lede-spacy` is promised — this is
 //! spaCy-`sm`-*class*, not byte-identical. Output is deterministic within Rust.
 //!
-//! Spec: `docs/superpowers/specs/2026-06-22-lede-spacy-rs-m1-design.md`.
+//! Spec: `docs/superpowers/specs/2026-06-22-lede-enrich-m1-design.md`.
 
 mod facts;
 mod gazetteer;

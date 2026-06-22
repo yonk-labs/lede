@@ -1,7 +1,7 @@
 //! Facts: NER entity re-attribution over lede core's regex correlate_facts.
 //! Not a parity promise against Python lede-spacy.
 
-use lede_spacy_rs::correlate_facts;
+use lede_enrich::correlate_facts;
 
 #[test]
 fn reattributes_entity_with_ner_surface_form() {

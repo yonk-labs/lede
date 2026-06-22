@@ -1,0 +1,57 @@
+name: publish-lede-enrich
+
+# Publishes the lede-enrich companion crate to crates.io on its own tag
+# (`lede-enrich-vX.Y.Z`), independent of the core `lede` crate's `v*` tags.
+# Requires the core `lede` version it depends on to already be on crates.io.
+
+on:
+  push:
+    tags:
+      - 'lede-enrich-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify lede-enrich crate (dry run)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lede-enrich
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: lede-enrich -> target
+      - name: cargo fmt --check
+        run: cargo fmt --check
+      - name: cargo clippy
+        run: cargo clippy --all-targets --features pos -- -D warnings
+      - name: cargo test
+        run: cargo test --features pos --quiet
+      - name: cargo publish --dry-run
+        run: cargo publish --dry-run
+
+  publish:
+    name: Publish lede-enrich to crates.io
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: crates-io
+      url: https://crates.io/crates/lede-enrich
+    defaults:
+      run:
+        working-directory: lede-enrich
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: lede-enrich -> target
+      - name: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish

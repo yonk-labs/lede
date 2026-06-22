@@ -1,8 +1,8 @@
-//! Determinism + "metadata reuses lede core" checks. The bar for lede-spacy-rs
+//! Determinism + "metadata reuses lede core" checks. The bar for lede-enrich
 //! is Rust-internal reproducibility (same input -> same bytes), not Python<->Rust
 //! byte-parity.
 
-use lede_spacy_rs::{extract_entities, metadata};
+use lede_enrich::{extract_entities, metadata};
 
 #[test]
 fn entities_deterministic() {

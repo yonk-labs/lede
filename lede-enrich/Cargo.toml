@@ -1,0 +1,26 @@
+[package]
+name = "lede-enrich"
+version = "0.1.0"
+edition = "2024"
+description = "Deterministic, license-clean classical NLP enrichment for the lede Rust path — gazetteer NER, numeric facts, opt-in POS, lemma. No spaCy, no transformers."
+license = "Apache-2.0"
+repository = "https://github.com/yonk-labs/lede"
+readme = "README.md"
+keywords = ["nlp", "ner", "entities", "lede", "deterministic"]
+categories = ["text-processing"]
+rust-version = "1.85"
+
+[dependencies]
+# Core lede crate. version+path: `version` is used when published to crates.io,
+# `path` for local development in this repo. M1 reuses lede's regex metadata +
+# facts and its public types (Metadata, PhraseFact) — no schema drift.
+lede = { version = "0.5", path = "../rust" }
+
+[features]
+# Opt-in rule-based POS tagger + higher-recall POS facts. No weights, no deps,
+# no network — license-clean. The averaged-perceptron path (NLTK/PTB weights)
+# is a deferred `pos-perceptron` feature requiring user-supplied weights.
+pos = []
+
+[lints.rust]
+unsafe_code = "forbid"

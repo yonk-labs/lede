@@ -2,7 +2,7 @@
 
 #![cfg(feature = "pos")]
 
-use lede_spacy_rs::{correlate_facts_pos, pos_tag};
+use lede_enrich::{correlate_facts_pos, pos_tag};
 
 #[test]
 fn pos_tags_basic() {
