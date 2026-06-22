@@ -48,7 +48,8 @@ Under `[dependencies]` add (use the version from Step 1):
 
 ```toml
 # Pure-Rust CRFsuite port (MIT). Training + inference. Only pulled by `crf`.
-crfs = { version = "0.2", optional = true }
+# Latest resolved 0.4.1 as of 2026-06-22; confirm with Step 1's dry-run.
+crfs = { version = "0.4", optional = true }
 ```
 
 Under `[features]` add:
