@@ -1,5 +1,6 @@
 pub mod common;
 pub mod correlate;
+pub mod fact_records;
 pub mod key_facts;
 pub mod metadata;
 pub mod outline;
