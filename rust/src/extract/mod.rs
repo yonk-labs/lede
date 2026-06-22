@@ -5,3 +5,5 @@ pub mod metadata;
 pub mod outline;
 pub mod phrases;
 pub mod stats;
+pub mod textrank;
+pub mod top_terms;

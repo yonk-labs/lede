@@ -38,7 +38,7 @@ fn ngrams(buf: &[String], out: &mut Vec<String>) {
     }
 }
 
-fn runs(text: &str) -> Vec<String> {
+pub(crate) fn runs(text: &str) -> Vec<String> {
     let lower = text.to_lowercase();
     let mut runs_out: Vec<String> = Vec::new();
     let mut buf: Vec<String> = Vec::new();

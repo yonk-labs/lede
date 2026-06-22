@@ -61,6 +61,10 @@ def format_phrases(phrases: tuple[str, ...]) -> str:
     return _join_lines(list(phrases))
 
 
+def format_top_terms(terms: tuple[str, ...]) -> str:
+    return _join_lines(list(terms))
+
+
 def format_key_facts(facts: tuple[str, ...]) -> str:
     return _join_lines(list(facts))
 
