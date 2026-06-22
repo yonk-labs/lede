@@ -31,8 +31,13 @@ jobs:
           # `[dev]` pulls pytest so the test step can find it; the runner
           # doesn't ship pytest as a system tool.
           pip install -e "packages/lede-spacy[dev]"
-          # spaCy model the regex/spacy bridge expects.
-          python -m spacy download en_core_web_sm
+          # Install the spaCy model from its pinned wheel rather than via
+          # `python -m spacy download`. spaCy's download CLI (typer/weasel)
+          # imports `click`, which current `typer` no longer pulls in
+          # transitively, so the CLI crashes with `ModuleNotFoundError: click`.
+          # The pinned wheel matches the `spacy>=3.8,<3.9` dependency pin and is
+          # fully deterministic (no "latest compatible" network resolution).
+          pip install "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
       - name: Run lede-spacy tests
         run: |
           cd packages/lede-spacy
