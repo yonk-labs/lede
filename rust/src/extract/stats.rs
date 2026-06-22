@@ -44,8 +44,8 @@ fn money_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
         Regex::new(concat!(
-            r"(?i)(?P<a>\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?)",
-            r"|(?P<b>\d[\d,]{0,18}(?:\.\d{1,4})?)\s*(?P<ccy>dollars?|USD|EUR|GBP|JPY|CHF)",
+            r"(?i)(?P<a>\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?(?:\s+(?:million|billion|trillion|thousand)\b)?)",
+            r"|(?P<b>\d[\d,]{0,18}(?:\.\d{1,4})?(?:\s+(?:million|billion|trillion|thousand)\b)?)\s*(?P<ccy>dollars?|USD|EUR|GBP|JPY|CHF)",
         ))
         .expect("static regex")
     })

@@ -26,7 +26,7 @@ _DATE_RE = re.compile(
 )
 # Amount quantifiers bounded {0,18} for ReDoS parity with extract.stats._MONEY_RE.
 _AMOUNT_RE = re.compile(
-    r"\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?|\d[\d,]{0,18}(?:\.\d{1,4})?\s*(?:dollars?|USD|EUR|GBP|JPY|CHF)",
+    r"\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?(?:\s+(?:million|billion|trillion|thousand)\b)?|\d[\d,]{0,18}(?:\.\d{1,4})?(?:\s+(?:million|billion|trillion|thousand)\b)?\s*(?:dollars?|USD|EUR|GBP|JPY|CHF)",
     re.IGNORECASE,
 )
 _URL_RE = re.compile(

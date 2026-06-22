@@ -29,8 +29,8 @@ from ..sentences import split_sentences
 # unaffected by backtracking, but mirrors both guards for byte-identical
 # parity.
 _MONEY_RE = re.compile(
-    r"(?P<value>\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?)"
-    r"|(?P<value2>\d[\d,]{0,18}(?:\.\d{1,4})?)\s*(?P<ccy>dollars?|USD|EUR|GBP|JPY|CHF)",
+    r"(?P<value>\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?(?:\s+(?:million|billion|trillion|thousand)\b)?)"
+    r"|(?P<value2>\d[\d,]{0,18}(?:\.\d{1,4})?(?:\s+(?:million|billion|trillion|thousand)\b)?)\s*(?P<ccy>dollars?|USD|EUR|GBP|JPY|CHF)",
     re.IGNORECASE,
 )
 
