@@ -75,10 +75,12 @@ as noise for lexical NER):
 
 ## `corpus_manifest.json` (Task 7)
 
-Task 7 will produce a `corpus_manifest.json` listing the article sources to
-fetch (Wikipedia dump excerpts or similar). This harness consumes the resulting
-`articles.jsonl` derived from that manifest. Both files are gitignored — source
-text is never committed.
+Task 7 produces a `corpus_manifest.json` listing the article IDs and their
+bucket assignments from the pinned Wikipedia dump. This file **is committed**
+to the repository — it is the reproducibility anchor (spec AC-5): anyone can
+regenerate `articles.jsonl` from it using `build_manifest.py` with the same
+pinned dump. The `articles.jsonl` derived from the manifest is **not**
+committed (source text is never stored in the repo).
 
 ## Gitignored outputs
 
