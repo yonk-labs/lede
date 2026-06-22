@@ -40,6 +40,14 @@ fn does_not_merge_separate_entities_across_and() {
 }
 
 #[test]
+fn excludes_month_names_from_entities() {
+    // Month names are dates (in metadata.dates), not entities — matches spaCy.
+    let got = extract_entities("Microsoft acquired GitHub on January 5, 2018.");
+    assert!(!got.iter().any(|e| e == "January"), "got: {got:?}");
+    assert!(got.contains(&"Microsoft".to_string()), "got: {got:?}");
+}
+
+#[test]
 fn dedups_first_appearance_order() {
     let got = extract_entities("France beat Brazil. Brazil then beat France.");
     assert_eq!(got, vec!["France".to_string(), "Brazil".to_string()]);

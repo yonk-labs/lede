@@ -277,6 +277,31 @@ pub const FIRST_NAMES: &[&str] = &[
     "sophia",
 ];
 
+/// Month + day names. Capitalized, but they are dates — already surfaced in
+/// `metadata.dates` — so they are excluded from NER entities (matches spaCy,
+/// which tags them DATE not an entity).
+pub const CALENDAR: &[&str] = &[
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+];
+
 /// Case-insensitive (ASCII) membership test against a lowercased list.
 #[must_use]
 pub fn contains_ci(list: &[&str], word: &str) -> bool {

@@ -156,10 +156,12 @@ fn accept(mut run: Run) -> Option<String> {
         sentence_start = false;
     }
 
-    // A single bare title/stopword token is never an entity ("He", "It", "Dr").
+    // A single bare title/stopword/calendar token is never an entity
+    // ("He", "It", "Dr", "January" — the last is a DATE, not an entity).
     if run.parts.len() == 1
         && (gazetteer::contains_ci(gazetteer::SENTENCE_STOPWORDS, &run.parts[0])
-            || gazetteer::contains_ci(gazetteer::TITLES, &run.parts[0]))
+            || gazetteer::contains_ci(gazetteer::TITLES, &run.parts[0])
+            || gazetteer::contains_ci(gazetteer::CALENDAR, &run.parts[0]))
     {
         return None;
     }
