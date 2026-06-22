@@ -2,6 +2,70 @@
 //! list per token) — deliberately free of `crfs` types so it is unit-testable on
 //! its own and reused verbatim by both the trainer and inference.
 
+use crate::gazetteer;
+
+/// Gazetteer lists exposed as binary membership features. Order is fixed so the
+/// emitted feature strings are deterministic.
+const GAZETTEERS: &[(&str, &[&str])] = &[
+    ("ORGS", gazetteer::ORGS),
+    ("ORG_SUFFIXES", gazetteer::ORG_SUFFIXES),
+    ("COUNTRIES", gazetteer::COUNTRIES),
+    ("PLACES", gazetteer::PLACES),
+    ("FIRST_NAMES", gazetteer::FIRST_NAMES),
+    ("TITLES", gazetteer::TITLES),
+    ("CALENDAR", gazetteer::CALENDAR),
+];
+
+/// Feature strings for a single token. `pos` is the rule-based tag when the
+/// `pos` feature is enabled upstream, else `None` (feature omitted, no hard dep).
+fn token_features(word: &str, pos: Option<&str>) -> Vec<String> {
+    let mut f = Vec::new();
+    f.push(format!("w.lower={}", word.to_lowercase()));
+    f.push(format!("shape={}", shape(word)));
+
+    let chars: Vec<char> = word.chars().collect();
+    let n = chars.len();
+    for k in 1..=3 {
+        if n >= k {
+            let pre: String = chars[..k].iter().collect();
+            f.push(format!("pre{k}={pre}"));
+        }
+    }
+    for k in 1..=4 {
+        if n >= k {
+            let suf: String = chars[n - k..].iter().collect();
+            f.push(format!("suf{k}={suf}"));
+        }
+    }
+
+    if word.chars().next().is_some_and(char::is_uppercase) {
+        f.push("is_title".to_string());
+    }
+    if n > 0 && word.chars().all(char::is_uppercase) {
+        f.push("is_upper".to_string());
+    }
+    if n > 0 && word.chars().all(|c| c.is_ascii_digit()) {
+        f.push("is_digit".to_string());
+    }
+    if word.contains('-') {
+        f.push("has_hyphen".to_string());
+    }
+    if word.chars().any(|c| c.is_ascii_digit()) {
+        f.push("has_digit".to_string());
+    }
+
+    for (name, list) in GAZETTEERS {
+        if gazetteer::contains_ci(list, word) {
+            f.push(format!("gaz={name}"));
+        }
+    }
+
+    if let Some(tag) = pos {
+        f.push(format!("pos={tag}"));
+    }
+    f
+}
+
 /// Per-character orthographic shape: uppercase→`X`, lowercase→`x`, digit→`d`,
 /// anything else kept verbatim. Truncated at 8 chars to bound feature cardinality.
 fn shape(word: &str) -> String {
@@ -32,5 +96,24 @@ mod tests {
         assert_eq!(shape("iPhone15"), "xXxxxxdd");
         assert_eq!(shape("3M"), "dX");
         assert_eq!(shape(""), "");
+    }
+
+    #[test]
+    fn token_features_cover_affix_flags_and_gazetteer() {
+        let f = token_features("Amazon", None);
+        assert!(f.contains(&"w.lower=amazon".to_string()));
+        assert!(f.contains(&"shape=Xxxxxx".to_string()));
+        assert!(f.contains(&"suf3=zon".to_string()));
+        assert!(f.contains(&"pre2=Am".to_string()));
+        assert!(f.contains(&"is_title".to_string()));
+        assert!(!f.contains(&"is_upper".to_string()));
+
+        // gazetteer membership becomes a feature, not a hard rule:
+        let usa = token_features("France", None);
+        assert!(usa.contains(&"gaz=COUNTRIES".to_string()));
+
+        // POS only present when provided:
+        assert!(token_features("runs", Some("VERB")).contains(&"pos=VERB".to_string()));
+        assert!(!token_features("runs", None).iter().any(|s| s.starts_with("pos=")));
     }
 }
