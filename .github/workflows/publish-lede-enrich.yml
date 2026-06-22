@@ -53,5 +53,8 @@ jobs:
           workspaces: lede-enrich -> target
       - name: cargo publish
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          # Dedicated token for lede-enrich (separate from core lede's
+          # CARGO_REGISTRY_TOKEN). cargo reads the CARGO_REGISTRY_TOKEN env var;
+          # we source it from the enrich-scoped secret.
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN_ENRICH }}
         run: cargo publish
