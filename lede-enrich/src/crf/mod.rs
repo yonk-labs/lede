@@ -2,3 +2,4 @@
 //! CRFsuite model trained offline on spaCy silver labels.
 
 mod features;
+pub use features::sequence_features;

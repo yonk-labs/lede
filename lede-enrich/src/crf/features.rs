@@ -66,6 +66,46 @@ fn token_features(word: &str, pos: Option<&str>) -> Vec<String> {
     f
 }
 
+/// Full per-token feature lists for a tokenized sentence, including a ±2 context
+/// window (neighbour features prefixed `±k:`) and BOS/EOS markers. This is the
+/// single feature contract shared by the trainer and inference.
+pub fn sequence_features(tokens: &[String], pos: &[Option<String>]) -> Vec<Vec<String>> {
+    let base: Vec<Vec<String>> = tokens
+        .iter()
+        .enumerate()
+        .map(|(i, w)| token_features(w, pos.get(i).and_then(|o| o.as_deref())))
+        .collect();
+
+    let n = tokens.len();
+    let mut out: Vec<Vec<String>> = Vec::with_capacity(n);
+    for i in 0..n {
+        let mut feats = base[i].clone();
+        feats.push("bias".to_string());
+        for k in 1..=2_isize {
+            let j = i as isize - k;
+            if j >= 0 {
+                for s in &base[j as usize] {
+                    feats.push(format!("-{k}:{s}"));
+                }
+            }
+            let j = i as isize + k;
+            if (j as usize) < n {
+                for s in &base[j as usize] {
+                    feats.push(format!("+{k}:{s}"));
+                }
+            }
+        }
+        if i == 0 {
+            feats.push("BOS".to_string());
+        }
+        if i == n - 1 {
+            feats.push("EOS".to_string());
+        }
+        out.push(feats);
+    }
+    out
+}
+
 /// Per-character orthographic shape: uppercase→`X`, lowercase→`x`, digit→`d`,
 /// anything else kept verbatim. Truncated at 8 chars to bound feature cardinality.
 fn shape(word: &str) -> String {
@@ -96,6 +136,22 @@ mod tests {
         assert_eq!(shape("iPhone15"), "xXxxxxdd");
         assert_eq!(shape("3M"), "dX");
         assert_eq!(shape(""), "");
+    }
+
+    #[test]
+    fn sequence_features_add_context_and_boundaries() {
+        let toks = vec!["Acme".to_string(), "Corp".to_string()];
+        let pos = vec![None, None];
+        let seq = sequence_features(&toks, &pos);
+        assert_eq!(seq.len(), 2);
+
+        // first token sees BOS and the next token's features prefixed +1:
+        assert!(seq[0].contains(&"BOS".to_string()));
+        assert!(seq[0].iter().any(|s| s.starts_with("+1:w.lower=corp")));
+
+        // last token sees EOS and the previous token's features prefixed -1:
+        assert!(seq[1].contains(&"EOS".to_string()));
+        assert!(seq[1].iter().any(|s| s.starts_with("-1:w.lower=acme")));
     }
 
     #[test]

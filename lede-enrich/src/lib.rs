@@ -20,6 +20,8 @@ mod ner;
 mod pos;
 #[cfg(feature = "crf")]
 mod crf;
+#[cfg(feature = "crf")]
+pub use crf::sequence_features;
 
 pub use facts::correlate_facts;
 pub use lemma::lemma;
