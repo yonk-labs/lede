@@ -147,6 +147,10 @@ fn accept(mut run: Run) -> Option<String> {
         run.parts.remove(0);
         has_title = true;
         sentence_start = false;
+    } else if run.parts.len() > 1 && gazetteer::contains_ci(gazetteer::POSSESSIVES, &run.parts[0]) {
+        // Strip a leading possessive determiner ("Our Team" -> "Team").
+        run.parts.remove(0);
+        sentence_start = false;
     } else if sentence_start
         && run.parts.len() > 1
         && gazetteer::contains_ci(gazetteer::SENTENCE_STOPWORDS, &run.parts[0])
@@ -156,12 +160,16 @@ fn accept(mut run: Run) -> Option<String> {
         sentence_start = false;
     }
 
-    // A single bare title/stopword/calendar token is never an entity
-    // ("He", "It", "Dr", "January" — the last is a DATE, not an entity).
+    // A single bare token that is a stopword/title/calendar/common-noun/
+    // currency-code/possessive is never an entity ("He", "Dr", "January",
+    // "Company", "EUR", "Our") — cuts gazetteer false positives (#12).
     if run.parts.len() == 1
         && (gazetteer::contains_ci(gazetteer::SENTENCE_STOPWORDS, &run.parts[0])
             || gazetteer::contains_ci(gazetteer::TITLES, &run.parts[0])
-            || gazetteer::contains_ci(gazetteer::CALENDAR, &run.parts[0]))
+            || gazetteer::contains_ci(gazetteer::CALENDAR, &run.parts[0])
+            || gazetteer::contains_ci(gazetteer::COMMON_NOUNS, &run.parts[0])
+            || gazetteer::contains_ci(gazetteer::CURRENCY_CODES, &run.parts[0])
+            || gazetteer::contains_ci(gazetteer::POSSESSIVES, &run.parts[0]))
     {
         return None;
     }
