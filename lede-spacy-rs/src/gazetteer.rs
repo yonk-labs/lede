@@ -7,10 +7,10 @@
 //! (ISO country names, US Census given names) or hand-coded constants.
 
 /// Words that join two capitalized tokens inside one entity
-/// ("Bank of America", "Smith & Co", "Bank of the West").
-pub const CONNECTORS: &[&str] = &[
-    "of", "the", "and", "for", "&", "von", "van", "de", "la", "del",
-];
+/// ("Bank of America", "Smith & Co", "Ludwig von Mises"). Deliberately excludes
+/// "and"/"for"/"the": "and" wrongly merges separate entities ("Volkswagen and
+/// BMW" is two ORGs, not one) — caught by comparison against spaCy.
+pub const CONNECTORS: &[&str] = &["of", "&", "von", "van", "de", "la", "del"];
 
 /// Honorifics that precede a PERSON. Stripped from the surface form but used as
 /// a signal that the following capitalized run is an entity.

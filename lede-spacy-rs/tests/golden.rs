@@ -31,6 +31,15 @@ fn org_suffix_and_ampersand() {
 }
 
 #[test]
+fn does_not_merge_separate_entities_across_and() {
+    // Regression: "and" must not join two entities into one (found vs spaCy).
+    let got = extract_entities("Investors back Volkswagen and BMW today.");
+    assert!(got.contains(&"Volkswagen".to_string()), "got: {got:?}");
+    assert!(got.contains(&"BMW".to_string()), "got: {got:?}");
+    assert!(!got.iter().any(|e| e.contains("and")), "got: {got:?}");
+}
+
+#[test]
 fn dedups_first_appearance_order() {
     let got = extract_entities("France beat Brazil. Brazil then beat France.");
     assert_eq!(got, vec!["France".to_string(), "Brazil".to_string()]);
