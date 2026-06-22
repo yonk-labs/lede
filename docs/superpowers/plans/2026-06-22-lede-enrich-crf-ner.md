@@ -4,7 +4,7 @@
 
 **Goal:** Add typed, higher-recall NER to `lede-enrich` behind an opt-in `crf` cargo feature, distilled offline from spaCy `en_core_web_sm` into a pure-Rust CRF whose weights ship in-crate.
 
-**Architecture:** Python runs spaCy over a pinned, stratified Wikipedia sample and emits silver `(tokens, BIO)` labels. One Rust feature function (`features.rs`, returning `Vec<Vec<String>>`) is called by both an offline Rust trainer (`crfs::Trainer`) and in-crate inference (`crfs::Tagger`), so train/infer features cannot drift. The trained `models/ner.crfsuite` is bundled via `include_bytes!`.
+**Architecture:** Python runs spaCy over a pinned, stratified Wikipedia sample and emits silver `(sentence text, entity char-spans)` — tokenizer-independent labels. **Rust owns both tokenization and feature extraction** for training and inference: one `tokenize()` + `project_bio()` (char-spans → BIO) + `sequence_features()`, called by both an offline Rust trainer (`crfs::Trainer`) and in-crate inference (`crfs::Tagger`). This makes both alignment drift and feature drift structurally impossible. The trained `models/ner.crfsuite` is bundled via `include_bytes!`.
 
 **Tech Stack:** Rust (edition 2024, `crfs` crate), Python (spaCy 3.8 `en_core_web_sm`), Wikipedia (CC-BY-SA, pinned dump).
 
@@ -408,7 +408,7 @@ git commit -m "feat(lede-enrich): crf sequence features with +/-2 context window
 - Modify: `lede-enrich/src/crf/mod.rs` (add `mod tokenize;`)
 
 **Interfaces:**
-- Produces: `pub struct Tok { pub text: String, pub start: usize, pub end: usize }` and `pub fn tokenize(text: &str) -> Vec<Tok>`. Used by Task 11. Offsets are byte indices into `text`.
+- Produces: `pub struct Tok { pub text: String, pub start: usize, pub end: usize }`, `pub fn tokenize(text: &str) -> Vec<Tok>`, and `pub fn project_bio(toks: &[Tok], ents: &[(usize, usize, String)]) -> Vec<String>`. Used by Tasks 8 (trainer) and 11 (inference). Offsets are byte indices into `text`. `project_bio` is the golden-span fix: char-spans → BIO over Rust tokens, so train and infer share one tokenization.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -494,13 +494,75 @@ pub fn tokenize(text: &str) -> Vec<Tok> {
 Run: `cd lede-enrich && cargo test --features crf tokenize_words_and_punct`
 Expected: PASS.
 
-- [ ] **Step 5: Register the module and commit**
+- [ ] **Step 5: Write the failing `project_bio` test**
 
-In `src/crf/mod.rs` add `mod tokenize;` under `mod features;`.
+Add inside the `tests` module in `tokenize.rs`:
+
+```rust
+#[test]
+fn project_bio_labels_tokens_from_char_spans() {
+    let text = "Acme Corp hired Jeff Bezos.";
+    let toks = tokenize(text);
+    // entity char-spans (sentence-relative), as emitted by spaCy:
+    let ents = vec![
+        (0usize, 9usize, "ORG".to_string()),    // "Acme Corp"
+        (16usize, 26usize, "PERSON".to_string()), // "Jeff Bezos"
+    ];
+    let bio = project_bio(&toks, &ents);
+    assert_eq!(
+        bio,
+        vec!["B-ORG", "I-ORG", "O", "B-PERSON", "I-PERSON", "O"]
+    );
+}
+```
+
+- [ ] **Step 6: Run to verify it fails**
+
+Run: `cd lede-enrich && cargo test --features crf project_bio_labels`
+Expected: FAIL — `cannot find function project_bio`.
+
+- [ ] **Step 7: Implement `project_bio`**
+
+Add to `tokenize.rs` (above the tests):
+
+```rust
+/// Project entity char-spans `(start, end, label)` onto `toks`, yielding one BIO
+/// tag per token. A token belongs to an entity when it is fully contained in the
+/// span (`tok.start >= start && tok.end <= end`); the first contained token is
+/// `B-`, the rest `I-`. Tokens only partially overlapping a span fall to `O`
+/// (rare in clean text). Spans are assumed non-overlapping (spaCy ents are).
+pub fn project_bio(toks: &[Tok], ents: &[(usize, usize, String)]) -> Vec<String> {
+    let mut bio = vec!["O".to_string(); toks.len()];
+    for (start, end, label) in ents {
+        let mut first = true;
+        for (i, t) in toks.iter().enumerate() {
+            if t.start >= *start && t.end <= *end {
+                bio[i] = format!("{}-{}", if first { "B" } else { "I" }, label);
+                first = false;
+            }
+        }
+    }
+    bio
+}
+```
+
+- [ ] **Step 8: Run to verify it passes**
+
+Run: `cd lede-enrich && cargo test --features crf project_bio_labels`
+Expected: PASS.
+
+- [ ] **Step 9: Register the module and commit**
+
+In `src/crf/mod.rs` add `pub mod tokenize;` under `mod features;` (public so the trainer bin can reach `tokenize`/`project_bio`). Also export them from `src/lib.rs` under the existing `#[cfg(feature = "crf")]` section:
+
+```rust
+#[cfg(feature = "crf")]
+pub use crf::tokenize::{Tok, project_bio, tokenize};
+```
 
 ```bash
-git add lede-enrich/src/crf/tokenize.rs lede-enrich/src/crf/mod.rs
-git commit -m "feat(lede-enrich): crf inference tokenizer with byte offsets"
+git add lede-enrich/src/crf/tokenize.rs lede-enrich/src/crf/mod.rs lede-enrich/src/lib.rs
+git commit -m "feat(lede-enrich): crf tokenizer + char-span->BIO projection (golden-span)"
 ```
 
 ---
@@ -513,20 +575,22 @@ git commit -m "feat(lede-enrich): crf inference tokenizer with byte offsets"
 
 **Interfaces:**
 - Consumes: spaCy `en_core_web_sm`, a manifest of article texts.
-- Produces: `silver.jsonl` — one JSON object per sentence: `{"tokens": [...], "labels": [...]}` where labels are BIO tags over the 11 lexical types. Consumed by Task 8.
+- Produces: `silver.jsonl` — one JSON object per sentence: `{"text": "<sentence>", "ents": [{"start": int, "end": int, "label": str}]}` where `start`/`end` are **sentence-relative character offsets** and `label` is one of the 11 lexical types. Tokenization happens in Rust (Task 8). Consumed by Task 8.
 
 - [ ] **Step 1: Write the harness**
 
 Create `distill/label_corpus.py`:
 
 ```python
-"""Distillation harness: spaCy en_core_web_sm -> silver BIO labels.
+"""Distillation harness: spaCy en_core_web_sm -> silver entity char-spans.
 
 Reads articles (one JSON per line: {"id": int, "text": str}) from --input,
 runs spaCy, keeps only the 11 lexical entity types, emits one JSON per sentence
-to --output: {"tokens": [...], "labels": ["B-ORG", "O", ...]}.
+to --output: {"text": "<sentence>", "ents": [{"start", "end", "label"}]} with
+sentence-relative CHAR offsets. Rust owns tokenization (golden-span design), so
+we deliberately do NOT emit tokens here.
 
-We never redistribute the source text — only these labels feed the Rust trainer.
+We never redistribute the source text — only these spans feed the Rust trainer.
 """
 import argparse
 import json
@@ -555,20 +619,19 @@ def main() -> int:
             if not line:
                 continue
             text = json.loads(line)["text"]
-            for sent in nlp(text).sents:
-                toks = list(sent)
-                labels = ["O"] * len(toks)
-                base = toks[0].i
-                for ent in sent.ents:
-                    if ent.label_ not in LEXICAL:
-                        continue
-                    for k, t in enumerate(ent):
-                        idx = (ent.start - base) + k
-                        labels[idx] = ("B-" if k == 0 else "I-") + ent.label_
-                fout.write(json.dumps({
-                    "tokens": [t.text for t in toks],
-                    "labels": labels,
-                }) + "\n")
+            doc = nlp(text)
+            for sent in doc.sents:
+                base = sent.start_char
+                ents = [
+                    {
+                        "start": ent.start_char - base,
+                        "end": ent.end_char - base,
+                        "label": ent.label_,
+                    }
+                    for ent in sent.ents
+                    if ent.label_ in LEXICAL
+                ]
+                fout.write(json.dumps({"text": sent.text, "ents": ents}) + "\n")
                 n_sents += 1
     print(f"wrote {n_sents} sentences to {args.output}", file=sys.stderr)
     return 0
@@ -586,7 +649,7 @@ printf '%s\n' '{"id": 1, "text": "Amazon was founded by Jeff Bezos in Seattle."}
 ../../.venv/bin/python label_corpus.py --input tiny.jsonl --output tiny.silver.jsonl
 cat tiny.silver.jsonl
 ```
-Expected: one JSON line whose `tokens` include `Amazon`/`Jeff`/`Bezos`/`Seattle` and whose `labels` mark `B-ORG`, `B-PERSON I-PERSON`, `B-GPE` (exact tags depend on spaCy, but ORG/PERSON/GPE should appear). If spaCy/model is missing: `../../.venv/bin/python -m spacy download en_core_web_sm`.
+Expected: one JSON line with `"text"` = the sentence and `"ents"` containing spans for `Amazon` (ORG), `Jeff Bezos` (PERSON), `Seattle` (GPE) — verify `sentence_text[start:end]` equals the entity surface. If spaCy/model is missing: `../../.venv/bin/python -m spacy download en_core_web_sm`.
 
 - [ ] **Step 3: Document and clean up**
 
@@ -731,15 +794,17 @@ Create `src/bin/train_ner.rs`:
 
 ```rust
 //! Offline CRF trainer (feature-gated; not built by default). Reads silver.jsonl
-//! ({"tokens": [...], "labels": [...]}), featurizes with the shared
-//! `sequence_features`, holds out every 10th sentence for eval, trains an L-BFGS
-//! CRF, writes models/ner.crfsuite, and prints entity-level P/R/F1 vs spaCy.
+//! ({"text": "<sentence>", "ents": [{start,end,label}]}), tokenizes each sentence
+//! with the SAME Rust tokenizer used at inference, projects char-spans -> BIO,
+//! featurizes with the shared `sequence_features`, holds out every 10th sentence,
+//! trains an L-BFGS CRF, writes models/ner.crfsuite, prints entity-level P/R/F1.
 
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 use crfs::{Attribute, Model, Trainer};
+use lede_enrich::{project_bio, sequence_features, tokenize};
 use serde_json::Value;
 
 fn attrs(feats: &[Vec<String>]) -> Vec<Vec<Attribute>> {
@@ -747,6 +812,29 @@ fn attrs(feats: &[Vec<String>]) -> Vec<Vec<Attribute>> {
         .iter()
         .map(|row| row.iter().map(|s| Attribute::new(s.as_str(), 1.0)).collect())
         .collect()
+}
+
+/// One silver line -> (tokens, BIO) via the Rust tokenizer + char-span projection.
+fn parse_line(v: &Value) -> Option<(Vec<String>, Vec<String>)> {
+    let text = v["text"].as_str()?;
+    let toks = tokenize(text);
+    if toks.is_empty() {
+        return None;
+    }
+    let ents: Vec<(usize, usize, String)> = v["ents"]
+        .as_array()?
+        .iter()
+        .filter_map(|e| {
+            Some((
+                e["start"].as_u64()? as usize,
+                e["end"].as_u64()? as usize,
+                e["label"].as_str()?.to_string(),
+            ))
+        })
+        .collect();
+    let bio = project_bio(&toks, &ents);
+    let tokens = toks.iter().map(|t| t.text.clone()).collect();
+    Some((tokens, bio))
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -760,29 +848,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut held: Vec<(Vec<String>, Vec<String>)> = Vec::new();
     for (i, line) in BufReader::new(File::open(&path)?).lines().enumerate() {
         let v: Value = serde_json::from_str(&line?)?;
-        let tokens: Vec<String> =
-            v["tokens"].as_array().unwrap().iter().map(|t| t.as_str().unwrap().to_string()).collect();
-        let labels: Vec<String> =
-            v["labels"].as_array().unwrap().iter().map(|t| t.as_str().unwrap().to_string()).collect();
-        if tokens.is_empty() {
-            continue;
-        }
+        let Some((tokens, bio)) = parse_line(&v) else { continue };
         if i % 10 == 0 {
-            held.push((tokens, labels));
+            held.push((tokens, bio));
             continue;
         }
         let pos = vec![None; tokens.len()];
-        let feats = lede_enrich::sequence_features(&tokens, &pos);
-        let xseq = attrs(&feats);
-        let yseq: Vec<&str> = labels.iter().map(String::as_str).collect();
-        trainer.append(&xseq, &yseq)?;
+        let feats = sequence_features(&tokens, &pos);
+        let yseq: Vec<&str> = bio.iter().map(String::as_str).collect();
+        trainer.append(&attrs(&feats), &yseq)?;
     }
 
     std::fs::create_dir_all("models")?;
     trainer.train(Path::new(model_out))?;
     println!("wrote {model_out}");
 
-    // Fidelity eval on the held-out split.
+    // Fidelity eval on the held-out split (gold BIO already projected via Rust).
     let model = Model::new(&std::fs::read(model_out)?)?;
     let mut tagger = model.tagger()?;
     eval(&mut tagger, &held);
@@ -795,7 +876,7 @@ fn eval(tagger: &mut crfs::Tagger, held: &[(Vec<String>, Vec<String>)]) {
     let mut counts: HashMap<String, [u64; 3]> = HashMap::new();
     for (tokens, gold) in held {
         let pos = vec![None; tokens.len()];
-        let feats = lede_enrich::sequence_features(tokens, &pos);
+        let feats = sequence_features(tokens, &pos);
         let pred = tagger.tag(&attrs(&feats)).unwrap_or_default();
         let g = spans(gold);
         let p = spans(&pred);
@@ -880,6 +961,7 @@ git commit -m "feat(lede-enrich): offline CRF trainer + held-out fidelity eval"
   - Increase corpus: `build_manifest.py --per-bucket 2500` → re-run `label_corpus.py` → retrain.
   - Adjust regularization: lower `set_c1` to `0.05`, try `set_c2` `0.5`.
   - If a specific common type lags, inspect its errors (add a debug print of mismatched spans in `eval`).
+  - **POS escalation (only if ORG/GPE disambiguation is the failure mode** — e.g. `Apple`-company vs `apple`-fruit, where part-of-speech is the disambiguator): compute the rule-based POS per token in `train_ner.rs` (call the `pos` tagger, requires building with `--features crf,pos`) and pass it into `sequence_features` instead of `vec![None; …]`, then **also** enable `pos` at inference (Task 11) so train/infer features stay consistent. This couples `crf`→`pos` for the bundled model; only do it if the simpler POS-free model misses the bar. The v1 model is trained POS-free on purpose (works regardless of whether a consumer enables `pos`).
   Stop as soon as the three must-pass types clear 0.80.
 
 - [ ] **Step 4: Record the final numbers** in `distill/README.md` (a short "Fidelity" table: per-label P/R/F1, corpus size, dump id). Commit:
@@ -1201,7 +1283,7 @@ git commit -m "docs(lede-enrich): CRF NER model card, README, CI matrix (#16)"
 
 ## Self-Review notes (for the executor)
 
-- **Tokenizer parity (spec R-1)** is the top fidelity risk. The inference tokenizer (Task 5) and spaCy's tokenizer (Task 6) must align well enough that features match. If F1 is good on held-out but real-text spans look wrong, suspect tokenizer divergence first.
+- **Tokenization alignment (spec R-1)** is *fixed by design*: Rust's `tokenize()` is used for both training (Task 8) and inference (Task 11), and spaCy only supplies tokenizer-independent char-spans (Task 6), so token boundaries cannot desync labels. The only residual is a char-span partially overlapping a Rust token — `project_bio` (Task 5) handles that by containment (partial overlaps → `O`). If real-text spans still look wrong despite good held-out F1, check `tokenize` punctuation/contraction handling, not spaCy parity.
 - **`crfs` version & API** — Task 1 Step 1 pins the version; if `params_mut().set_c1/set_c2`, `Attribute::new`, `Model::new(&[u8])`, `model.tagger()`, or `tagger.tag()` differ in the resolved version, adjust Tasks 8/11 to match the crate's actual signatures (check `cargo doc --open -p crfs`).
 - **`crfs` purity (spec R-2)** — confirm during Task 8 whether training pulls a `-sys` crate; inference is unaffected either way.
 - The `additive_does_not_change_gazetteer_paths` expected vectors (Task 12) must be locked against the **pre-change** default output — verify once on `main`.

@@ -46,25 +46,27 @@ The CRF's quality ceiling is the teacher (`sm`); we are distilling, not exceedin
 ## 3. Architecture — all-Rust train+infer, Python emits labels only
 
 ```
-[pinned Wikipedia dump] --spaCy(sm)--> silver (tokens, BIO) JSONL    [Python, offline]
+[pinned Wikipedia dump] --spaCy(sm)--> silver (sentence text, entity char-spans)   [Python]
                                               |
-                          src/crf/features.rs  (ONE shared fn)         [Rust = the contract]
+                       Rust tokenize() + project_bio() + features.rs   [Rust = the contract]
                           /                                  \
             src/bin/train_ner.rs                     src/crf/mod.rs
             crfs::Trainer::lbfgs                      crfs::Tagger
               -> model.crfsuite  ----include_bytes!---->  in-crate inference
 ```
 
-**Load-bearing property:** Rust owns feature extraction for *both* training and
-inference. Python emits only `(tokens, BIO-labels)`. Feature drift between
-train and infer is therefore structurally impossible — there is one
-`features.rs`, called from both sides.
+**Load-bearing property:** Rust owns *both* tokenization and feature extraction for
+training and inference. Python emits only `(sentence text, entity char-spans)` —
+tokenizer-independent labels. Both alignment drift (token boundaries) and feature
+drift are therefore structurally impossible: one `tokenize()`, one `project_bio()`,
+one `features.rs`, called from both sides.
 
 ## 4. Components
 
 | Path | Role |
 |---|---|
-| `distill/label_corpus.py` | Loads pinned Wikipedia snapshot per `corpus_manifest.json`, runs spaCy, aligns entity spans → BIO over spaCy tokens, writes `silver.jsonl` (`{"tokens":[…],"labels":[…]}`). Deterministic. |
+| `distill/label_corpus.py` | Loads pinned Wikipedia snapshot per `corpus_manifest.json`, runs spaCy, writes `silver.jsonl` of `{"text": "<sentence>", "ents": [{"start","end","label"}]}` (sentence-relative char spans; lexical types only). Deterministic. Rust does the tokenization. |
+| `src/crf/tokenize.rs` | `tokenize()` (byte-offset tokens) + `project_bio()` (char-spans → BIO over those tokens). Shared by trainer and inference. |
 | `distill/corpus_manifest.json` | Committed list of selected article IDs per domain bucket. The reproducibility anchor (§5). |
 | `src/crf/features.rs` | The shared feature function. Unit-tested in isolation. |
 | `src/crf/mod.rs` | `extract_entities_typed`, `Entity`, BIO→span merge, `OnceLock` model load. Gated `#[cfg(feature = "crf")]`. |
@@ -86,10 +88,16 @@ train and infer is therefore structurally impossible — there is one
 - **Labels (11 lexical types → 23 BIO tags):** PERSON, NORP, FAC, ORG, GPE, LOC,
   PRODUCT, EVENT, WORK_OF_ART, LAW, LANGUAGE. (`B-`/`I-` each + `O`.) Numeric/
   temporal types are dropped (handled by lede core).
-- **Tokenization:** Python emits **spaCy's tokens** + BIO. Training reads those
-  tokens directly. Inference uses the Rust tokenizer. *Tokenizer divergence at
-  inference is the main fidelity risk* (§9) — keep the Rust tokenizer aligned to
-  spaCy's whitespace+punctuation splitting; measure on held-out.
+- **Tokenization (golden-span — Rust owns it for both train and infer):** Python
+  emits only **entity character spans** (`ent.start_char`/`end_char`, relative to
+  the sentence) — tokenizer-independent labels. **Rust tokenizes the raw text for
+  both training and inference** with the same `tokenize()`, and projects the
+  char-spans onto its own tokens to derive BIO. This makes spaCy-vs-Rust
+  *alignment drift* (different token boundaries desyncing labels) structurally
+  impossible — the same "Rust owns the contract" principle as the shared feature
+  function (§3), extended to tokenization. No spaCy-tokenizer matching or Unicode
+  normalization is needed (both sides operate on identical raw bytes; we never
+  compare token strings across the language boundary).
 
 ## 6. Feature set (`features.rs`)
 
@@ -179,8 +187,11 @@ pub fn extract_entities_typed(text: &str) -> Vec<Entity>;
 
 ## 13. Risks & open questions
 
-- **R-1 Tokenizer divergence** (spaCy train vs Rust infer) — the top fidelity risk;
-  measure on held-out, align the Rust tokenizer as needed.
+- **R-1 Tokenization alignment** — *mitigated by design* via golden-span
+  tokenization (§5): Rust owns tokenization for both train and infer, so token
+  boundaries cannot desync labels. Residual concern is only projection of a char-
+  span that partially overlaps a token (rare in clean text) — projected by
+  containment, partial overlaps fall to `O`.
 - **R-2 `crfs` purity** — confirm `crfs` + its lbfgs backend are pure-Rust. If
   training pulls a `-sys` crate, training is still offline but not pure-Rust; the
   *inference* path (Tagger) is unaffected. Verify in Phase 2.
