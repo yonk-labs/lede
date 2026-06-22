@@ -18,6 +18,8 @@ mod lemma;
 mod ner;
 #[cfg(feature = "pos")]
 mod pos;
+#[cfg(feature = "crf")]
+mod crf;
 
 pub use facts::correlate_facts;
 pub use lemma::lemma;
