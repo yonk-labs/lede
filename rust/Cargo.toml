@@ -1,6 +1,6 @@
 [package]
 name = "lede"
-version = "0.4.5"
+version = "0.5.0"
 edition = "2024"
 description = "Deterministic extractive summarization — stdlib + regex only"
 license = "Apache-2.0"

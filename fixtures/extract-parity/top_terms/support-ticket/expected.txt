@@ -1,0 +1,10 @@
+allow download false
+embedder
+batch
+job
+model
+embedder precision
+support kai day
+box
+cache
+day

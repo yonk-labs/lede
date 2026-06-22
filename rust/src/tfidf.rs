@@ -112,9 +112,9 @@ fn tokenize(sentence: &str) -> OrderedCounter {
     counter
 }
 
-/// Tokenize + expose just the ordered list (used by some callers).
-#[allow(dead_code)] // used by T6 summarize
-fn tokenize_list(sentence: &str) -> Vec<String> {
+/// Tokenize + expose just the ordered list (lowercased, 3+ letter, non-stopword
+/// tokens with duplicates, in order). Reused by `extract::top_terms`.
+pub(crate) fn tokenize_list(sentence: &str) -> Vec<String> {
     let lowered = sentence.to_lowercase();
     let sw = stopwords();
     let mut out = Vec::new();

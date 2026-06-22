@@ -59,7 +59,11 @@ def _regex_correlate_facts(
     # Prefer multi-word phrases from the regex phrases() backend.
     # Pinning backend='regex' keeps this impl internally consistent —
     # a spaCy-backed correlate (T11b) would build its own dep-parsed version.
-    repeated_phrases = set(_phrases(text, backend="regex"))
+    # NB: keep phrases() insertion order (do NOT wrap in set()) — when a
+    # sentence contains two repeated phrases, the first-match below must be
+    # deterministic. set() iterates in PYTHONHASHSEED order, which made this
+    # nondeterministic and broke Python<->Rust parity (Rust uses an ordered Vec).
+    repeated_phrases = _phrases(text, backend="regex")
 
     out: list[PhraseFact] = []
     for st in stats_list:

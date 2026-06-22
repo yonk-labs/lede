@@ -31,6 +31,7 @@ from lede.extract import (  # noqa: E402
     phrases,
     stats,
     toc,
+    top_terms,
 )
 
 
@@ -47,6 +48,7 @@ PRIMITIVES = [
     ("phrases", phrases, _parity.format_phrases),
     ("correlate_facts", correlate_facts, _parity.format_correlate_facts),
     ("key_facts", key_facts, _parity.format_key_facts),
+    ("top_terms", top_terms, _parity.format_top_terms),
 ]
 
 

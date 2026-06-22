@@ -7,7 +7,14 @@ config.
 
 ## Status
 
-`v0.4.5` — structured report metadata for ingest promotion. Report JSON
+`v0.5.0` — keyword/keyphrase ranking in the Rust core: `extract.top_terms`
+(byte-identical Python↔Rust) plus a term-level `extract::textrank` backend
+(pure-Rust PageRank, capability-parity, Rust-only). Also fixes a
+`correlate_facts` nondeterminism bug (set-iteration-order → ordered phrases),
+restoring Python↔Rust parity on that primitive. The renamed Rust enrichment
+companion `lede-enrich` (formerly `lede-spacy-rs`) ships separately at v0.1.0.
+
+Previously, `v0.4.5` — structured report metadata for ingest promotion. Report JSON
 includes `attributes`, `fact_records`, `promotion_candidates`, and
 `search_text`; text/Markdown keep compact facts/details for low token use.
 Also includes v0.4.4 first-class CLI/API output formats and readable report mode.

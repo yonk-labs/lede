@@ -59,3 +59,13 @@ pub struct AttachOpts {
     pub phrases: bool,
     pub correlated_facts: bool,
 }
+
+/// A scored term from `extract::top_terms` (with scores). Mirrors Python's
+/// `TermScore` `NamedTuple` `(term, score, kind)`. `kind` is `"word"` or `"phrase"`;
+/// `score` is per-kind-normalized to `[0, 1]` (not cross-kind comparable).
+#[derive(Debug, Clone, PartialEq)]
+pub struct TermScore {
+    pub term: String,
+    pub score: f64,
+    pub kind: String,
+}
