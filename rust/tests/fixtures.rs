@@ -144,6 +144,10 @@ fn dispatch_extract(primitive: &str, input: &str) -> Option<String> {
         "correlate_facts" => Some(lede::parity::format_correlate_facts(
             &lede::extract::correlate::correlate_facts(input),
         )),
+        "top_terms" => Some(lede::parity::format_top_terms(
+            // Default n=10, both kinds, no hints — mirrors Python's keyword defaults.
+            &lede::extract::top_terms::top_terms(input, 10),
+        )),
         _ => None, // unknown primitive — caller will report the mismatch
     }
 }

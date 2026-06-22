@@ -26,6 +26,11 @@ fn join_lines(lines: &[String]) -> String {
 }
 
 #[must_use]
+pub fn format_top_terms(terms: &[String]) -> String {
+    join_lines(terms)
+}
+
+#[must_use]
 pub fn format_stats(stats: &[Stat]) -> String {
     let lines: Vec<String> = stats
         .iter()
