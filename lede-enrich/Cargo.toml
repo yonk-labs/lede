@@ -1,9 +1,11 @@
 [package]
 name = "lede-enrich"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
-description = "Deterministic, license-clean classical NLP enrichment for the lede Rust path — gazetteer NER, numeric facts, opt-in POS, lemma. No spaCy, no transformers."
-license = "Apache-2.0"
+description = "Deterministic classical NLP enrichment for the lede Rust path — gazetteer NER, numeric facts, opt-in POS, lemma, and an opt-in distilled CRF NER. No spaCy/transformers at runtime."
+# Code is Apache-2.0; the opt-in bundled CRF model (models/ner.crfsuite.gz) is a
+# CC-BY-SA-derived artifact licensed CC-BY-SA-4.0 (see models/MODEL_CARD.md).
+license = "Apache-2.0 AND CC-BY-SA-4.0"
 repository = "https://github.com/yonk-labs/lede"
 readme = "README.md"
 keywords = ["nlp", "ner", "entities", "lede", "deterministic"]

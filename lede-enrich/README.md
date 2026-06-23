@@ -36,7 +36,7 @@ entity extraction with 11 lexical type labels: `PERSON`, `NORP`, `FAC`, `ORG`,
 `GPE`, `LOC`, `PRODUCT`, `EVENT`, `WORK_OF_ART`, `LAW`, `LANGUAGE`.
 
 ```toml
-lede-enrich = { version = "0.1", features = ["crf"] }
+lede-enrich = { version = "0.2", features = ["crf"] }
 ```
 
 ```rust
@@ -57,14 +57,16 @@ let ents = extract_entities_typed(
   capitalisation features.
 - Long-tail types (EVENT, WORK_OF_ART, PRODUCT, FAC, LAW) are noisy and
   should not be used for precision-critical applications without fine-tuning.
-- See [`models/MODEL_CARD.md`](models/MODEL_CARD.md) for full corpus details,
-  per-type F1 table, training setup, and the licensing note that must be
-  resolved before any crates.io publish.
+- The bundled model is **CC-BY-SA-4.0** (trained on Wikipedia text; ShareAlike
+  honoured by licensing the model the same way). The crate's code is Apache-2.0.
+  See [`models/MODEL_CARD.md`](models/MODEL_CARD.md) and
+  [`models/LICENSE-MODEL.md`](models/LICENSE-MODEL.md) for provenance, the
+  per-type F1 table, and training setup.
 
 ### Opt-in `pos` feature
 
 ```toml
-lede-enrich = { version = "0.1", features = ["pos"] }
+lede-enrich = { version = "0.2", features = ["pos"] }
 ```
 
 Adds a rule-based POS tagger (`pos_tag`) and a higher-recall, POS-anchored facts
@@ -76,10 +78,14 @@ path (`correlate_facts_pos`). Still no weights, no deps, no network.
 - **No Python↔Rust byte-parity promise** — output is spaCy-`sm`-*class*, not
   bit-identical to the Python companion (different algorithms by design),
   consistent with lede's optional-backend policy.
-- **License-clean default**: ships no trained weights. The higher-accuracy
-  averaged-perceptron path (NLTK/PTB weights) is a deferred opt-in that loads
-  *user-supplied* weights — never bundled.
+- **License-clean default**: the default build ships no trained weights and is
+  pure Apache-2.0. The opt-in `crf` feature bundles a CC-BY-SA-4.0 model (below).
 
 ## License
 
-Apache-2.0. Part of the [lede](https://github.com/yonk-labs/lede) project.
+- **Code:** Apache-2.0.
+- **Bundled CRF model** (`models/ner.crfsuite.gz`, only with the `crf` feature):
+  **CC-BY-SA-4.0** — a CC-BY-SA-derived artifact (trained on Wikipedia), licensed
+  to match its source. See [`models/LICENSE-MODEL.md`](models/LICENSE-MODEL.md).
+
+SPDX: `Apache-2.0 AND CC-BY-SA-4.0`. Part of the [lede](https://github.com/yonk-labs/lede) project.

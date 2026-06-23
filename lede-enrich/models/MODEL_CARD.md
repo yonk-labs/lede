@@ -130,27 +130,31 @@ mixed-length sentences:
 
 ## Licensing
 
-### The model weights
+This crate is **dual-licensed by component:**
 
-The CRF weights in `ner.crfsuite.gz` are **self-generated** — they were
-produced by the `train_ner` binary included in this crate from teacher-labelled
-Wikipedia sentences. The Wikipedia text itself is **never redistributed**; only
-the learned parameter file ships.
+| Component | Licence |
+|---|---|
+| Source code (everything except the bundled model) | Apache-2.0 |
+| Bundled model weights `ner.crfsuite.gz` | **CC-BY-SA-4.0** |
 
-### Residual risk: CC-BY-SA ShareAlike vs. Apache-2.0
+### The model weights are CC-BY-SA-4.0
 
-Wikipedia's CC-BY-SA 4.0 licence carries a ShareAlike clause. Whether
-self-generated model weights derived from CC-BY-SA text trigger ShareAlike is a
-legal gray area that is not settled by case law or clear licence guidance as of
-2025. The author's reading is that parameterised model weights are a separate
-work product, not a "derivative work" under copyright, but this is not legal
-advice.
+`ner.crfsuite.gz` is a **CC-BY-SA-derived** artifact: it was trained from
+labels over English Wikipedia text, which is CC-BY-SA 4.0. Rather than argue
+whether self-generated weights are a "derivative work," we simply **license the
+model under the same licence as its source — CC-BY-SA-4.0 — which satisfies the
+ShareAlike clause outright.** No legal gray area:
 
-**Maintainer sign-off (2026-06-23):** the maintainer has reviewed the above and
-**accepted this position** for the 0.2.0 release — the bundled weights are
-self-generated, the Wikipedia source text is not redistributed, and Wikipedia is
-attributed here. This is the maintainer's risk decision, not legal advice; the
-ShareAlike question remains a gray area and may be revisited if guidance changes.
+- **Attribution:** the training text is English Wikipedia (dump `20231101.en`),
+  © its contributors, CC-BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).
+- **ShareAlike:** the model and any redistribution of it remain CC-BY-SA-4.0.
+- The Wikipedia source text itself is **never redistributed** — only the learned
+  parameter file, under the matching licence.
+
+Downstream: using `lede-enrich` as a code dependency is Apache-2.0; redistributing
+the bundled model (or a crate that embeds it) carries the CC-BY-SA-4.0 attribution
++ ShareAlike obligations for that file. The crate's Cargo `license` field is the
+SPDX compound `Apache-2.0 AND CC-BY-SA-4.0` to reflect both.
 
 ### Teacher model licence
 
