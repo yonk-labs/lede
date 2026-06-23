@@ -23,6 +23,9 @@ crfs = { version = "0.4", optional = true }
 # JSON parsing for the trainer binary (silver.jsonl). Only pulled by `crf`.
 serde_json = { version = "1", optional = true }
 
+# Gzip decompression for the bundled CRF model. Only pulled by `crf`.
+flate2 = { version = "1", optional = true }
+
 [features]
 # Opt-in rule-based POS tagger + higher-recall POS facts. No weights, no deps,
 # no network — license-clean. The averaged-perceptron path (NLTK/PTB weights)
@@ -31,7 +34,7 @@ pos = []
 
 # Opt-in distilled CRF NER. Bundles self-generated weights in-crate
 # (models/ner.crfsuite). Adds typed `extract_entities_typed`. Never default.
-crf = ["dep:crfs", "dep:serde_json"]
+crf = ["dep:crfs", "dep:serde_json", "dep:flate2"]
 
 [lints.rust]
 unsafe_code = "forbid"

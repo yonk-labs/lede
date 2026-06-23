@@ -24,6 +24,8 @@ mod crf;
 pub use crf::sequence_features;
 #[cfg(feature = "crf")]
 pub use crf::tokenize::{Tok, project_bio, tokenize};
+#[cfg(feature = "crf")]
+pub use crf::{Entity, extract_entities_typed};
 
 pub use facts::correlate_facts;
 pub use lemma::lemma;
