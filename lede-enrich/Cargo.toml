@@ -16,11 +16,30 @@ rust-version = "1.85"
 # facts and its public types (Metadata, PhraseFact) — no schema drift.
 lede = { version = "0.5", path = "../rust" }
 
+# Pure-Rust CRFsuite port (MIT). Training + inference. Only pulled by `crf`.
+# Latest resolved 0.4.1 as of 2026-06-22; confirm with Step 1's dry-run.
+crfs = { version = "0.4", optional = true }
+
+# JSON parsing for the trainer binary (silver.jsonl). Only pulled by `crf`.
+serde_json = { version = "1", optional = true }
+
+# Gzip decompression for the bundled CRF model. Only pulled by `crf`.
+flate2 = { version = "1", optional = true }
+
 [features]
 # Opt-in rule-based POS tagger + higher-recall POS facts. No weights, no deps,
 # no network — license-clean. The averaged-perceptron path (NLTK/PTB weights)
 # is a deferred `pos-perceptron` feature requiring user-supplied weights.
 pos = []
 
+# Opt-in distilled CRF NER. Bundles self-generated weights in-crate
+# (models/ner.crfsuite). Adds typed `extract_entities_typed`. Never default.
+crf = ["dep:crfs", "dep:serde_json", "dep:flate2"]
+
 [lints.rust]
 unsafe_code = "forbid"
+
+[[bin]]
+name = "train_ner"
+path = "src/bin/train_ner.rs"
+required-features = ["crf"]
