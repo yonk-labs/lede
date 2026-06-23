@@ -1046,7 +1046,7 @@ use crate::crf::tokenize::Tok;
 fn merge(text: &str, toks: &[Tok], labels: &[String]) -> Vec<Entity> {
     let mut out = Vec::new();
     let mut cur: Option<(String, usize, usize)> = None; // (label, start_byte, end_byte)
-    let mut flush = |cur: &mut Option<(String, usize, usize)>, out: &mut Vec<Entity>| {
+    let flush = |cur: &mut Option<(String, usize, usize)>, out: &mut Vec<Entity>| {
         if let Some((label, s, e)) = cur.take() {
             out.push(Entity { text: text[s..e].to_string(), label, start: s, end: e });
         }
