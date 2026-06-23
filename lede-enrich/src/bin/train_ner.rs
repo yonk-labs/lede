@@ -1,6 +1,6 @@
 //! Offline CRF trainer (feature-gated; not built by default). Reads silver.jsonl
 //! ({"text": "<sentence>", "ents": [{start,end,label}]}), tokenizes each sentence
-//! with the SAME Rust tokenizer used at inference, projects char-spans -> BIO,
+//! with the SAME Rust tokenizer used at inference, projects byte-offset spans -> BIO,
 //! featurizes with the shared `sequence_features`, holds out every 10th sentence,
 //! trains an L-BFGS CRF, writes models/ner.crfsuite, prints entity-level P/R/F1.
 //!
