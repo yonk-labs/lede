@@ -20,6 +20,9 @@ lede = { version = "0.5", path = "../rust" }
 # Latest resolved 0.4.1 as of 2026-06-22; confirm with Step 1's dry-run.
 crfs = { version = "0.4", optional = true }
 
+# JSON parsing for the trainer binary (silver.jsonl). Only pulled by `crf`.
+serde_json = { version = "1", optional = true }
+
 [features]
 # Opt-in rule-based POS tagger + higher-recall POS facts. No weights, no deps,
 # no network — license-clean. The averaged-perceptron path (NLTK/PTB weights)
@@ -28,7 +31,7 @@ pos = []
 
 # Opt-in distilled CRF NER. Bundles self-generated weights in-crate
 # (models/ner.crfsuite). Adds typed `extract_entities_typed`. Never default.
-crf = ["dep:crfs"]
+crf = ["dep:crfs", "dep:serde_json"]
 
 [lints.rust]
 unsafe_code = "forbid"
