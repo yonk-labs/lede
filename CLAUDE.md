@@ -12,7 +12,11 @@ config.
 (pure-Rust PageRank, capability-parity, Rust-only). Also fixes a
 `correlate_facts` nondeterminism bug (set-iteration-order → ordered phrases),
 restoring Python↔Rust parity on that primitive. The renamed Rust enrichment
-companion `lede-enrich` (formerly `lede-spacy-rs`) ships separately at v0.1.0.
+companion `lede-enrich` (formerly `lede-spacy-rs`) ships separately at v0.2.1 —
+v0.2.0 added an opt-in `crf` feature (typed NER via a pure-Rust CRF distilled
+offline from spaCy `en_core_web_lg`, weights bundled gzipped); v0.2.1 licensed
+that bundled model CC-BY-SA-4.0 (it is CC-BY-SA-derived; crate SPDX is
+`Apache-2.0 AND CC-BY-SA-4.0`). Default build stays zero-dep.
 
 Previously, `v0.4.5` — structured report metadata for ingest promotion. Report JSON
 includes `attributes`, `fact_records`, `promotion_candidates`, and
@@ -50,7 +54,7 @@ publishing is automated on `v*` tags, and lede-enrich on `lede-enrich-v*`.
 |---|---|
 | `src/lede/` | Python core. Public surface: `summarize(attach=…)`, `brief()`, `clean_text`, `strip_think`, `extract_keyword`, plus `lede.extract.{outline, toc, stats, key_facts, metadata, phrases, correlate_facts, top_terms}`. Default install is zero-dep; `[ner]`, `[wordforms]`, `[yake]`, `[textrank]` are opt-in extras. |
 | `rust/src/` | Rust mirror. `Mode::{Default, Legacy, Coverage}` selects the scorer. Includes `extract::top_terms` (byte-identical, v0.5.0) and `extract::textrank` (term-level PageRank keyphrase backend, capability-parity, v0.5.0). Optional `wordforms` cargo feature binds to the same `text2num` crate as Python's `[wordforms]` extra → byte-identical parity. |
-| `lede-enrich/` | Rust enrichment companion (formerly `lede-spacy-rs`; on crates.io v0.1.0). Classical, license-clean NER + facts: `extract_entities`, `metadata`, `correlate_facts`, `lemma`; opt-in `pos` feature. No spaCy/transformers; deterministic, no Python↔Rust byte-parity promise. |
+| `lede-enrich/` | Rust enrichment companion (formerly `lede-spacy-rs`; on crates.io v0.2.1). Classical NER + facts: `extract_entities`, `metadata`, `correlate_facts`, `lemma`; opt-in `pos` feature. Opt-in `crf` feature adds **typed** NER (`extract_entities_typed`) via a pure-Rust CRF distilled from spaCy `en_core_web_lg` (bundled gzipped model, CC-BY-SA-4.0; default build ships no weights). No spaCy/transformers at runtime; deterministic, no Python↔Rust byte-parity promise. |
 | `packages/lede-spacy/` | Python companion package. Provides `extract_entities`, `spacy_metadata`, `spacy_phrases`, `spacy_correlate_facts`. Importing it registers backends as a side effect. |
 | `fixtures/` | Language-agnostic input/output corpus. **Every change to a primitive must keep the parity walker green** (`rust/tests/fixtures.rs`). Two test gates: `every_fixture_byte_identical` (v0.1 surface) and `v0_2_extract_primitives_byte_identical` (v0.2 surface, regenerated via `python benchmarks/gen_parity_fixtures.py`). |
 | `tests/` + `rust/tests/` | Python and Rust test suites. ~230 Python core + 17 lede-spacy + 117 Rust default + 125 Rust `--features wordforms`. Run any of them locally; CI runs all four on every push. |
