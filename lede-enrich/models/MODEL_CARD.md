@@ -146,10 +146,11 @@ legal gray area that is not settled by case law or clear licence guidance as of
 work product, not a "derivative work" under copyright, but this is not legal
 advice.
 
-**Action required before any publish/tag:** a human (ideally someone with
-legal expertise or access to it) must review and bless the licensing before
-this crate is published to crates.io or otherwise distributed publicly.
-**Do not publish this crate while this note is unresolved.**
+**Maintainer sign-off (2026-06-23):** the maintainer has reviewed the above and
+**accepted this position** for the 0.2.0 release — the bundled weights are
+self-generated, the Wikipedia source text is not redistributed, and Wikipedia is
+attributed here. This is the maintainer's risk decision, not legal advice; the
+ShareAlike question remains a gray area and may be revisited if guidance changes.
 
 ### Teacher model licence
 

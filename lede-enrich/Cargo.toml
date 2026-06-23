@@ -1,6 +1,6 @@
 [package]
 name = "lede-enrich"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "Deterministic, license-clean classical NLP enrichment for the lede Rust path — gazetteer NER, numeric facts, opt-in POS, lemma. No spaCy, no transformers."
 license = "Apache-2.0"
