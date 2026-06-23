@@ -21,7 +21,7 @@ from lede._types import FactRecord, PromotionCandidate, ReadableReport, ReportAt
 from lede.extract._backends import set_default_backend
 from lede.format import format_extract, format_result, to_data, to_json
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 __all__ = [
     "summarize",
     "brief",

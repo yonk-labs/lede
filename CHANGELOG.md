@@ -8,6 +8,29 @@ Entries below `## [0.2.2]` reference the project under its previous name,
 remain as `skimr` releases — they were real shipped artifacts under that
 name. See the v0.3.0 entry for the rename rationale.
 
+## [0.5.1] — 2026-06-23
+
+### Added
+
+- Rust core now exposes `extract::fact_records(text) -> Vec<FactRecord>` and
+  `extract::stats(text) -> Vec<Stat>` with field names matching Python's
+  `readable_report().to_dict()` (`subject`/`predicate`/`object`/`fact_type`/
+  `evidence`/`confidence`; `value`/`unit`/`phrase`/`context_sentence`/`stat_type`),
+  so Rust consumers can assemble a `lede_report` at parity (#11).
+- Amount extraction captures **currency-code-prefixed** money (`EUR 2.3 billion`,
+  `USD 5 million`), in addition to the existing suffix form (`2.3 billion EUR`) (#12).
+- `units` added to the `count` stat vocabulary, so `1,000 units` is captured (#12).
+
+### Fixed
+
+- Money amounts keep the trailing magnitude word (`$5 million` no longer
+  truncated to `$5`) (#12).
+- Python `lede.__version__` synced to the distributed version (was stale at
+  `0.4.5`) (#12).
+
+All changes are additive and byte-identical across Python and Rust (fixture
+walker green).
+
 ## [0.5.0] — 2026-06-22
 
 ### Added
