@@ -34,9 +34,7 @@ fn gaz_sets() -> &'static [(&'static str, std::collections::HashSet<String>)] {
     SETS.get_or_init(|| {
         GAZETTEERS
             .iter()
-            .map(|(name, list)| {
-                (*name, list.iter().map(|w| w.to_ascii_lowercase()).collect())
-            })
+            .map(|(name, list)| (*name, list.iter().map(|w| w.to_ascii_lowercase()).collect()))
             .collect()
     })
 }
@@ -196,6 +194,10 @@ mod tests {
 
         // POS only present when provided:
         assert!(token_features("runs", Some("VERB")).contains(&"pos=VERB".to_string()));
-        assert!(!token_features("runs", None).iter().any(|s| s.starts_with("pos=")));
+        assert!(
+            !token_features("runs", None)
+                .iter()
+                .any(|s| s.starts_with("pos="))
+        );
     }
 }

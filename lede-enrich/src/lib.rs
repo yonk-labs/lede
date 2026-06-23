@@ -12,14 +12,14 @@
 //!
 //! Spec: `docs/superpowers/specs/2026-06-22-lede-enrich-m1-design.md`.
 
+#[cfg(feature = "crf")]
+mod crf;
 mod facts;
 mod gazetteer;
 mod lemma;
 mod ner;
 #[cfg(feature = "pos")]
 mod pos;
-#[cfg(feature = "crf")]
-mod crf;
 #[cfg(feature = "crf")]
 pub use crf::sequence_features;
 #[cfg(feature = "crf")]

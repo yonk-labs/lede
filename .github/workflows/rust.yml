@@ -42,3 +42,29 @@ jobs:
         run: |
           cargo install cargo-audit --locked --quiet
           cargo audit 2>&1 || (echo "::warning::cargo-audit reported issues — see job log" && true)
+
+  lede-enrich:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lede-enrich
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format check
+        run: cargo fmt --check
+      - name: Clippy (default)
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Build (default)
+        run: cargo build --verbose
+      - name: Test (default)
+        run: cargo test --verbose
+      - name: Clippy (--features crf)
+        run: cargo clippy --features crf --all-targets -- -D warnings
+      - name: Build (--features crf)
+        run: cargo build --features crf --verbose
+      - name: Test (--features crf)
+        run: cargo test --features crf --verbose

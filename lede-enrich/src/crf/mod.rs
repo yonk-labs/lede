@@ -15,7 +15,12 @@ fn merge(text: &str, toks: &[Tok], labels: &[String]) -> Vec<Entity> {
     let mut cur: Option<(String, usize, usize)> = None; // (label, start_byte, end_byte)
     let flush = |cur: &mut Option<(String, usize, usize)>, out: &mut Vec<Entity>| {
         if let Some((label, s, e)) = cur.take() {
-            out.push(Entity { text: text[s..e].to_string(), label, start: s, end: e });
+            out.push(Entity {
+                text: text[s..e].to_string(),
+                label,
+                start: s,
+                end: e,
+            });
         }
     };
     for (i, tok) in toks.iter().enumerate() {
@@ -84,7 +89,11 @@ pub fn extract_entities_typed(text: &str) -> Vec<Entity> {
     let feats = features::sequence_features(&tokens, &pos);
     let xseq: Vec<Vec<Attribute>> = feats
         .iter()
-        .map(|row| row.iter().map(|s| Attribute::new(s.as_str(), 1.0)).collect())
+        .map(|row| {
+            row.iter()
+                .map(|s| Attribute::new(s.as_str(), 1.0))
+                .collect()
+        })
         .collect();
     let tagger = model().tagger().expect("tagger");
     // crfs 0.4: tag returns Vec<&str>; merge wants &[String].
@@ -108,13 +117,30 @@ mod tests {
         let toks = tokenize(text);
         // tokens: Acme Corp hired Jeff Bezos .
         let labels = vec![
-            "B-ORG".into(), "I-ORG".into(), "O".into(),
-            "B-PERSON".into(), "I-PERSON".into(), "O".into(),
+            "B-ORG".into(),
+            "I-ORG".into(),
+            "O".into(),
+            "B-PERSON".into(),
+            "I-PERSON".into(),
+            "O".into(),
         ];
         let ents = merge(text, &toks, &labels);
-        assert_eq!(ents, vec![
-            Entity { text: "Acme Corp".into(), label: "ORG".into(), start: 0, end: 9 },
-            Entity { text: "Jeff Bezos".into(), label: "PERSON".into(), start: 16, end: 26 },
-        ]);
+        assert_eq!(
+            ents,
+            vec![
+                Entity {
+                    text: "Acme Corp".into(),
+                    label: "ORG".into(),
+                    start: 0,
+                    end: 9
+                },
+                Entity {
+                    text: "Jeff Bezos".into(),
+                    label: "PERSON".into(),
+                    start: 16,
+                    end: 26
+                },
+            ]
+        );
     }
 }

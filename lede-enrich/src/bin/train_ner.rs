@@ -19,7 +19,11 @@ use serde_json::Value;
 fn attrs(feats: &[Vec<String>]) -> Vec<Vec<Attribute>> {
     feats
         .iter()
-        .map(|row| row.iter().map(|s| Attribute::new(s.as_str(), 1.0)).collect())
+        .map(|row| {
+            row.iter()
+                .map(|s| Attribute::new(s.as_str(), 1.0))
+                .collect()
+        })
         .collect()
 }
 
@@ -47,7 +51,9 @@ fn parse_line(v: &Value) -> Option<(Vec<String>, Vec<String>)> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let path = std::env::args().nth(1).unwrap_or_else(|| "distill/silver.jsonl".into());
+    let path = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "distill/silver.jsonl".into());
     let model_out = "models/ner.crfsuite";
 
     // L2SGD, not batch L-BFGS: an L2-regularized CRF trained by stochastic
@@ -61,7 +67,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(100);
-    let mut trainer = Trainer::l2sgd().with_c2(1.0)?.with_max_iterations(max_iter)?;
+    let mut trainer = Trainer::l2sgd()
+        .with_c2(1.0)?
+        .with_max_iterations(max_iter)?;
     // Drop features seen fewer than this many times. The affix + ±2 context
     // features generate a huge singleton tail; pruning it shrinks the bundled
     // model by an order of magnitude and speeds up each L-BFGS iteration.
@@ -79,7 +87,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (i, line) in BufReader::new(File::open(&path)?).lines().enumerate() {
         let v: Value = serde_json::from_str(&line?)?;
         let text = v["text"].as_str().unwrap_or("").to_string();
-        let Some((tokens, bio)) = parse_line(&v) else { continue };
+        let Some((tokens, bio)) = parse_line(&v) else {
+            continue;
+        };
         if i % 10 == 0 {
             held.push((text, bio));
             continue;
@@ -158,7 +168,11 @@ fn eval(tagger: &crfs::Tagger, held: &[(String, Vec<String>)]) {
         }
         for (lbl, s, e) in &p {
             let entry = counts.entry(lbl.clone()).or_default();
-            if g.contains(&(lbl.clone(), *s, *e)) { entry[0] += 1 } else { entry[1] += 1 }
+            if g.contains(&(lbl.clone(), *s, *e)) {
+                entry[0] += 1
+            } else {
+                entry[1] += 1
+            }
         }
         for (lbl, s, e) in &g {
             if !p.contains(&(lbl.clone(), *s, *e)) {
@@ -169,10 +183,16 @@ fn eval(tagger: &crfs::Tagger, held: &[(String, Vec<String>)]) {
         let gu: HashSet<(usize, usize)> = g.iter().map(|(_, s, e)| (*s, *e)).collect();
         let pu: HashSet<(usize, usize)> = p.iter().map(|(_, s, e)| (*s, *e)).collect();
         for sp in &pu {
-            if gu.contains(sp) { u_tp += 1 } else { u_fp += 1 }
+            if gu.contains(sp) {
+                u_tp += 1
+            } else {
+                u_fp += 1
+            }
         }
         for sp in &gu {
-            if !pu.contains(sp) { u_fn += 1 }
+            if !pu.contains(sp) {
+                u_fn += 1
+            }
         }
         // surface-set comparison (lowercased), CRF and gazetteer vs gold surfaces
         let surf = |sp: &[(String, usize, usize)]| -> HashSet<String> {
@@ -183,26 +203,44 @@ fn eval(tagger: &crfs::Tagger, held: &[(String, Vec<String>)]) {
         };
         let gold_surf = surf(&g);
         let crf_surf = surf(&p);
-        let gaz_surf: HashSet<String> =
-            extract_entities(text).into_iter().map(|s| s.to_lowercase()).collect();
+        let gaz_surf: HashSet<String> = extract_entities(text)
+            .into_iter()
+            .map(|s| s.to_lowercase())
+            .collect();
         for s in &crf_surf {
-            if gold_surf.contains(s) { crf_tp += 1 } else { crf_fp += 1 }
+            if gold_surf.contains(s) {
+                crf_tp += 1
+            } else {
+                crf_fp += 1
+            }
         }
         for s in &gold_surf {
-            if !crf_surf.contains(s) { crf_fn += 1 }
+            if !crf_surf.contains(s) {
+                crf_fn += 1
+            }
         }
         for s in &gaz_surf {
-            if gold_surf.contains(s) { gaz_tp += 1 } else { gaz_fp += 1 }
+            if gold_surf.contains(s) {
+                gaz_tp += 1
+            } else {
+                gaz_fp += 1
+            }
         }
         for s in &gold_surf {
-            if !gaz_surf.contains(s) { gaz_fn += 1 }
+            if !gaz_surf.contains(s) {
+                gaz_fn += 1
+            }
         }
     }
 
     let prf = |tp: u64, fp: u64, fng: u64| {
         let p = tp as f64 / (tp + fp).max(1) as f64;
         let r = tp as f64 / (tp + fng).max(1) as f64;
-        let f1 = if p + r == 0.0 { 0.0 } else { 2.0 * p * r / (p + r) };
+        let f1 = if p + r == 0.0 {
+            0.0
+        } else {
+            2.0 * p * r / (p + r)
+        };
         (p, r, f1)
     };
 
@@ -216,11 +254,15 @@ fn eval(tagger: &crfs::Tagger, held: &[(String, Vec<String>)]) {
         ent_total,
     );
     let (up, ur, uf) = prf(u_tp, u_fp, u_fn);
-    println!("CRF  untyped span      P {up:.3} R {ur:.3} F1 {uf:.3}  (finds boundaries, ignore type)");
+    println!(
+        "CRF  untyped span      P {up:.3} R {ur:.3} F1 {uf:.3}  (finds boundaries, ignore type)"
+    );
     let (cp, cr, cf) = prf(crf_tp, crf_fp, crf_fn);
     println!("CRF  surface (untyped) P {cp:.3} R {cr:.3} F1 {cf:.3}");
     let (gp, gr, gf) = prf(gaz_tp, gaz_fp, gaz_fn);
-    println!("GAZ  surface (current) P {gp:.3} R {gr:.3} F1 {gf:.3}  <- current Rust baseline to beat");
+    println!(
+        "GAZ  surface (current) P {gp:.3} R {gr:.3} F1 {gf:.3}  <- current Rust baseline to beat"
+    );
 
     let mut labels: Vec<&String> = counts.keys().collect();
     labels.sort();
@@ -238,20 +280,26 @@ fn spans(labels: &[String]) -> Vec<(String, usize, usize)> {
     let mut cur: Option<(String, usize)> = None;
     for (i, lbl) in labels.iter().enumerate() {
         if let Some(t) = lbl.strip_prefix("B-") {
-            if let Some((l, s)) = cur.take() { out.push((l, s, i)); }
+            if let Some((l, s)) = cur.take() {
+                out.push((l, s, i));
+            }
             cur = Some((t.to_string(), i));
         } else if let Some(t) = lbl.strip_prefix("I-") {
             match &cur {
                 Some((l, _)) if l == t => {}
                 _ => {
-                    if let Some((l, s)) = cur.take() { out.push((l, s, i)); }
+                    if let Some((l, s)) = cur.take() {
+                        out.push((l, s, i));
+                    }
                     cur = Some((t.to_string(), i));
                 }
             }
-        } else {
-            if let Some((l, s)) = cur.take() { out.push((l, s, i)); }
+        } else if let Some((l, s)) = cur.take() {
+            out.push((l, s, i));
         }
     }
-    if let Some((l, s)) = cur { out.push((l, s, labels.len())); }
+    if let Some((l, s)) = cur {
+        out.push((l, s, labels.len()));
+    }
     out
 }

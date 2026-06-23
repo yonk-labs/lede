@@ -21,16 +21,28 @@ pub fn tokenize(text: &str) -> Vec<Tok> {
             }
         } else {
             if let Some(s) = start.take() {
-                toks.push(Tok { text: text[s..i].to_string(), start: s, end: i });
+                toks.push(Tok {
+                    text: text[s..i].to_string(),
+                    start: s,
+                    end: i,
+                });
             }
             if !c.is_whitespace() {
                 let end = i + c.len_utf8();
-                toks.push(Tok { text: text[i..end].to_string(), start: i, end });
+                toks.push(Tok {
+                    text: text[i..end].to_string(),
+                    start: i,
+                    end,
+                });
             }
         }
     }
     if let Some(s) = start.take() {
-        toks.push(Tok { text: text[s..].to_string(), start: s, end: text.len() });
+        toks.push(Tok {
+            text: text[s..].to_string(),
+            start: s,
+            end: text.len(),
+        });
     }
     toks
 }
@@ -62,8 +74,10 @@ mod tests {
     fn tokenize_words_and_punct_with_offsets() {
         let text = "Acme Corp, Paris.";
         let toks = tokenize(text);
-        let pairs: Vec<(&str, usize, usize)> =
-            toks.iter().map(|t| (t.text.as_str(), t.start, t.end)).collect();
+        let pairs: Vec<(&str, usize, usize)> = toks
+            .iter()
+            .map(|t| (t.text.as_str(), t.start, t.end))
+            .collect();
         assert_eq!(
             pairs,
             vec![
@@ -86,7 +100,7 @@ mod tests {
         // char offsets to UTF-8 byte offsets so they align with our byte tokens.
         // (ASCII here, so byte==char.)
         let ents = vec![
-            (0usize, 9usize, "ORG".to_string()),    // "Acme Corp"
+            (0usize, 9usize, "ORG".to_string()),      // "Acme Corp"
             (16usize, 26usize, "PERSON".to_string()), // "Jeff Bezos"
         ];
         let bio = project_bio(&toks, &ents);

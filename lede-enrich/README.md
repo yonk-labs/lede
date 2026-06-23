@@ -29,6 +29,38 @@ let facts = correlate_facts("Apple grew. Apple reported revenue of $5 billion in
 assert_eq!(lemma("studies"), "study");
 ```
 
+### Typed NER (`crf` feature)
+
+The `crf` feature bundles a trained CRF model (6.4 MB gzipped) that extends
+entity extraction with 11 lexical type labels: `PERSON`, `NORP`, `FAC`, `ORG`,
+`GPE`, `LOC`, `PRODUCT`, `EVENT`, `WORK_OF_ART`, `LAW`, `LANGUAGE`.
+
+```toml
+lede-enrich = { version = "0.1", features = ["crf"] }
+```
+
+```rust
+use lede_enrich::extract_entities_typed;
+
+let ents = extract_entities_typed(
+    "Amazon was founded by Jeff Bezos in Seattle.",
+);
+// → [("Amazon", "ORG"), ("Jeff Bezos", "PERSON"), ("Seattle", "GPE")]
+```
+
+**Honest expectations:**
+
+- Typed labels and novel-entity recall are solid for well-capitalised,
+  Wikipedia-register text. High-frequency types (GPE, NORP, LANGUAGE) land at
+  F1 0.78–0.81 vs. the teacher; PERSON and ORG at ~0.65–0.70.
+- Lowercase-entity recall is **not guaranteed** — the model relies heavily on
+  capitalisation features.
+- Long-tail types (EVENT, WORK_OF_ART, PRODUCT, FAC, LAW) are noisy and
+  should not be used for precision-critical applications without fine-tuning.
+- See [`models/MODEL_CARD.md`](models/MODEL_CARD.md) for full corpus details,
+  per-type F1 table, training setup, and the licensing note that must be
+  resolved before any crates.io publish.
+
 ### Opt-in `pos` feature
 
 ```toml
