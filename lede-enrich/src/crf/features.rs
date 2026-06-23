@@ -14,6 +14,15 @@ const GAZETTEERS: &[(&str, &[&str])] = &[
     ("FIRST_NAMES", gazetteer::FIRST_NAMES),
     ("TITLES", gazetteer::TITLES),
     ("CALENDAR", gazetteer::CALENDAR),
+    // Expanded type-disambiguation lists (CRF features ONLY; generated
+    // src/crf/data.rs). PERSON <- surname/forename, GPE/LOC <- city/state,
+    // ORG <- org-word. The rule-based extract_entities does NOT use these, so
+    // its golden tests stay byte-identical.
+    ("SURNAME", super::data::SURNAMES),
+    ("FORENAME", super::data::FORENAMES),
+    ("CITY", super::data::CITIES),
+    ("STATE", super::data::US_STATES),
+    ("ORGWORD", super::data::ORG_WORDS),
 ];
 
 /// Feature strings for a single token. `pos` is the rule-based tag when the
