@@ -146,6 +146,43 @@ fn stats_extracts_tons_per_year() {
     assert!(counts.contains(&("2".to_string(), "tons per day".to_string())));
 }
 
+#[test]
+fn stats_currency_prefix_money() {
+    // T13h: currency code BEFORE number (e.g. "EUR 2.3 billion") is captured as money.
+    let r = stats("We spent EUR 2.3 billion on acquisitions and USD 5 million on R&D.");
+    let money: Vec<_> = r.iter().filter(|s| s.stat_type == "money").collect();
+    assert!(
+        money.iter().any(|s| s.value.contains("2.3")),
+        "EUR prefix not captured: {money:?}"
+    );
+    assert!(
+        money.iter().any(|s| s.value.contains('5')),
+        "USD prefix not captured: {money:?}"
+    );
+    for s in &money {
+        assert_eq!(s.unit, "usd");
+    }
+}
+
+#[test]
+fn stats_units_count() {
+    // T13h: '1,000 units' is captured as a count stat with unit 'units'.
+    let r = stats("We sold 1,000 units last quarter and 500 units this week.");
+    let counts: Vec<(String, String)> = r
+        .iter()
+        .filter(|s| s.stat_type == "count")
+        .map(|s| (s.value.clone(), s.unit.clone()))
+        .collect();
+    assert!(
+        counts.contains(&("1,000".to_string(), "units".to_string())),
+        "1,000 units not captured: {counts:?}"
+    );
+    assert!(
+        counts.contains(&("500".to_string(), "units".to_string())),
+        "500 units not captured: {counts:?}"
+    );
+}
+
 // ----- T13e: optional word-form number support via text2num -----
 
 #[cfg(feature = "wordforms")]

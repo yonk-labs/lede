@@ -38,3 +38,19 @@ fn empty_on_empty_text() {
     assert!(m.urls.is_empty());
     assert!(m.entities.is_empty());
 }
+
+#[test]
+fn currency_prefix_amounts() {
+    // T13h: currency code before number (e.g. "EUR 2.3 billion") captured as amount.
+    let m = metadata("We raised EUR 2.3 billion and spent USD 5 million.");
+    assert!(
+        m.amounts.iter().any(|a| a.contains("2.3")),
+        "EUR prefix not in amounts: {:?}",
+        m.amounts,
+    );
+    assert!(
+        m.amounts.iter().any(|a| a.contains('5')),
+        "USD prefix not in amounts: {:?}",
+        m.amounts,
+    );
+}
