@@ -25,6 +25,22 @@ const GAZETTEERS: &[(&str, &[&str])] = &[
     ("ORGWORD", super::data::ORG_WORDS),
 ];
 
+/// Gazetteer membership as O(1) lookups, built once. The lists (esp. the 2000+
+/// surnames) make a per-token linear `contains` scan dominate train + inference
+/// time; HashSets keep feature extraction fast (and the sub-ms inference promise).
+fn gaz_sets() -> &'static [(&'static str, std::collections::HashSet<String>)] {
+    use std::sync::OnceLock;
+    static SETS: OnceLock<Vec<(&'static str, std::collections::HashSet<String>)>> = OnceLock::new();
+    SETS.get_or_init(|| {
+        GAZETTEERS
+            .iter()
+            .map(|(name, list)| {
+                (*name, list.iter().map(|w| w.to_ascii_lowercase()).collect())
+            })
+            .collect()
+    })
+}
+
 /// Feature strings for a single token. `pos` is the rule-based tag when the
 /// `pos` feature is enabled upstream, else `None` (feature omitted, no hard dep).
 fn token_features(word: &str, pos: Option<&str>) -> Vec<String> {
@@ -63,8 +79,9 @@ fn token_features(word: &str, pos: Option<&str>) -> Vec<String> {
         f.push("has_digit".to_string());
     }
 
-    for (name, list) in GAZETTEERS {
-        if gazetteer::contains_ci(list, word) {
+    let lower = word.to_ascii_lowercase();
+    for (name, set) in gaz_sets() {
+        if set.contains(&lower) {
             f.push(format!("gaz={name}"));
         }
     }

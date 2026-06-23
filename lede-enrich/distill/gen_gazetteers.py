@@ -125,11 +125,52 @@ def census_surnames(n):
     return out
 
 
+GITHUB_FORENAMES_URL = "https://raw.githubusercontent.com/hadley/data-baby-names/master/baby-names.csv"
+
+
+def fetch_text(url):
+    for ua in _UAS:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": ua})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return r.read().decode("utf-8", "ignore")
+        except Exception:  # noqa: BLE001 — try next UA
+            continue
+    return None
+
+
+def github_forenames(n):
+    """Fallback forename source: hadley/data-baby-names CSV (year,name,percent,sex)."""
+    txt = fetch_text(GITHUB_FORENAMES_URL)
+    if not txt:
+        return None
+    counts = {}
+    for line in txt.splitlines()[1:]:
+        parts = line.split(",")
+        if len(parts) < 3:
+            continue
+        nm = parts[1].strip().strip('"').lower()
+        try:
+            pct = float(parts[2])
+        except ValueError:
+            continue
+        if nm.isalpha():
+            counts[nm] = counts.get(nm, 0.0) + pct
+    if not counts:
+        return None
+    return sorted(counts, key=lambda k: counts[k], reverse=True)[:n]
+
+
 def ssa_forenames(n):
     try:
         zf = fetch_zip(SSA_URL)
     except Exception as e:  # noqa: BLE001
-        print(f"  SSA download failed ({e}); using curated fallback forenames", file=sys.stderr)
+        print(f"  SSA blocked ({e}); trying GitHub baby-names mirror...", file=sys.stderr)
+        gh = github_forenames(n)
+        if gh:
+            print(f"  using GitHub mirror: {len(gh)} forenames", file=sys.stderr)
+            return gh
+        print("  GitHub mirror failed too; using curated fallback forenames", file=sys.stderr)
         return FALLBACK_FORENAMES
     counts = {}
     for fn in zf.namelist():
