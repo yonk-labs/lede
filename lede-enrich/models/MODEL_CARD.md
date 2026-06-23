@@ -91,6 +91,23 @@ The CRF beats the prior gazetteer-only baseline by 25 pp on untyped span F1.
 
 ---
 
+## Performance (measured, release build)
+
+Single-threaded, warm, averaged over 10,000 `extract_entities_typed` calls on
+mixed-length sentences:
+
+| Path | Latency / call | Throughput | Footprint | Runtime |
+|---|---|---|---|---|
+| Gazetteer (`extract_entities`, default) | ~1.5 µs | ~670k sent/s | ~0 (343-word lists) | pure Rust |
+| **CRF (`extract_entities_typed`, this feature)** | **~92 µs** | **~11k sent/s** | 6.4 MB in-crate (gzipped) | pure Rust |
+| Python spaCy (teacher) | ~5 ms¹ | ~200 sent/s | ~560 MB + Python | Python + spaCy |
+
+- **Cold start:** ~36 ms one-time on the first typed call (gunzip + model load via `OnceLock`); amortized to zero thereafter.
+- The CRF is **sub-millisecond (~92 µs)** — ~63× the gazetteer (the cost of the model) but ~50× faster and ~90× smaller than running Python spaCy.
+- ¹ spaCy latency from the `lede-spacy` README (`en_core_web_sm`, post-warmup).
+
+---
+
 ## Honest notes
 
 - **Typed PERSON/ORG ceiling (~0.65–0.70)** reflects the difficulty of
