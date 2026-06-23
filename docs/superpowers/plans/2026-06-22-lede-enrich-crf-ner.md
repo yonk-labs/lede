@@ -1097,32 +1097,41 @@ git commit -m "feat(lede-enrich): Entity type + BIO->span merge"
 - Consumes: `tokenize` (Task 5), `sequence_features` (Task 4), `merge` (Task 10), `crfs::{Model, Tagger, Attribute}`.
 - Produces: `pub fn extract_entities_typed(text: &str) -> Vec<Entity>`, exported from `lib.rs` in Step 2 below.
 
-- [ ] **Step 1: Commit the trained model artifact**
+- [ ] **Step 1: Model artifact + flate2 dep**
 
-Remove the gitignore line for the model so it can be bundled, then add it:
+The model is already committed **gzipped** as `lede-enrich/models/ner.crfsuite.gz` (6.4 MB; raw 16.7 MB). Nothing to un-ignore. Add `flate2` (used by inference to decompress at load) as an optional dep gated into `crf`, in `lede-enrich/Cargo.toml`:
 
-```bash
-cd lede-enrich
-sed -i '/models\/ner.crfsuite/d' .gitignore
-git add -f models/ner.crfsuite .gitignore
-git commit -m "chore(lede-enrich): bundle trained CRF NER model"
+```toml
+flate2 = { version = "1", optional = true }
 ```
-(If the model is large, note its size in the commit body; spec R-4.)
+and extend the feature: `crf = ["dep:crfs", "dep:serde_json", "dep:flate2"]`.
 
 - [ ] **Step 2: Implement inference**
 
-Add to `src/crf/mod.rs`:
+Add to `src/crf/mod.rs`. Note the crfs 0.4.1 realities (confirmed in Tasks 8): `Model::new(&[u8])` **borrows** the bytes (so the decompressed buffer must be `'static` — keep it in a `OnceLock<Vec<u8>>`), and `Tagger::tag` returns `Vec<&str>` (convert to `Vec<String>` before `merge`, which takes `&[String]`).
 
 ```rust
 use std::sync::OnceLock;
 
 use crfs::{Attribute, Model};
 
-static MODEL_BYTES: &[u8] = include_bytes!("../../models/ner.crfsuite");
+/// Bundled model, gzipped (6.4 MB vs 16.7 MB raw). Decompressed once at first use.
+static MODEL_GZ: &[u8] = include_bytes!("../../models/ner.crfsuite.gz");
 
-fn model() -> &'static Model {
-    static M: OnceLock<Model> = OnceLock::new();
-    M.get_or_init(|| Model::new(MODEL_BYTES).expect("bundled CRF model is valid"))
+fn model() -> &'static Model<'static> {
+    // The decompressed bytes live in a static OnceLock so the Model (which borrows
+    // them) can be `'static` and cached.
+    static BYTES: OnceLock<Vec<u8>> = OnceLock::new();
+    static M: OnceLock<Model<'static>> = OnceLock::new();
+    let bytes = BYTES.get_or_init(|| {
+        use std::io::Read;
+        let mut out = Vec::new();
+        flate2::read::GzDecoder::new(MODEL_GZ)
+            .read_to_end(&mut out)
+            .expect("bundled CRF model gunzips");
+        out
+    });
+    M.get_or_init(|| Model::new(bytes).expect("bundled CRF model is valid"))
 }
 
 /// Typed PERSON/ORG/GPE/… entities via the distilled CRF. Deterministic: fixed
@@ -1141,8 +1150,14 @@ pub fn extract_entities_typed(text: &str) -> Vec<Entity> {
         .iter()
         .map(|row| row.iter().map(|s| Attribute::new(s.as_str(), 1.0)).collect())
         .collect();
-    let mut tagger = model().tagger().expect("tagger");
-    let labels = tagger.tag(&xseq).unwrap_or_default();
+    let tagger = model().tagger().expect("tagger");
+    // crfs 0.4: tag returns Vec<&str>; merge wants &[String].
+    let labels: Vec<String> = tagger
+        .tag(&xseq)
+        .unwrap_or_default()
+        .into_iter()
+        .map(str::to_string)
+        .collect();
     merge(text, &toks, &labels)
 }
 ```
