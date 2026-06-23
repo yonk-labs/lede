@@ -30,7 +30,8 @@ from ..sentences import split_sentences
 # parity.
 _MONEY_RE = re.compile(
     r"(?P<value>\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?(?:\s+(?:million|billion|trillion|thousand)\b)?)"
-    r"|(?P<value2>\d[\d,]{0,18}(?:\.\d{1,4})?(?:\s+(?:million|billion|trillion|thousand)\b)?)\s*(?P<ccy>dollars?|USD|EUR|GBP|JPY|CHF)",
+    r"|(?P<value2>\d[\d,]{0,18}(?:\.\d{1,4})?(?:\s+(?:million|billion|trillion|thousand)\b)?)\s*(?P<ccy>dollars?|USD|EUR|GBP|JPY|CHF)"
+    r"|(?P<ccyp>USD|EUR|GBP|JPY|CHF)\s+(?P<value3>\d[\d,]{0,18}(?:\.\d{1,4})?(?:\s+(?:million|billion|trillion|thousand)\b)?)",
     re.IGNORECASE,
 )
 
@@ -58,7 +59,7 @@ _COUNT_RE = re.compile(
     r"(?P<value>\d{1,15}(?:,\d{3}){0,5})\s*(?P<unit>events?|users?|customers?|requests?"
     r"|per second|per minute|per hour|qps|rps|chunks?"
     r"|terabytes?|basis\s+points?"
-    r"|items?|documents?|lines?|entries?|records?|files?|actions?|sections?"
+    r"|items?|documents?|lines?|entries?|records?|files?|actions?|sections?|units?"
     r"|tons?\s+per\s+(?:year|month|day))",
     re.IGNORECASE,
 )
@@ -233,7 +234,7 @@ def _stats_regex_on(sent_orig: str, sent_sub: str, span_map: list[tuple[int, int
     for m in _MONEY_RE.finditer(sent_sub):
         # Pick the matched alternative to keep value crisp (digits w/ $ or
         # ccy word). The original-span emit is driven by whole-match start/end.
-        value_sub = m.group("value") or m.group("value2")
+        value_sub = m.group("value") or m.group("value2") or m.group("value3")
         # Use the original span text as the value so "eight dollars" emits
         # "eight" not "8". For money, most corpora are digit-only, but we
         # preserve consistency.
@@ -368,7 +369,7 @@ def stats(text: str, *, convert_word_names: bool = False) -> tuple[Stat, ...]:
         else:
             # Fast path: no span mapping, no imports, byte-identical to pre-T13e.
             for m in _MONEY_RE.finditer(sent):
-                value = m.group("value") or m.group("value2")
+                value = m.group("value") or m.group("value2") or m.group("value3")
                 out.append(Stat(
                     value=value,
                     unit="usd",

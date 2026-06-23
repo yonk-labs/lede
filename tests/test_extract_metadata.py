@@ -30,6 +30,17 @@ def test_metadata_no_entities_in_core():
     assert m.entities == ()
 
 
+def test_metadata_currency_prefix_amounts():
+    """T13h: currency code before number (e.g. 'EUR 2.3 billion') captured as amount."""
+    m = metadata("We raised EUR 2.3 billion and spent USD 5 million.")
+    assert any("2.3 billion" in a or "2.3" in a for a in m.amounts), (
+        f"EUR prefix not in amounts: {m.amounts}"
+    )
+    assert any("5 million" in a or "5" in a for a in m.amounts), (
+        f"USD prefix not in amounts: {m.amounts}"
+    )
+
+
 def test_metadata_empty_on_empty_text():
     m = metadata("")
     assert m.dates == ()

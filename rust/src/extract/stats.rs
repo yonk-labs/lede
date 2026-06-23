@@ -46,6 +46,7 @@ fn money_re() -> &'static Regex {
         Regex::new(concat!(
             r"(?i)(?P<a>\$\d[\d,]{0,18}(?:\.\d{1,4})?[KMB]?(?:\s+(?:million|billion|trillion|thousand)\b)?)",
             r"|(?P<b>\d[\d,]{0,18}(?:\.\d{1,4})?(?:\s+(?:million|billion|trillion|thousand)\b)?)\s*(?P<ccy>dollars?|USD|EUR|GBP|JPY|CHF)",
+            r"|(?P<ccyp>USD|EUR|GBP|JPY|CHF)\s+(?P<c>\d[\d,]{0,18}(?:\.\d{1,4})?(?:\s+(?:million|billion|trillion|thousand)\b)?)",
         ))
         .expect("static regex")
     })
@@ -93,7 +94,7 @@ fn count_re() -> &'static Regex {
             r"(?P<u>events?|users?|customers?|requests?|per second|per minute|",
             r"per hour|qps|rps|chunks?",
             r"|terabytes?|basis\s+points?",
-            r"|items?|documents?|lines?|entries?|records?|files?|actions?|sections?",
+            r"|items?|documents?|lines?|entries?|records?|files?|actions?|sections?|units?",
             r"|tons?\s+per\s+(?:year|month|day))",
         ))
         .expect("static regex")
@@ -143,6 +144,7 @@ fn emit_digit_only(sent: &str, out: &mut Vec<Stat>) {
         let value = caps
             .name("a")
             .or_else(|| caps.name("b"))
+            .or_else(|| caps.name("c"))
             .map(|x| x.as_str().to_string())
             .unwrap_or_default();
         out.push(Stat {
@@ -379,6 +381,7 @@ mod wordforms_impl {
             } else {
                 caps.name("a")
                     .or_else(|| caps.name("b"))
+                    .or_else(|| caps.name("c"))
                     .map(|x| x.as_str().to_string())
                     .unwrap_or_default()
             };

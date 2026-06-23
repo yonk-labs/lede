@@ -202,6 +202,24 @@ def test_stats_long_run_threshold_keeps_real_inputs():
     assert any(s.stat_type == "count" for s in out)
 
 
+def test_stats_currency_prefix_money():
+    """T13h: currency code BEFORE number (e.g. 'EUR 2.3 billion') is captured as money."""
+    r = stats("We spent EUR 2.3 billion on acquisitions and USD 5 million on R&D.")
+    money = [s for s in r if s.stat_type == "money"]
+    values = {s.value for s in money}
+    assert any("2.3 billion" in v or "2.3" in v for v in values), f"EUR prefix not captured: {values}"
+    assert any("5 million" in v or "5" in v for v in values), f"USD prefix not captured: {values}"
+    assert all(s.unit == "usd" for s in money)
+
+
+def test_stats_units_count():
+    """T13h: '1,000 units' is captured as a count stat with unit 'units'."""
+    r = stats("We sold 1,000 units last quarter and 500 units this week.")
+    counts = [(s.value, s.unit) for s in r if s.stat_type == "count"]
+    assert ("1,000", "units") in counts, f"1,000 units not captured: {counts}"
+    assert ("500", "units") in counts, f"500 units not captured: {counts}"
+
+
 def test_stats_bounded_quantifier_matches_everyday_tokens():
     cases = [
         ("Revenue grew 23 percent.", "percent", "23"),
