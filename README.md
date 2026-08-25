@@ -126,6 +126,11 @@ terms = top_terms(text, n=10)
 Returns the top-N salient words and/or phrases using TF-IDF + phrase frequency.
 Accepts the same `hints` kwargs as the other ranking primitives.
 
+The Rust core also ships `extract::textrank::textrank_terms` (v0.5.0) — a
+term-level PageRank keyphrase backend, pure Rust and zero-dep. It's
+capability-parity with Python's `top_terms`, not byte-identical (different
+algorithm), so it's excluded from the fixture walker by design.
+
 ## What's new in v0.2
 
 lede v0.2 is the RAG-prep primitive: one call returns a summary plus structured enrichments that ride along.
@@ -192,6 +197,18 @@ Importing `lede_spacy` registers itself as a backend; `extract.metadata(text, ba
 `extract.phrases` and `extract.correlate_facts` ship with documented gold-vs-primitive design mismatches and are tracked for v0.3+. The other three primitives (`stats`, `outline`, `metadata`) all clear the SC-D quality gate (recall ≥ 0.85, precision ≥ 0.80) under the format-tolerant match rule. See [`docs/REFERENCE.md`](docs/REFERENCE.md) and [`benchmarks/quality/extraction-2026-04-26.md`](benchmarks/quality/extraction-2026-04-26.md).
 
 ## Install
+
+One-command installer (Mac/Linux/Windows) — detects Python and installs from PyPI:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yonk-labs/lede/main/install.sh | sh   # Mac/Linux
+```
+
+```powershell
+irm https://raw.githubusercontent.com/yonk-labs/lede/main/install.ps1 | iex        # Windows
+```
+
+Or install directly with pip:
 
 ```bash
 pip install lede                     # default: zero deps

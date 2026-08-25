@@ -60,6 +60,8 @@ def _read_input(path: str | None) -> str:
     # (the Rust CLI reads files as bytes and decodes UTF-8 explicitly).
     if path and path != "-":
         return Path(path).read_text(encoding="utf-8")
+    if sys.stdin.isatty():
+        print("Reading from stdin — paste text and press Ctrl-D (Ctrl-Z on Windows) to run, Ctrl-C to cancel.", file=sys.stderr)
     if hasattr(sys.stdin, "buffer"):
         return sys.stdin.buffer.read().decode("utf-8")
     return sys.stdin.read()

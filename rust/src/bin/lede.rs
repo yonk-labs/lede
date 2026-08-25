@@ -3,7 +3,7 @@
 //! Modes: `tfidf` (default), `keyword`, `clean_text`, `strip_think`.
 //! Reads FILE or stdin, writes the summary to stdout.
 
-use std::io::{Read, Write};
+use std::io::{IsTerminal, Read, Write};
 use std::process::ExitCode;
 
 #[derive(Debug)]
@@ -95,8 +95,14 @@ fn read_input(path: Option<&str>) -> std::io::Result<String> {
     match path {
         Some(p) if p != "-" => std::fs::read_to_string(p),
         _ => {
+            let stdin = std::io::stdin();
+            if stdin.is_terminal() {
+                eprintln!(
+                    "Reading from stdin — paste text and press Ctrl-D (Ctrl-Z on Windows) to run, Ctrl-C to cancel."
+                );
+            }
             let mut s = String::new();
-            std::io::stdin().read_to_string(&mut s)?;
+            stdin.lock().read_to_string(&mut s)?;
             Ok(s)
         }
     }
